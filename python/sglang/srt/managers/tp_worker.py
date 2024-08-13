@@ -60,6 +60,7 @@ from sglang.srt.utils import (
     suppress_other_loggers,
 )
 from sglang.utils import get_exception_traceback
+from sglang.srt.profile.process_scheduler import ProcessScheduler
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,7 @@ class ModelTpServer:
             context_length=server_args.context_length,
             model_overide_args=model_overide_args,
         )
+        self.profile_scheduler = ProcessScheduler()
         self.model_runner = ModelRunner(
             model_config=self.model_config,
             mem_fraction_static=server_args.mem_fraction_static,
@@ -106,6 +108,7 @@ class ModelTpServer:
             tp_size=server_args.tp_size,
             nccl_port=nccl_port,
             server_args=server_args,
+            profile_scheduler=self.profile_scheduler, 
         )
         if server_args.skip_tokenizer_init:
             self.tokenizer = self.processor = None
@@ -150,7 +153,6 @@ class ModelTpServer:
             f"max_running_requests={self.max_running_requests}, "
             f"context_len={self.model_config.context_len}"
         )
-
         # Init cache
         if (
             server_args.chunked_prefill_size is not None

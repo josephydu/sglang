@@ -59,7 +59,7 @@ from sglang.srt.utils import (
     monkey_patch_vllm_p2p_access_check,
     monkey_patch_vllm_qvk_linear_loader,
 )
-
+from sglang.srt.profile.process_scheduler import ProcessScheduler
 logger = logging.getLogger(__name__)
 
 
@@ -73,7 +73,9 @@ class ModelRunner:
         tp_size: int,
         nccl_port: int,
         server_args: ServerArgs,
+        profile_scheduler: ProcessScheduler
     ):
+        self.profile_scheduler = profile_scheduler
         # Parse args
         self.model_config = model_config
         self.mem_fraction_static = mem_fraction_static
@@ -133,6 +135,8 @@ class ModelRunner:
         self.init_cublas()
         self.init_flashinfer()
 
+        self.plot_count = 0
+        
         if self.is_generation:
             # FIXME Currently, cuda graph only capture decode steps, which only exists in causal models
             # Capture cuda graphs
@@ -389,6 +393,17 @@ class ModelRunner:
         )
 
     def forward(self, batch: ScheduleBatch, forward_mode: ForwardMode):
+        if batch.input_ids is not None:
+            self.plot_count += 1
+            p = self.profile_scheduler.create_process(write_batch_data, (self.profile_scheduler.get_shared_object(), batch.input_ids.numel(), self.token_to_kv_pool.available_size(), forward_mode, self.token_to_kv_pool.size))
+            self.profile_scheduler.start_process(p)
+            self.profile_scheduler.join_process(p)
+
+            # self.profile_scheduler.print_profile_data()
+            if self.plot_count % 100 == 0:
+                self.profile_scheduler.plot_profile_data()
+                # self.profile_scheduler.print_profile_data()
+        
         if self.is_multimodal_model and forward_mode == ForwardMode.EXTEND:
             return self.forward_extend_multi_modal(batch)
         elif forward_mode == ForwardMode.DECODE:
@@ -399,6 +414,11 @@ class ModelRunner:
             raise ValueError(f"Invaid forward mode: {forward_mode}")
 
 
+def write_batch_data(shared_object, batch_data, mem_data, type, max_size):
+    shared_object.batch_data.append(batch_data)
+    shared_object.mem_data.append(mem_data)
+    shared_object.type.append(type)
+    shared_object.max_size = max_size
 @lru_cache()
 def import_model_classes():
     model_arch_name_to_cls = {}
