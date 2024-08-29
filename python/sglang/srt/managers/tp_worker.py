@@ -23,7 +23,6 @@ import time
 import warnings
 from multiprocessing import shared_memory
 from typing import Any, List, Optional, Union
-from multiprocessing import shared_memory
 
 import torch
 import torch.distributed
@@ -63,7 +62,6 @@ from sglang.srt.utils import (
     suppress_other_loggers,
 )
 from sglang.utils import get_exception_traceback
-from sglang.srt.managers.io_struct import ControllerInfo
 
 logger = logging.getLogger(__name__)
 
@@ -80,22 +78,22 @@ class ModelTpServer:
         server_args: ServerArgs,
         nccl_port: int,
         model_overide_args: dict,
-        controller_info: Optional[ControllerInfo]=None,
-        dp_worker_id: Optional[int]=None,
+        controller_info: Optional[ControllerInfo] = None,
+        dp_worker_id: Optional[int] = None,
     ):
-        
+
         suppress_other_loggers()
 
         # Copy arguments
         self.gpu_id = gpu_id
         self.tp_rank = tp_rank
-        
+
         self.dp_rank = dp_worker_id
         self.tp_size = server_args.tp_size
         self.dp_size = server_args.dp_size
         self.schedule_policy = server_args.schedule_policy
         self.disable_regex_jump_forward = server_args.disable_regex_jump_forward
-        
+
         # Chunked prefill
         self.chunked_prefill_size = server_args.chunked_prefill_size
         self.current_inflight_req = None
@@ -276,9 +274,8 @@ class ModelTpServer:
                     self.forward_decode_batch(self.running_batch)
 
                     # Print stats
-                    if self.tp_rank == 0 and self.decode_forward_ct % 1 == 0:
-                        # self.print_decode_stats()
-                        pass
+                    if self.tp_rank == 0 and self.decode_forward_ct % 40 == 0:
+                        self.print_decode_stats()
 
                     if self.running_batch.is_empty():
                         self.running_batch = None
@@ -305,9 +302,13 @@ class ModelTpServer:
             f"gen throughput (token/s): {throughput:.2f}, "
             f"#queue-req: {len(self.waiting_queue)}"
         )
-        
-        with open(f"token_usage_gpu_{self.gpu_id}.log", mode='a+', encoding='utf-8') as f:
-            f.write(f"{self.gpu_id}\t\t{num_used / self.max_total_num_tokens:.2f}\t\t{len(self.waiting_queue)}\n")
+
+        with open(
+            f"token_usage_gpu_{self.gpu_id}.log", mode="a+", encoding="utf-8"
+        ) as f:
+            f.write(
+                f"{self.gpu_id}\t\t{num_used / self.max_total_num_tokens:.2f}\t\t{len(self.waiting_queue)}\n"
+            )
 
     def check_memory(self):
         available_size = (
@@ -443,7 +444,7 @@ class ModelTpServer:
             ) / 10**9
             self.tree_cache_metrics["hit"] += (adder.log_hit_tokens) / 10**9
 
-            try:            
+            try:
                 tree_cache_hit_rate = (
                     self.tree_cache_metrics["hit"] / self.tree_cache_metrics["total"]
                 )
@@ -492,8 +493,10 @@ class ModelTpServer:
                     if self.running_batch is not None
                     else 0
                 )
-                
-                self.controller_info.waiting_reqs[self.dp_rank].value = len(self.waiting_queue)
+
+                self.controller_info.waiting_reqs[self.dp_rank].value = len(
+                    self.waiting_queue
+                )
         if self.model_runner.is_generation:
             # Forward and sample the next tokens
             if batch.extend_num_tokens != 0:
@@ -641,10 +644,12 @@ class ModelTpServer:
             num = 0
             for req in retracted_reqs:
                 num += len(req.fill_ids)
-            
+
             if self.controller_info is not None:
                 with self.controller_info.lock:
-                    self.controller_info.waiting_prefill_compute[self.dp_rank].value += num
+                    self.controller_info.waiting_prefill_compute[
+                        self.dp_rank
+                    ].value += num
             self.waiting_queue.extend(retracted_reqs)
         else:
             self.new_token_ratio = max(
@@ -671,8 +676,10 @@ class ModelTpServer:
                 self.controller_info.running_reqs[self.dp_rank].value = (
                     batch.batch_size()
                 )
-                
-                self.controller_info.waiting_reqs[self.dp_rank].value = len(self.waiting_queue)
+
+                self.controller_info.waiting_reqs[self.dp_rank].value = len(
+                    self.waiting_queue
+                )
 
         # Forward and sample the next tokens
         output = self.model_runner.forward(batch, ForwardMode.DECODE)
