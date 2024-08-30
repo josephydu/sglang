@@ -516,6 +516,8 @@ class ModelTpServer:
             self.running_batch.prepare_for_decode()
             batch.mix_with_running(self.running_batch)
             decoding_reqs = self.running_batch.reqs
+            self.running_batch = None
+            
             
         if self.controller_info:
             num = 0
@@ -534,7 +536,6 @@ class ModelTpServer:
                     if self.running_batch is not None
                     else 0
             )
-        self.running_batch = None
 
         if self.model_runner.is_generation:
             # Forward and sample the next tokens
