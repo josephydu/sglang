@@ -260,7 +260,7 @@ class ModelTpServer:
     @torch.inference_mode()
     def forward_step(self):
         if self.gpu_id == 0:
-            print(f"[forward step method]{self.tree_cache_queue.root_node.key}")
+            print(f"[forward step method]{self.tree_cache.root_node.key}")
         new_batch = self.get_new_prefill_batch()
 
         if new_batch is not None:
