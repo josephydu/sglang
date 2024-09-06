@@ -84,7 +84,7 @@ class PolicyScheduler:
             raise ValueError(f"Unknown schedule_policy: {self.policy}")
 
         # 将输出写入到指定文件
-        if len(waiting_queue > 0):
+        if len(waiting_queue) > 0:
             with open("prefix_indeces", "a") as f:
                 f.write(
                     "=============================================================================================\n"
