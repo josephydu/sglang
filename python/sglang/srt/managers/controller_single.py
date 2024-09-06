@@ -17,6 +17,7 @@ limitations under the License.
 
 import logging
 import multiprocessing
+import multiprocessing.connection
 from typing import List
 
 import zmq
@@ -45,12 +46,15 @@ class ControllerSingle:
         is_data_parallel_worker: bool,
         dp_worker_id: int,
         mp_queue: multiprocessing.Queue,
+        tree_cache_queue: multiprocessing.Queue,
     ):
         # Parse args
         self.tp_size = server_args.tp_size
         self.is_dp_worker = is_data_parallel_worker
         self.dp_worker_id = dp_worker_id
         self.mp_queue = mp_queue
+
+        self.tree_cache_queue = tree_cache_queue
 
         # Init inter-process communication
         context = zmq.Context(2)
@@ -86,6 +90,7 @@ class ControllerSingle:
             server_args,
             port_args.nccl_ports[dp_worker_id],
             model_override_args,
+            tree_cache_queue,
         )
         self.tp_cpu_group = self.tp_server.model_runner.tp_group.cpu_group
 
@@ -131,6 +136,7 @@ def start_controller_process(
     gpu_ids: List[int] = None,
     dp_worker_id: int = None,
     queue: multiprocessing.connection.Connection = None,
+    tree_cache_queue: multiprocessing.connection.Connection = None,
 ):
     """Start a controller process."""
     if is_data_parallel_worker:
@@ -154,6 +160,7 @@ def start_controller_process(
             is_data_parallel_worker,
             dp_worker_id,
             queue,
+            tree_cache_queue,
         )
     except Exception:
         pipe_writer.send(get_exception_traceback())

@@ -46,6 +46,7 @@ class LoadBalanceMethod(Enum):
 
     ROUND_ROBIN = auto()
     SHORTEST_QUEUE = auto()
+    PRE_RADIX = auto()
 
     @classmethod
     def from_str(cls, method: str):
@@ -62,6 +63,7 @@ class WorkerHandle:
 
     proc: multiprocessing.Process
     queue: multiprocessing.Queue
+    tree_cache_queue: multiprocessing.Queue
 
 
 class ControllerMulti:
@@ -91,6 +93,7 @@ class ControllerMulti:
         dispatch_lookup = {
             LoadBalanceMethod.ROUND_ROBIN: self.round_robin_scheduler,
             LoadBalanceMethod.SHORTEST_QUEUE: self.shortest_queue_scheduler,
+            LoadBalanceMethod.PRE_RADIX: self.pre_radix_scheduler,
         }
         self.dispatching = dispatch_lookup[self.load_balance_method]
 
@@ -108,6 +111,9 @@ class ControllerMulti:
 
         gpu_ids = list(range(dp_worker_id * tp_size, (dp_worker_id + 1) * tp_size))
         queue = multiprocessing.Queue()
+
+        tree_cache_queue = multiprocessing.Queue()
+
         proc = multiprocessing.Process(
             target=start_controller_process_single,
             args=(
@@ -119,6 +125,7 @@ class ControllerMulti:
                 gpu_ids,
                 dp_worker_id,
                 queue,
+                tree_cache_queue,
             ),
         )
         proc.start()
@@ -132,8 +139,13 @@ class ControllerMulti:
             WorkerHandle(
                 proc=proc,
                 queue=queue,
+                tree_cache_queue=tree_cache_queue,
             )
         )
+
+    def pre_radix_scheduler(self, input_requests):
+        print(f"[load balance method]{self.workers[0].tree_cache_queue.root_node.key}")
+        pass
 
     def round_robin_scheduler(self, input_requests):
         for r in input_requests:

@@ -83,17 +83,6 @@ class PolicyScheduler:
         else:
             raise ValueError(f"Unknown schedule_policy: {self.policy}")
 
-        # 将输出写入到指定文件
-        if len(waiting_queue) > 0:
-            with open("prefix_indeces", "a") as f:
-                f.write(
-                    "=============================================================================================\n"
-                )
-                for r in waiting_queue:
-                    f.write(
-                        f"[{gpu_id}] ============================== {len(r.prefix_indices)}\n"
-                    )
-
         return prefix_computed
 
     def calc_weight(self, cur_node: TreeNode, node_to_weight: Dict):

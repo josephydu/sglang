@@ -77,6 +77,7 @@ class ModelTpServer:
         server_args: ServerArgs,
         nccl_port: int,
         model_override_args: dict,
+        tree_cache_queue: multiprocessing.Queue,
     ):
         suppress_other_loggers()
 
@@ -87,6 +88,8 @@ class ModelTpServer:
         self.dp_size = server_args.dp_size
         self.schedule_policy = server_args.schedule_policy
         self.disable_regex_jump_forward = server_args.disable_regex_jump_forward
+
+        self.tree_cache_queue = tree_cache_queue
 
         # Init model and tokenizer
         self.model_config = ModelConfig(
@@ -167,6 +170,9 @@ class ModelTpServer:
                 token_to_kv_pool=self.model_runner.token_to_kv_pool,
                 disable=server_args.disable_radix_cache,
             )
+
+            self.tree_cache_queue.put(self.tree_cache)
+
         self.tree_cache_metrics = {"total": 0, "hit": 0}
         self.scheduler = PolicyScheduler(self.schedule_policy, self.tree_cache)
         self.req_to_token_pool = self.model_runner.req_to_token_pool
@@ -253,6 +259,8 @@ class ModelTpServer:
 
     @torch.inference_mode()
     def forward_step(self):
+        if self.gpu_id == 0:
+            print(f"[forward step method]{self.tree_cache_queue.root_node.key}")
         new_batch = self.get_new_prefill_batch()
 
         if new_batch is not None:
