@@ -403,7 +403,7 @@ class ModelTpServer:
             return None
 
         # Get priority queue
-        prefix_computed = self.scheduler.calc_priority(self.waiting_queue)
+        prefix_computed = self.scheduler.calc_priority(self.waiting_queue, self.gpu_id)
 
         num_mixed_running = running_bs if self.is_mixed_chunk else 0
 

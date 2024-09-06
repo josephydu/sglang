@@ -41,7 +41,7 @@ class PolicyScheduler:
         self.policy = policy
         self.tree_cache = tree_cache
 
-    def calc_priority(self, waiting_queue: List[Req]):
+    def calc_priority(self, waiting_queue: List[Req], gpu_id: int):
         # Compute matched prefix length
         prefix_computed = False
         if self.policy in ["lpm", "dfs-weight"]:
@@ -82,6 +82,13 @@ class PolicyScheduler:
             )
         else:
             raise ValueError(f"Unknown schedule_policy: {self.policy}")
+
+        # 将输出写入到指定文件
+        with open("prefix_indeces", "a") as f:
+            for r in waiting_queue:
+                f.write(
+                    f"[{self.gpu}] ============================== {len(r.prefix_indices)}\n"
+                )
 
         return prefix_computed
 
