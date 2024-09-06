@@ -87,7 +87,7 @@ class PolicyScheduler:
         with open("prefix_indeces", "a") as f:
             for r in waiting_queue:
                 f.write(
-                    f"[{self.gpu}] ============================== {len(r.prefix_indices)}\n"
+                    f"[{gpu_id}] ============================== {len(r.prefix_indices)}\n"
                 )
 
         return prefix_computed
