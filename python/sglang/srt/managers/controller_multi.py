@@ -23,6 +23,7 @@ import logging
 import multiprocessing
 from enum import Enum, auto
 from multiprocessing import Manager
+from typing import Any
 
 import numpy as np
 import zmq
@@ -117,9 +118,9 @@ class ControllerMulti:
         self.tree_cache_namespace.tree_cache_list = RadixCacheList()
 
         for i in range(server_args.dp_size):
-            self.start_dp_worker(i)
+            self.start_dp_worker(i, self.tree_cache_namespace)
 
-    def start_dp_worker(self, dp_worker_id: int):
+    def start_dp_worker(self, dp_worker_id: int, tree_cache_namespace: Any):
         tp_size = self.server_args.tp_size
 
         pipe_controller_reader, pipe_controller_writer = multiprocessing.Pipe(
@@ -140,7 +141,7 @@ class ControllerMulti:
                 gpu_ids,
                 dp_worker_id,
                 queue,
-                self.tree_cache_namespace,
+                tree_cache_namespace,
             ),
         )
         proc.start()
