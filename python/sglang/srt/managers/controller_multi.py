@@ -109,8 +109,8 @@ class ControllerMulti:
         self.workers = []
 
         manager = Manager()
-
-        self.tree_cache_list = manager.RadixCacheList()
+        self.tree_cache_namespace = manager.Namespace()
+        self.tree_cache_namespace.tree_cache_list = RadixCacheList()
 
         for i in range(server_args.dp_size):
             self.start_dp_worker(i)
@@ -136,7 +136,7 @@ class ControllerMulti:
                 gpu_ids,
                 dp_worker_id,
                 queue,
-                self.tree_cache_list,
+                self.tree_cache_namespace,
             ),
         )
         proc.start()
@@ -154,7 +154,7 @@ class ControllerMulti:
         )
 
     def pre_radix_scheduler(self, input_requests):
-        print(f"[main thread]{len(self.tree_cache_list)}")
+        print(f"[main thread]{len(self.tree_cache_namespace.tree_cache_list)}")
         pass
 
     def round_robin_scheduler(self, input_requests):

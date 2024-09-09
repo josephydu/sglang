@@ -77,7 +77,7 @@ class ModelTpServer:
         server_args: ServerArgs,
         nccl_port: int,
         model_override_args: dict,
-        tree_cache_list: Any,
+        tree_cache_namespace: Any,
     ):
         suppress_other_loggers()
 
@@ -169,8 +169,8 @@ class ModelTpServer:
                 disable=server_args.disable_radix_cache,
             )
 
-            tree_cache_list.add_tree_cache(self.tree_cache)
-            print(f"{self.gpu_id}===>{len(tree_cache_list)}")
+            tree_cache_namespace.tree_cache_list.add_tree_cache(self.tree_cache)
+            print(f"{self.gpu_id}===>{len(tree_cache_namespace.tree_cache_list)}")
 
         self.tree_cache_metrics = {"total": 0, "hit": 0}
         self.scheduler = PolicyScheduler(self.schedule_policy, self.tree_cache)

@@ -46,7 +46,7 @@ class ControllerSingle:
         is_data_parallel_worker: bool,
         dp_worker_id: int,
         mp_queue: multiprocessing.Queue,
-        tree_cache_list: Any,
+        tree_cache_namespace: Any,
     ):
         # Parse args
         self.tp_size = server_args.tp_size
@@ -88,7 +88,7 @@ class ControllerSingle:
             server_args,
             port_args.nccl_ports[dp_worker_id],
             model_override_args,
-            tree_cache_list,
+            tree_cache_namespace,
         )
         self.tp_cpu_group = self.tp_server.model_runner.tp_group.cpu_group
 
@@ -134,7 +134,7 @@ def start_controller_process(
     gpu_ids: List[int] = None,
     dp_worker_id: int = None,
     queue: multiprocessing.connection.Connection = None,
-    tree_cache_list: Any = None,
+    tree_cache_namespace: Any = None,
 ):
     """Start a controller process."""
     if is_data_parallel_worker:
@@ -158,7 +158,7 @@ def start_controller_process(
             is_data_parallel_worker,
             dp_worker_id,
             queue,
-            tree_cache_list,
+            tree_cache_namespace,
         )
     except Exception:
         pipe_writer.send(get_exception_traceback())
