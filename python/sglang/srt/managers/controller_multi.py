@@ -85,7 +85,7 @@ def match_prefix_length(key, root_node):
     return max_prefix_length
 
 
-def _longest_common_prefix_length(self, s1, s2):
+def _longest_common_prefix_length(s1, s2):
     """
     计算两个字符串的最长公共前缀长度。
     """
