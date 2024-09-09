@@ -81,8 +81,8 @@ class RadixCacheList:
     def __init__(self, manager) -> None:
         self.tree_cache_list = manager.list()
 
-    def add_tree_cache(self, gpu_id, tree_cache):
-        self.tree_cache_list[gpu_id] = tree_cache
+    def add_tree_cache(self, tree_cache):
+        self.tree_cache_list.append(tree_cache)
         print(
             f"after add tree cache {tree_cache} and now len is {len(self.tree_cache_list)}"
         )

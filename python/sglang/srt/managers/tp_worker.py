@@ -169,7 +169,7 @@ class ModelTpServer:
                 disable=server_args.disable_radix_cache,
             )
 
-            tree_cache_list.add_tree_cache(gpu_id, self.tree_cache)
+            tree_cache_list.add_tree_cache(self.tree_cache)
 
         self.tree_cache_metrics = {"total": 0, "hit": 0}
         self.scheduler = PolicyScheduler(self.schedule_policy, self.tree_cache)
