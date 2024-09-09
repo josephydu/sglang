@@ -78,12 +78,13 @@ class RadixCache(BasePrefixCache):
         self.req_to_token_pool = req_to_token_pool
         self.token_to_kv_pool = token_to_kv_pool
         self.disable = disable
-        self.reset()
 
         context = zmq.Context()
         self.send_radix_tree = context.socket(zmq.PUSH)
         self.send_radix_tree.connect(f"tcp://127.0.0.1:10000")
         self.gpu_id = gpu_id
+
+        self.reset()
 
     ##### Public API #####
     def send_prefix_tree(self):
