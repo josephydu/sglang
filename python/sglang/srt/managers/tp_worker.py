@@ -77,7 +77,7 @@ class ModelTpServer:
         server_args: ServerArgs,
         nccl_port: int,
         model_override_args: dict,
-        tree_cache_queue: multiprocessing.Queue,
+        tree_cache_list: Any,
     ):
         suppress_other_loggers()
 
@@ -88,8 +88,6 @@ class ModelTpServer:
         self.dp_size = server_args.dp_size
         self.schedule_policy = server_args.schedule_policy
         self.disable_regex_jump_forward = server_args.disable_regex_jump_forward
-
-        self.tree_cache_queue = tree_cache_queue
 
         # Init model and tokenizer
         self.model_config = ModelConfig(
@@ -171,7 +169,8 @@ class ModelTpServer:
                 disable=server_args.disable_radix_cache,
             )
 
-            self.tree_cache_queue.put(self.tree_cache)
+            tree_cache_list.add_tree_cache(self.tree_cache)
+            print(f"{self.gpu_id}===>{len(tree_cache_list)}")
 
         self.tree_cache_metrics = {"total": 0, "hit": 0}
         self.scheduler = PolicyScheduler(self.schedule_policy, self.tree_cache)

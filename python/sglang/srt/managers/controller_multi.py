@@ -22,6 +22,7 @@ import dataclasses
 import logging
 import multiprocessing
 from enum import Enum, auto
+from multiprocessing import Manager
 
 import numpy as np
 import zmq
@@ -39,6 +40,14 @@ from sglang.srt.utils import configure_logger, kill_parent_process
 from sglang.utils import get_exception_traceback
 
 logger = logging.getLogger(__name__)
+
+
+class RadixCacheList:
+    def __init__(self) -> None:
+        self.tree_cache_list = []
+
+    def add_tree_cache(self, tree_cache):
+        self.tree_cache_list.append(tree_cache)
 
 
 class LoadBalanceMethod(Enum):
@@ -63,7 +72,6 @@ class WorkerHandle:
 
     proc: multiprocessing.Process
     queue: multiprocessing.Queue
-    tree_cache_queue: multiprocessing.Queue
 
 
 class ControllerMulti:
@@ -99,6 +107,11 @@ class ControllerMulti:
 
         # Start data parallel workers
         self.workers = []
+
+        manager = Manager()
+
+        self.tree_cache_list = manager.RadixCacheList()
+
         for i in range(server_args.dp_size):
             self.start_dp_worker(i)
 
@@ -112,8 +125,6 @@ class ControllerMulti:
         gpu_ids = list(range(dp_worker_id * tp_size, (dp_worker_id + 1) * tp_size))
         queue = multiprocessing.Queue()
 
-        tree_cache_queue = multiprocessing.Queue()
-
         proc = multiprocessing.Process(
             target=start_controller_process_single,
             args=(
@@ -125,7 +136,7 @@ class ControllerMulti:
                 gpu_ids,
                 dp_worker_id,
                 queue,
-                tree_cache_queue,
+                self.tree_cache_list,
             ),
         )
         proc.start()
@@ -139,12 +150,11 @@ class ControllerMulti:
             WorkerHandle(
                 proc=proc,
                 queue=queue,
-                tree_cache_queue=tree_cache_queue,
             )
         )
 
     def pre_radix_scheduler(self, input_requests):
-        print(f"[load balance method]{self.workers[0].tree_cache_queue.root_node.key}")
+        print(f"[main thread]{len(self.tree_cache_list)}")
         pass
 
     def round_robin_scheduler(self, input_requests):
