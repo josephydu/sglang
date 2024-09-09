@@ -51,6 +51,9 @@ class PolicyScheduler:
                     rid=r.rid, key=r.adjust_max_prefix_ids()
                 )
             prefix_computed = True
+        print(
+            f"gpu{gpu_id}\t\t{self.tree_cache.key}\t\t{self.tree_cache.value}\t\t{self.tree_cache.lock_ref}"
+        )
 
         if self.policy == "lpm":
             # Longest Prefix Match

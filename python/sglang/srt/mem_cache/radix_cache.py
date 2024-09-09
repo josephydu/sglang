@@ -87,6 +87,7 @@ class RadixCache(BasePrefixCache):
             value = torch.concat(value)
         else:
             value = torch.tensor([], dtype=torch.int32)
+
         return value, last_node[0]
 
     def insert(self, key: List, value=None):
