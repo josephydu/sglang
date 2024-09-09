@@ -22,7 +22,6 @@ import dataclasses
 import logging
 import multiprocessing
 from enum import Enum, auto
-from multiprocessing import Manager
 from typing import Any
 
 import numpy as np
@@ -81,8 +80,8 @@ class LoadBalanceMethod(Enum):
 class WorkerHandle:
     """Store the handle of a data parallel worker."""
 
-    proc: multiprocessing.Process
-    queue: multiprocessing.Queue
+    proc: mp.Process
+    queue: mp.Queue
 
 
 class ControllerMulti:
@@ -131,14 +130,12 @@ class ControllerMulti:
     ):
         tp_size = self.server_args.tp_size
 
-        pipe_controller_reader, pipe_controller_writer = multiprocessing.Pipe(
-            duplex=False
-        )
+        pipe_controller_reader, pipe_controller_writer = mp.Pipe(duplex=False)
 
         gpu_ids = list(range(dp_worker_id * tp_size, (dp_worker_id + 1) * tp_size))
-        queue = multiprocessing.Queue()
+        queue = mp.Queue()
 
-        proc = multiprocessing.Process(
+        proc = mp.Process(
             target=start_controller_process_single,
             args=(
                 self.server_args,
