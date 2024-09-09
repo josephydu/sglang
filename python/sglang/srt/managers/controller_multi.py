@@ -171,16 +171,17 @@ class ControllerMulti:
         # )
 
         tree_cache_list = self.tree_cache_list.get_tree_cache_list()
-        for i in len(tree_cache_list):
-            for j in len(input_requests):
-                r = input_requests[j]
-                prefix_indices, last_node = tree_cache_list[i].match_prefix(
-                    rid=r.rid, key=r.adjust_max_prefix_ids()
-                )
+        print(tree_cache_list)
+        # for i in len(tree_cache_list):
+        #     for j in len(input_requests):
+        #         r = input_requests[j]
+        #         prefix_indices, last_node = tree_cache_list[i].match_prefix(
+        #             rid=r.rid, key=r.adjust_max_prefix_ids()
+        #         )
 
-                print(
-                    f"tree_cache={i}\t\trequest={j}\t\tprefix_indices={prefix_indices}\t\tprefix_indices_len={len(prefix_indices)}\t\tlast_nod{last_node}"
-                )
+        #         print(
+        #             f"tree_cache={i}\t\trequest={j}\t\tprefix_indices={prefix_indices}\t\tprefix_indices_len={len(prefix_indices)}\t\tlast_nod{last_node}"
+        #         )
         self.round_robin_scheduler(input_requests=input_requests)
         pass
 
