@@ -55,7 +55,16 @@ def _key_match(key0: List, key1: List):
     return i
 
 
-from typing import Any
+import pickle
+from dataclasses import dataclass
+
+import zmq
+
+
+@dataclass
+class RadixCacheSend:
+    gpu_id: int
+    root_node: TreeNode
 
 
 class RadixCache(BasePrefixCache):
@@ -64,13 +73,26 @@ class RadixCache(BasePrefixCache):
         req_to_token_pool: ReqToTokenPool,
         token_to_kv_pool: BaseTokenToKVPool,
         disable: bool = False,
+        gpu_id: int = 0,
     ):
         self.req_to_token_pool = req_to_token_pool
         self.token_to_kv_pool = token_to_kv_pool
         self.disable = disable
         self.reset()
 
+        context = zmq.Context()
+        self.send_prefix_tree = context.socket(zmq.PUSH)
+        self.send_prefix_tree.connect(f"tcp://127.0.0.1:10000")
+        self.gpu_id = gpu_id
+
     ##### Public API #####
+    def send_prefix_tree(self):
+        self.send_prefix_tree.send_pyobj(
+            RadixCacheSend(
+                gpu_id=self.gpu_id,
+                root_node=self.root_node,
+            )
+        )
 
     def reset(self):
         self.root_node = TreeNode()
@@ -78,6 +100,8 @@ class RadixCache(BasePrefixCache):
         self.root_node.value = []
         self.root_node.lock_ref = 1
         self.evictable_size_ = 0
+
+        self.send_prefix_tree()
 
     def match_prefix(self, key: List, **kwargs):
         if self.disable:

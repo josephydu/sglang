@@ -77,7 +77,6 @@ class ModelTpServer:
         server_args: ServerArgs,
         nccl_port: int,
         model_override_args: dict,
-        tree_cache_list: Any,
     ):
         suppress_other_loggers()
 
@@ -168,8 +167,6 @@ class ModelTpServer:
                 token_to_kv_pool=self.model_runner.token_to_kv_pool,
                 disable=server_args.disable_radix_cache,
             )
-
-            tree_cache_list.add_tree_cache(self.tree_cache.root_node)
 
         self.tree_cache_metrics = {"total": 0, "hit": 0}
         self.scheduler = PolicyScheduler(self.schedule_policy, self.tree_cache)

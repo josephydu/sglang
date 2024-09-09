@@ -44,75 +44,6 @@ from sglang.utils import get_exception_traceback
 logger = logging.getLogger(__name__)
 
 
-def _key_match(key0, key1):
-    i = 0
-    for k0, k1 in zip(key0, key1):
-        if k0 != k1:
-            break
-        i += 1
-    return i
-
-
-def match_prefix_length(key, root_node):
-    """
-    返回与输入键匹配的最长前缀的长度。
-    """
-    current_node = root_node
-    max_prefix_length = 0
-    current_length = 0
-
-    while current_node:
-        # 查找当前节点中与key共享的最长前缀
-        prefix_length = _longest_common_prefix_length(
-            current_node.key, key[current_length:]
-        )
-        current_length += prefix_length
-
-        # 如果完全匹配当前节点的键，继续向下遍历
-        if prefix_length == len(current_node.key) and current_length < len(key):
-            max_prefix_length = current_length
-            # 寻找下一个匹配的子节点
-            next_char = key[current_length]
-            if next_char in current_node.children:
-                current_node = current_node.children[next_char]
-            else:
-                break
-        else:
-            # 部分匹配或完全匹配但已到达key的末尾
-            max_prefix_length = current_length
-            break
-
-    return max_prefix_length
-
-
-def _longest_common_prefix_length(s1, s2):
-    """
-    计算两个字符串的最长公共前缀长度。
-    """
-    max_len = min(len(s1), len(s2))
-    for i in range(max_len):
-        if s1[i] != s2[i]:
-            return i
-    return max_len
-
-
-class RadixCacheList:
-    def __init__(self, manager) -> None:
-        self.tree_cache_list = manager.list()
-
-    def add_tree_cache(self, tree_cache):
-        self.tree_cache_list.append(tree_cache)
-        print(
-            f"after add tree cache {tree_cache} and now len is {len(self.tree_cache_list)}"
-        )
-
-    def get_tree_cache_len(self):
-        return len(self.tree_cache_list)
-
-    def get_tree_cache_list(self):
-        return self.tree_cache_list
-
-
 class LoadBalanceMethod(Enum):
     """Load balance method."""
 
@@ -159,6 +90,9 @@ class ControllerMulti:
         self.recv_from_tokenizer = context.socket(zmq.PULL)
         self.recv_from_tokenizer.bind(f"tcp://127.0.0.1:{port_args.controller_port}")
 
+        self.recv_from_tree_cache = context.socket(zmq.PULL)
+        self.recv_from_tree_cache.bind(f"tcp://127.0.0.1:10000")
+
         # Dispatch method
         self.round_robin_counter = 0
         dispatch_lookup = {
@@ -170,9 +104,6 @@ class ControllerMulti:
 
         # Start data parallel workers
         self.workers = []
-
-        manager = Manager()
-        self.tree_cache_list = RadixCacheList(manager)
 
         for i in range(server_args.dp_size):
             self.start_dp_worker(i)
@@ -201,7 +132,6 @@ class ControllerMulti:
                 gpu_ids,
                 dp_worker_id,
                 queue,
-                self.tree_cache_list,
             ),
         )
         proc.start()
@@ -219,19 +149,19 @@ class ControllerMulti:
         )
 
     def pre_radix_scheduler(self, input_requests):
+        recv_radix_caches = []
+
+        while True:
+            try:
+                recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
+            except zmq.ZMQError:
+                break
+
+            recv_radix_caches.append(recv_radix_cache)
+
         if len(input_requests) == 0:
             return
-
-        tree_cache_list = self.tree_cache_list.get_tree_cache_list()
-        prefix_length = []
-        for i in range(len(tree_cache_list)):
-            tree_cache = tree_cache_list[i]
-            for j in range(len(input_requests)):
-                r = input_requests[j]
-                l = match_prefix_length(r.input_ids, tree_cache)
-                if l > 0:
-                    print(l)
-
+        print(len(recv_radix_caches))
         self.round_robin_scheduler(input_requests=input_requests)
 
     def round_robin_scheduler(self, input_requests):
