@@ -49,7 +49,9 @@ class RadixCacheList:
 
     def add_tree_cache(self, tree_cache):
         self.tree_cache_list.append(tree_cache)
-        print(f"after add tree cache...{len(self.tree_cache_list)}")
+        print(
+            f"after add tree cache {tree_cache} and now len is {len(self.tree_cache_list)}"
+        )
 
     def get_tree_cache_len(self):
         return len(self.tree_cache_list)
@@ -172,15 +174,19 @@ class ControllerMulti:
 
         tree_cache_list = self.tree_cache_list.get_tree_cache_list()
         for i in range(len(tree_cache_list)):
-            for j in range(len(input_requests)):
-                r = input_requests[j]
-                prefix_indices, last_node = tree_cache_list[i].match_prefix(
-                    rid=r.rid, key=r.adjust_max_prefix_ids()
-                )
+            import inspect
 
-                print(
-                    f"tree_cache={i}\t\trequest={j}\t\tprefix_indices={prefix_indices}\t\tprefix_indices_len={len(prefix_indices)}\t\tlast_nod{last_node}"
-                )
+            methods = inspect.getmembers(tree_cache_list[i], predicate=inspect.ismethod)
+            print(f"functiosn of tree_cache {methods}")
+            # for j in range(len(input_requests)):
+            #     r = input_requests[j]
+            #     prefix_indices, last_node = tree_cache_list[i].match_prefix(
+            #         rid=r.rid, key=r.adjust_max_prefix_ids()
+            #     )
+
+            #     print(
+            #         f"tree_cache={i}\t\trequest={j}\t\tprefix_indices={prefix_indices}\t\tprefix_indices_len={len(prefix_indices)}\t\tlast_nod{last_node}"
+            #     )
         self.round_robin_scheduler(input_requests=input_requests)
         pass
 
