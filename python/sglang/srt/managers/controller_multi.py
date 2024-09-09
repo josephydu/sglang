@@ -158,7 +158,7 @@ class ControllerMulti:
 
     def pre_radix_scheduler(self, input_requests):
         print(
-            f"[main thread]{len(self.tree_cache_namespace.tree_cache_list.get_tree_cache_len())}"
+            f"[main thread]{self.tree_cache_namespace.tree_cache_list.get_tree_cache_len()}"
         )
         pass
 
