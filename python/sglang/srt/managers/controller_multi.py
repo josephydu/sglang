@@ -149,19 +149,21 @@ class ControllerMulti:
         )
 
     def pre_radix_scheduler(self, input_requests):
+        if len(input_requests) == 0:
+            return
         recv_radix_caches = []
 
         while True:
             try:
                 recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
+
             except zmq.ZMQError:
                 break
 
             recv_radix_caches.append(recv_radix_cache)
 
-        if len(input_requests) == 0:
-            return
-        print(len(recv_radix_caches))
+        if len(recv_radix_caches) > 0:
+            print(recv_radix_caches)
         self.round_robin_scheduler(input_requests=input_requests)
 
     def round_robin_scheduler(self, input_requests):
