@@ -26,6 +26,7 @@ from multiprocessing import Manager
 from typing import Any
 
 import numpy as np
+import torch
 import zmq
 
 from sglang.srt.managers.controller_single import (
@@ -41,6 +42,39 @@ from sglang.srt.utils import configure_logger, kill_parent_process
 from sglang.utils import get_exception_traceback
 
 logger = logging.getLogger(__name__)
+
+
+def _key_match(key0, key1):
+    i = 0
+    for k0, k1 in zip(key0, key1):
+        if k0 != k1:
+            break
+        i += 1
+    return i
+
+
+def match_prefix_length(node, key):
+    if len(key) == 0 or node is None:
+        return 0
+
+    total_length = 0
+    current_node = node
+
+    while key:
+        if key[0] in current_node.children:
+            child = current_node.children[key[0]]
+            prefix_len = _key_match(child.key, key)
+            if prefix_len == len(child.key):
+                total_length += prefix_len
+                key = key[prefix_len:]
+                current_node = child
+            else:
+                total_length += prefix_len
+                break
+        else:
+            break
+
+    return total_length
 
 
 class RadixCacheList:
@@ -168,20 +202,21 @@ class ControllerMulti:
     def pre_radix_scheduler(self, input_requests):
         if len(input_requests) == 0:
             return
-        # print(
-        #     f"[main thread]{self.tree_cache_namespace.tree_cache_list.get_tree_cache_len()}"
-        # )
 
         tree_cache_list = self.tree_cache_list.get_tree_cache_list()
+        prefix_length = []
         for i in range(len(tree_cache_list)):
-            print(
-                f"gpu{i}\t\t{tree_cache_list[i].key}\t\t{tree_cache_list[i].value}\t\t{tree_cache_list[i].lock_ref}"
-            )
-            # for j in range(len(input_requests)):
-            # r = input_requests[j]
+            node = tree_cache_list[i]
+            for j in range(len(input_requests)):
+                r = input_requests[j]
+                key = r.match_prefix_length()
+
+                res_len = match_prefix_length(node, key)
+
+                prefix_length.append(res_len)
 
         self.round_robin_scheduler(input_requests=input_requests)
-        pass
+        print(prefix_length)
 
     def round_robin_scheduler(self, input_requests):
         for r in input_requests:
