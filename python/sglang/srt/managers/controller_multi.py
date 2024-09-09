@@ -47,7 +47,6 @@ class RadixCacheList:
         self.tree_cache_list = []
 
     def add_tree_cache(self, tree_cache):
-        print(f"add tree_cache======{tree_cache}")
         self.tree_cache_list.append(tree_cache)
 
     def get_tree_cache_len(self):
@@ -158,9 +157,9 @@ class ControllerMulti:
         )
 
     def pre_radix_scheduler(self, input_requests):
-        print(
-            f"[main thread]{self.tree_cache_namespace.tree_cache_list.get_tree_cache_len()}"
-        )
+        # print(
+        #     f"[main thread]{self.tree_cache_namespace.tree_cache_list.get_tree_cache_len()}"
+        # )
         pass
 
     def round_robin_scheduler(self, input_requests):
