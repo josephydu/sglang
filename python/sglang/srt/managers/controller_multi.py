@@ -81,8 +81,8 @@ class RadixCacheList:
     def __init__(self, manager) -> None:
         self.tree_cache_list = manager.list()
 
-    def add_tree_cache(self, tree_cache):
-        self.tree_cache_list.append(tree_cache)
+    def add_tree_cache(self, gpu_id, tree_cache):
+        self.tree_cache_list[gpu_id] = tree_cache
         print(
             f"after add tree cache {tree_cache} and now len is {len(self.tree_cache_list)}"
         )
@@ -206,16 +206,10 @@ class ControllerMulti:
         tree_cache_list = self.tree_cache_list.get_tree_cache_list()
         prefix_length = []
         for i in range(len(tree_cache_list)):
-            node = tree_cache_list[i]
-            print(len(node.key))
-            print(len(node.value))
+            tree_cache = tree_cache_list[i]
             for j in range(len(input_requests)):
                 r = input_requests[j]
-                key = r.input_ids
-
-                res_len = match_prefix_length(node, key)
-
-                prefix_length.append(res_len)
+                print(tree_cache.match_prefix(rid=r.rid, key=r.input_ids))
 
         self.round_robin_scheduler(input_requests=input_requests)
 

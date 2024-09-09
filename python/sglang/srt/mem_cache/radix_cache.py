@@ -55,6 +55,9 @@ def _key_match(key0: List, key1: List):
     return i
 
 
+from typing import Any
+
+
 class RadixCache(BasePrefixCache):
     def __init__(
         self,

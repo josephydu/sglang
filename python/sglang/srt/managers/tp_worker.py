@@ -168,7 +168,8 @@ class ModelTpServer:
                 token_to_kv_pool=self.model_runner.token_to_kv_pool,
                 disable=server_args.disable_radix_cache,
             )
-            tree_cache_list.add_tree_cache(self.tree_cache.root_node)
+
+            tree_cache_list.add_tree_cache(gpu_id, self.tree_cache)
 
         self.tree_cache_metrics = {"total": 0, "hit": 0}
         self.scheduler = PolicyScheduler(self.schedule_policy, self.tree_cache)
@@ -256,12 +257,6 @@ class ModelTpServer:
 
     @torch.inference_mode()
     def forward_step(self):
-        if (
-            self.gpu_id == 0
-            and self.tree_cache.root_node is not None
-            and len(self.tree_cache.root_node.key) > 0
-        ):
-            print(f"[forward step method]{self.tree_cache.root_node.key}")
         new_batch = self.get_new_prefill_batch()
 
         if new_batch is not None:
