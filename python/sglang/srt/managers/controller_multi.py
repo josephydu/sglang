@@ -48,6 +48,7 @@ class RadixCacheList:
 
     def add_tree_cache(self, tree_cache):
         self.tree_cache_list.append(tree_cache)
+        print(f"after add tree cache...{len(self.tree_cache_list)}")
 
     def get_tree_cache_len(self):
         return len(self.tree_cache_list)
