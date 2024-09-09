@@ -54,6 +54,9 @@ class RadixCacheList:
     def get_tree_cache_len(self):
         return len(self.tree_cache_list)
 
+    def get_tree_cache_list(self):
+        return self.tree_cache_list
+
 
 class LoadBalanceMethod(Enum):
     """Load balance method."""
@@ -161,9 +164,24 @@ class ControllerMulti:
         )
 
     def pre_radix_scheduler(self, input_requests):
+        if len(input_requests == 0):
+            return
         # print(
         #     f"[main thread]{self.tree_cache_namespace.tree_cache_list.get_tree_cache_len()}"
         # )
+
+        tree_cache_list = self.tree_cache_list.get_tree_cache_list()
+        for i in len(tree_cache_list):
+            for j in len(input_requests):
+                r = input_requests[j]
+                prefix_indices, last_node = tree_cache_list[i].match_prefix(
+                    rid=r.rid, key=r.adjust_max_prefix_ids()
+                )
+
+                print(
+                    f"tree_cache={i}\t\trequest={j}\t\tprefix_indices={prefix_indices}\t\tprefix_indices_len={len(prefix_indices)}\t\tlast_nod{last_node}"
+                )
+        self.round_robin_scheduler(input_requests=input_requests)
         pass
 
     def round_robin_scheduler(self, input_requests):

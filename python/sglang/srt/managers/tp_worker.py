@@ -170,7 +170,6 @@ class ModelTpServer:
             )
 
             tree_cache_list.add_tree_cache(self.tree_cache)
-            print(f"{self.gpu_id}===>{tree_cache_list}")
 
         self.tree_cache_metrics = {"total": 0, "hit": 0}
         self.scheduler = PolicyScheduler(self.schedule_policy, self.tree_cache)
