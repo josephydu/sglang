@@ -174,11 +174,12 @@ class ControllerMulti:
 
         tree_cache_list = self.tree_cache_list.get_tree_cache_list()
         for i in range(len(tree_cache_list)):
-            for j in range(len(input_requests)):
-                r = input_requests[j]
-                print(
-                    f"{tree_cache_list[i]}\t\t{tree_cache_list[i].key}\t\t{tree_cache_list[i].value}\t\t{tree_cache_list[i].lock_ref}"
-                )
+            print(
+                f"gpu{i}\t\t{tree_cache_list[i].key}\t\t{tree_cache_list[i].value}\t\t{tree_cache_list[i].lock_ref}"
+            )
+            # for j in range(len(input_requests)):
+            # r = input_requests[j]
+
         self.round_robin_scheduler(input_requests=input_requests)
         pass
 
