@@ -209,7 +209,7 @@ class ControllerMulti:
             node = tree_cache_list[i]
             for j in range(len(input_requests)):
                 r = input_requests[j]
-                key = r.input_ids()
+                key = r.input_ids
 
                 res_len = match_prefix_length(node, key)
 
