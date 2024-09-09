@@ -207,6 +207,8 @@ class ControllerMulti:
         prefix_length = []
         for i in range(len(tree_cache_list)):
             node = tree_cache_list[i]
+            print(len(node.key))
+            print(len(node.value))
             for j in range(len(input_requests)):
                 r = input_requests[j]
                 key = r.input_ids
@@ -216,7 +218,6 @@ class ControllerMulti:
                 prefix_length.append(res_len)
 
         self.round_robin_scheduler(input_requests=input_requests)
-        print(prefix_length)
 
     def round_robin_scheduler(self, input_requests):
         for r in input_requests:
