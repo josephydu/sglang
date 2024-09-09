@@ -47,6 +47,7 @@ class RadixCacheList:
         self.tree_cache_list = []
 
     def add_tree_cache(self, tree_cache):
+        print(f"add tree_cache======{tree_cache}")
         self.tree_cache_list.append(tree_cache)
 
     def get_tree_cache_len(self):
@@ -111,8 +112,8 @@ class ControllerMulti:
         # Start data parallel workers
         self.workers = []
 
-        manager = Manager()
-        self.tree_cache_namespace = manager.Namespace()
+        self.manager = Manager()
+        self.tree_cache_namespace = self.manager.Namespace()
         self.tree_cache_namespace.tree_cache_list = RadixCacheList()
 
         for i in range(server_args.dp_size):
