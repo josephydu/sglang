@@ -26,6 +26,7 @@ from multiprocessing import Manager
 from typing import Any
 
 import numpy as np
+import torch.multiprocessing as mp
 import zmq
 
 from sglang.srt.managers.controller_single import (
@@ -118,7 +119,7 @@ class ControllerMulti:
         # Start data parallel workers
         self.workers = []
 
-        manager = Manager()
+        manager = mp.Manager()
         self.tree_cache_list = RadixCacheList(manager)
 
         for i in range(server_args.dp_size):
