@@ -164,7 +164,7 @@ class ControllerMulti:
         )
 
     def pre_radix_scheduler(self, input_requests):
-        if len(input_requests == 0):
+        if len(input_requests) == 0:
             return
         # print(
         #     f"[main thread]{self.tree_cache_namespace.tree_cache_list.get_tree_cache_len()}"
