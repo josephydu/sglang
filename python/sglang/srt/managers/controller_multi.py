@@ -53,28 +53,47 @@ def _key_match(key0, key1):
     return i
 
 
-def match_prefix_length(node, key):
-    if len(key) == 0 or node is None:
-        return 0
+def match_prefix_length(key, root_node):
+    """
+    返回与输入键匹配的最长前缀的长度。
+    """
+    current_node = root_node
+    max_prefix_length = 0
+    current_length = 0
 
-    total_length = 0
-    current_node = node
+    while current_node:
+        # 查找当前节点中与key共享的最长前缀
+        prefix_length = _longest_common_prefix_length(
+            current_node.key, key[current_length:]
+        )
+        current_length += prefix_length
 
-    while key:
-        if key[0] in current_node.children:
-            child = current_node.children[key[0]]
-            prefix_len = _key_match(child.key, key)
-            if prefix_len == len(child.key):
-                total_length += prefix_len
-                key = key[prefix_len:]
-                current_node = child
+        # 如果完全匹配当前节点的键，继续向下遍历
+        if prefix_length == len(current_node.key) and current_length < len(key):
+            max_prefix_length = current_length
+            # 寻找下一个匹配的子节点
+            next_char = key[current_length]
+            if next_char in current_node.children:
+                current_node = current_node.children[next_char]
             else:
-                total_length += prefix_len
                 break
         else:
+            # 部分匹配或完全匹配但已到达key的末尾
+            max_prefix_length = current_length
             break
 
-    return total_length
+    return max_prefix_length
+
+
+def _longest_common_prefix_length(self, s1, s2):
+    """
+    计算两个字符串的最长公共前缀长度。
+    """
+    max_len = min(len(s1), len(s2))
+    for i in range(max_len):
+        if s1[i] != s2[i]:
+            return i
+    return max_len
 
 
 class RadixCacheList:
@@ -209,7 +228,9 @@ class ControllerMulti:
             tree_cache = tree_cache_list[i]
             for j in range(len(input_requests)):
                 r = input_requests[j]
-                print(tree_cache.match_prefix(rid=r.rid, key=r.input_ids))
+                l = match_prefix_length(r.input_ids, tree_cache)
+                if l > 0:
+                    print(l)
 
         self.round_robin_scheduler(input_requests=input_requests)
 
