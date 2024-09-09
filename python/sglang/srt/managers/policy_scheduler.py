@@ -52,7 +52,7 @@ class PolicyScheduler:
                 )
             prefix_computed = True
         print(
-            f"gpu{gpu_id}\t\t{self.tree_cache.key}\t\t{self.tree_cache.value}\t\t{self.tree_cache.lock_ref}"
+            f"gpu{gpu_id}\t\t{self.tree_cache.root_node.key}\t\t{self.tree_cache.root_node.value}\t\t{self.tree_cache.root_node.lock_ref}"
         )
 
         if self.policy == "lpm":
