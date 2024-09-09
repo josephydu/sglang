@@ -22,10 +22,10 @@ import dataclasses
 import logging
 import multiprocessing
 from enum import Enum, auto
+from multiprocessing import Manager
 from typing import Any
 
 import numpy as np
-import torch.multiprocessing as mp
 import zmq
 
 from sglang.srt.managers.controller_single import (
@@ -80,8 +80,8 @@ class LoadBalanceMethod(Enum):
 class WorkerHandle:
     """Store the handle of a data parallel worker."""
 
-    proc: mp.Process
-    queue: mp.Queue
+    proc: multiprocessing.Process
+    queue: multiprocessing.Queue
 
 
 class ControllerMulti:
@@ -118,7 +118,7 @@ class ControllerMulti:
         # Start data parallel workers
         self.workers = []
 
-        manager = mp.Manager()
+        manager = Manager()
         self.tree_cache_list = RadixCacheList(manager)
 
         for i in range(server_args.dp_size):
@@ -130,12 +130,14 @@ class ControllerMulti:
     ):
         tp_size = self.server_args.tp_size
 
-        pipe_controller_reader, pipe_controller_writer = mp.Pipe(duplex=False)
+        pipe_controller_reader, pipe_controller_writer = multiprocessing.Pipe(
+            duplex=False
+        )
 
         gpu_ids = list(range(dp_worker_id * tp_size, (dp_worker_id + 1) * tp_size))
-        queue = mp.Queue()
+        queue = multiprocessing.Queue()
 
-        proc = mp.Process(
+        proc = multiprocessing.Process(
             target=start_controller_process_single,
             args=(
                 self.server_args,
@@ -175,7 +177,7 @@ class ControllerMulti:
             for j in range(len(input_requests)):
                 r = input_requests[j]
                 prefix_indices, last_node = tree_cache_list[i].match_prefix(
-                    rid=r.rid, key=r.adjust_max_prefix_ids()
+                    rid=r.rid.clone(), key=r.adjust_max_prefix_ids().clone()
                 )
 
                 print(
