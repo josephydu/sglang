@@ -44,8 +44,8 @@ logger = logging.getLogger(__name__)
 
 
 class RadixCacheList:
-    def __init__(self) -> None:
-        self.tree_cache_list = []
+    def __init__(self, manager) -> None:
+        self.tree_cache_list = manager.list()
 
     def add_tree_cache(self, tree_cache):
         self.tree_cache_list.append(tree_cache)
@@ -113,14 +113,16 @@ class ControllerMulti:
         # Start data parallel workers
         self.workers = []
 
-        self.manager = Manager()
-        self.tree_cache_namespace = self.manager.Namespace()
-        self.tree_cache_namespace.tree_cache_list = RadixCacheList()
+        manager = Manager()
+        self.tree_cache_list = RadixCacheList(manager)
 
         for i in range(server_args.dp_size):
-            self.start_dp_worker(i, self.tree_cache_namespace)
+            self.start_dp_worker(i)
 
-    def start_dp_worker(self, dp_worker_id: int, tree_cache_namespace: Any):
+    def start_dp_worker(
+        self,
+        dp_worker_id: int,
+    ):
         tp_size = self.server_args.tp_size
 
         pipe_controller_reader, pipe_controller_writer = multiprocessing.Pipe(
@@ -141,7 +143,7 @@ class ControllerMulti:
                 gpu_ids,
                 dp_worker_id,
                 queue,
-                tree_cache_namespace,
+                self.tree_cache_list,
             ),
         )
         proc.start()
