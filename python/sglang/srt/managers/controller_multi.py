@@ -163,18 +163,7 @@ class ControllerMulti:
 
             recv_radix_caches.append(recv_radix_cache)
 
-        original_stdout = sys.stdout
-
-        # 打开文件进行写操作
-        with open("recv_radix_caches.txt", "w") as file:
-            # 将标准输出重定向到文件
-            sys.stdout = file
-            try:
-                # 这里的 print 输出将被写入文件
-                print(recv_radix_caches)
-            finally:
-                # 恢复标准输出
-                sys.stdout = original_stdout
+        print(recv_radix_caches)
         self.round_robin_scheduler(input_requests=input_requests)
 
     def round_robin_scheduler(self, input_requests):
