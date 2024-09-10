@@ -234,7 +234,7 @@ class ControllerMulti:
 
     def create_handle_loop(self):
         loop = asyncio.get_event_loop()
-        loop.create_task(self.recv_from_tree_cache())
+        loop.create_task(self.recv_tree_cache())
 
 
 def start_controller_process(
