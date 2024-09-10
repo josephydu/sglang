@@ -66,16 +66,6 @@ class WorkerHandle:
     queue: multiprocessing.Queue
 
 
-filename = "recv_radix_caches.log"
-
-# 配置日志记录
-logging.basicConfig(
-    filename=filename,
-    level=logging.INFO,  # 设置日志级别
-    format="%(asctime)s - %(levelname)s - %(message)s",  # 设置日志格式
-)
-
-# 创建一个日志记录器
 logger = logging.getLogger(__name__)
 
 
