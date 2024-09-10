@@ -41,8 +41,6 @@ from sglang.srt.server_args import PortArgs, ServerArgs
 from sglang.srt.utils import configure_logger, kill_parent_process
 from sglang.utils import get_exception_traceback
 
-logger = logging.getLogger(__name__)
-
 
 class LoadBalanceMethod(Enum):
     """Load balance method."""
@@ -78,7 +76,7 @@ logging.basicConfig(
 )
 
 # 创建一个日志记录器
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class ControllerMulti:
@@ -118,6 +116,8 @@ class ControllerMulti:
 
         # Start data parallel workers
         self.workers = []
+
+        self.newest_tree_cache = {}
 
         for i in range(server_args.dp_size):
             self.start_dp_worker(i)
@@ -167,9 +167,6 @@ class ControllerMulti:
         if len(input_requests) == 0:
             return
 
-        # 使用字典来存储每个 gpu_id 的最新数据
-        latest_cache = {}
-
         while True:
             try:
                 recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
@@ -178,13 +175,13 @@ class ControllerMulti:
 
             gpu_id = recv_radix_cache.gpu_id
             if (
-                gpu_id not in latest_cache
-                or recv_radix_cache.time > latest_cache[gpu_id].time
+                gpu_id not in self.newest_tree_cache
+                or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
             ):
-                latest_cache[gpu_id] = recv_radix_cache
+                self.newest_tree_cache[gpu_id] = recv_radix_cache
 
         # 使用日志记录器记录信息
-        logger.info(f"latest_cache={latest_cache}")
+        logger.info(f"latest_cache={self.newest_tree_cache}")
 
         self.round_robin_scheduler(input_requests=input_requests)
 
