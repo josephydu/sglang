@@ -157,22 +157,6 @@ class ControllerMulti:
         if len(input_requests) == 0:
             return
 
-        while True:
-            try:
-                recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
-            except zmq.ZMQError:
-                break
-
-            gpu_id = recv_radix_cache.gpu_id
-            if (
-                gpu_id not in self.newest_tree_cache
-                or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
-            ):
-                self.newest_tree_cache[gpu_id] = recv_radix_cache
-
-        # 使用日志记录器记录信息
-        logger.info(f"latest_cache={self.newest_tree_cache}")
-
         self.round_robin_scheduler(input_requests=input_requests)
 
     def round_robin_scheduler(self, input_requests):
@@ -191,7 +175,25 @@ class ControllerMulti:
     def loop_for_forward(self):
         while True:
             recv_reqs = self.recv_requests()
+            self.recv_tree_cache()
             self.dispatching(recv_reqs)
+
+    def recv_tree_cache(self):
+        while True:
+            try:
+                recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
+            except zmq.ZMQError:
+                break
+
+            gpu_id = recv_radix_cache.gpu_id
+            if (
+                gpu_id not in self.newest_tree_cache
+                or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
+            ):
+                self.newest_tree_cache[gpu_id] = recv_radix_cache
+
+        # 使用日志记录器记录信息
+        logger.info(f"latest_cache={self.newest_tree_cache}")
 
     def recv_requests(self):
         recv_reqs = []
