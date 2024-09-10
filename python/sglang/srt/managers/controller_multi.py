@@ -109,8 +109,6 @@ class ControllerMulti:
 
         self.newest_tree_cache = {}
 
-        self.cnt = 0
-
         for i in range(server_args.dp_size):
             self.start_dp_worker(i)
 
@@ -181,7 +179,7 @@ class ControllerMulti:
             self.dispatching(recv_reqs)
 
     def recv_tree_cache(self):
-        self.cnt += 1
+        flag = False
         while True:
             try:
                 recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
@@ -194,10 +192,11 @@ class ControllerMulti:
                 or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
             ):
                 self.newest_tree_cache[gpu_id] = recv_radix_cache
+                flag = True
 
         # 使用日志记录器记录信息
-        if self.cnt % 20 == 0:
-            logger.info(f"latest_cache={self.newest_tree_cache}\n")
+        if flag:
+            logger.info(f"latest_cache={self.newest_tree_cache}")
 
     def recv_requests(self):
         recv_reqs = []
