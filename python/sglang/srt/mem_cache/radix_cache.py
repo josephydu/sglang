@@ -116,6 +116,9 @@ class RadixCache(BasePrefixCache):
         else:
             value = torch.tensor([], dtype=torch.int32)
 
+        # match会改变树的结构，因此match之后更新树节点
+        self.send_prefix_tree()
+
         return value, last_node[0]
 
     def insert(self, key: List, value=None):
@@ -124,7 +127,13 @@ class RadixCache(BasePrefixCache):
 
         if value is None:
             value = [x for x in key]
-        return self._insert_helper(self.root_node, key, value)
+
+        res = self._insert_helper(self.root_node, key, value)
+
+        # insert会改变树的结构
+        self.send_prefix_tree()
+
+        return res
 
     def cache_finished_req(self, req: Req, token_ids: Optional[List[int]] = None):
         """Cache request when it finishes."""
@@ -204,6 +213,9 @@ class RadixCache(BasePrefixCache):
 
             if len(x.parent.children) == 0:
                 heapq.heappush(leaves, x.parent)
+
+        # 会改变树的结构
+        self.send_prefix_tree()
 
     def inc_lock_ref(self, node: TreeNode):
         if self.disable:
