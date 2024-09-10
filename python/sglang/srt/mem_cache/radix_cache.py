@@ -55,8 +55,10 @@ def _key_match(key0: List, key1: List):
     return i
 
 
+import pickle
 from dataclasses import dataclass
 
+import redis
 import zmq
 
 
@@ -64,7 +66,7 @@ import zmq
 class RadixCacheSend:
     gpu_id: int
     root_node: TreeNode
-    time: time
+    # time: time
 
 
 class RadixCache(BasePrefixCache):
@@ -78,21 +80,27 @@ class RadixCache(BasePrefixCache):
         self.req_to_token_pool = req_to_token_pool
         self.token_to_kv_pool = token_to_kv_pool
         self.disable = disable
-
-        context = zmq.Context()
-        self.send_radix_tree = context.socket(zmq.PUSH)
-        self.send_radix_tree.connect(f"tcp://127.0.0.1:10000")
         self.gpu_id = gpu_id
+
+        # context = zmq.Context()
+        # self.send_radix_tree = context.socket(zmq.PUSH)
+        # self.send_radix_tree.connect(f"tcp://127.0.0.1:10000")
+
+        self.redis = redis.Redis(host="localhost", port=6379, db=0)
+        self.redis_key = {f"gpu_{gpu_id}"}
 
         self.reset()
 
     ##### Public API #####
     def send_prefix_tree(self):
-        self.send_radix_tree.send_pyobj(
-            RadixCacheSend(
-                gpu_id=self.gpu_id, root_node=self.root_node, time=time.time()
-            )
-        )
+        # self.send_radix_tree.send_pyobj(
+        #     RadixCacheSend(
+        #         gpu_id=self.gpu_id, root_node=self.root_node
+        #     )
+        # )
+        messages = pickle.dumps(self.root_node)
+
+        self.redis.set(self.redis_key, messages)
 
     def reset(self):
         self.root_node = TreeNode()

@@ -67,7 +67,10 @@ class WorkerHandle:
 
 
 logger = logging.getLogger(__name__)
-import asyncio
+
+import pickle
+
+import redis
 
 
 class ControllerMulti:
@@ -93,8 +96,11 @@ class ControllerMulti:
         self.recv_from_tokenizer = context.socket(zmq.PULL)
         self.recv_from_tokenizer.bind(f"tcp://127.0.0.1:{port_args.controller_port}")
 
-        self.recv_from_tree_cache = context.socket(zmq.PULL)
-        self.recv_from_tree_cache.bind(f"tcp://127.0.0.1:10000")
+        # self.recv_from_tree_cache = context.socket(zmq.PULL)
+        # self.recv_from_tree_cache.bind(f"tcp://127.0.0.1:10000")
+
+        self.redis = redis.Redis(host="localhost", port=6379, db=0)
+        self.redis_keys = [f"gpu_{i}" for i in range(server_args.dp_size)]
 
         # Dispatch method
         self.round_robin_counter = 0
@@ -158,6 +164,16 @@ class ControllerMulti:
         if len(input_requests) == 0:
             return
 
+        flag = False
+        for key in self.redis_keys:
+            dump_data = self.redis.get(key)
+            if dump_data:
+                data = pickle.load(dump_data)
+                self.newest_tree_cache[key] = data
+                flag = True
+        if flag:
+            print(self.newest_tree_cache)
+
         self.round_robin_scheduler(input_requests=input_requests)
 
     def round_robin_scheduler(self, input_requests):
@@ -175,17 +191,16 @@ class ControllerMulti:
 
     def loop_for_forward(self):
         while True:
+            # self.recv_tree_cache()
 
             recv_reqs = self.recv_requests()
             self.dispatching(recv_reqs)
 
-    async def recv_tree_cache(self):
+    def recv_tree_cache(self):
         flag = False
         while True:
             try:
-                recv_radix_cache = await self.recv_from_tree_cache.recv_pyobj(
-                    zmq.NOBLOCK
-                )
+                recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
             except zmq.ZMQError:
                 break
 
@@ -232,10 +247,6 @@ class ControllerMulti:
 
         return recv_reqs
 
-    def create_handle_loop(self):
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.recv_tree_cache())
-
 
 def start_controller_process(
     server_args: ServerArgs,
@@ -256,7 +267,6 @@ def start_controller_process(
     pipe_writer.send("init ok")
 
     try:
-        controller.create_handle_loop()
         controller.loop_for_forward()
     except Exception:
         logger.error("Exception in ControllerMulti:\n" + get_exception_traceback())
