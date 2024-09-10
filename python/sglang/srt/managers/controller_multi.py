@@ -164,7 +164,10 @@ class ControllerMulti:
             recv_radix_caches.append(recv_radix_cache)
 
         if len(recv_radix_caches) > 0:
-            print(recv_radix_caches)
+            filename = "recv_radix_caches.txt"
+            with open(filename, "w") as file:
+                file.write(recv_radix_caches)
+
         self.round_robin_scheduler(input_requests=input_requests)
 
     def round_robin_scheduler(self, input_requests):
