@@ -81,6 +81,7 @@ class RadixCache(BasePrefixCache):
 
         context = zmq.Context()
         self.send_radix_tree = context.socket(zmq.PUSH)
+        self.send_radix_tree.setsockopt(zmq.SNDHWM, 24)
         self.send_radix_tree.connect(f"tcp://127.0.0.1:10000")
         self.gpu_id = gpu_id
 
@@ -88,11 +89,15 @@ class RadixCache(BasePrefixCache):
 
     ##### Public API #####
     def send_prefix_tree(self):
-        self.send_radix_tree.send_pyobj(
-            RadixCacheSend(
-                gpu_id=self.gpu_id, root_node=self.root_node, time=time.time()
+        try:
+            self.send_radix_tree.send_pyobj(
+                RadixCacheSend(
+                    gpu_id=self.gpu_id, root_node=self.root_node, time=time.time()
+                ),
+                zmq.NOBLOCK,
             )
-        )
+        except zmq.Again as e:
+            print("Radix Cache Queue is full, drop out new radix cache tree")
 
     def reset(self):
         self.root_node = TreeNode()

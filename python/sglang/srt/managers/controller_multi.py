@@ -175,6 +175,10 @@ class ControllerMulti:
     def loop_for_forward(self):
         while True:
             recv_reqs = self.recv_requests()
+
+            if len(recv_reqs) == 0:
+                continue
+
             self.recv_tree_cache()
             self.dispatching(recv_reqs)
 
