@@ -17,10 +17,10 @@ limitations under the License.
 A controller that manages multiple data parallel workers.
 Each data parallel worker can manage multiple tensor parallel workers.
 """
-
 import dataclasses
 import logging
 import multiprocessing
+import sys
 from enum import Enum, auto
 from multiprocessing import Manager
 from typing import Any
@@ -163,13 +163,18 @@ class ControllerMulti:
 
             recv_radix_caches.append(recv_radix_cache)
 
-        if len(recv_radix_caches) > 0:
-            import pickle
+        original_stdout = sys.stdout
 
-            filename = "recv_radix_caches.pkl"
-            with open(filename, "w") as file:
-                pickle.dump(recv_radix_caches, file)
-
+        # 打开文件进行写操作
+        with open("recv_radix_caches.txt", "w") as file:
+            # 将标准输出重定向到文件
+            sys.stdout = file
+            try:
+                # 这里的 print 输出将被写入文件
+                print(recv_radix_caches)
+            finally:
+                # 恢复标准输出
+                sys.stdout = original_stdout
         self.round_robin_scheduler(input_requests=input_requests)
 
     def round_robin_scheduler(self, input_requests):
