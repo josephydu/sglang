@@ -68,6 +68,19 @@ class WorkerHandle:
     queue: multiprocessing.Queue
 
 
+filename = "recv_radix_caches.log"
+
+# 配置日志记录
+logging.basicConfig(
+    filename=filename,
+    level=logging.INFO,  # 设置日志级别
+    format="%(asctime)s - %(levelname)s - %(message)s",  # 设置日志格式
+)
+
+# 创建一个日志记录器
+logger = logging.getLogger()
+
+
 class ControllerMulti:
     """A controller that manages multiple data parallel workers."""
 
@@ -77,6 +90,7 @@ class ControllerMulti:
         port_args: PortArgs,
         model_override_args,
     ):
+
         # Parse args
         self.server_args = server_args
         self.port_args = port_args
@@ -163,7 +177,9 @@ class ControllerMulti:
 
             recv_radix_caches.append(recv_radix_cache)
 
-        print(recv_radix_caches)
+        # 使用日志记录器记录信息
+        logger.info(f"recv_radix_caches={recv_radix_caches}")
+
         self.round_robin_scheduler(input_requests=input_requests)
 
     def round_robin_scheduler(self, input_requests):
