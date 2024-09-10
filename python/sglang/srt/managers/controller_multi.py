@@ -67,6 +67,7 @@ class WorkerHandle:
 
 
 logger = logging.getLogger(__name__)
+import asyncio
 
 
 class ControllerMulti:
@@ -174,15 +175,17 @@ class ControllerMulti:
 
     def loop_for_forward(self):
         while True:
+
             recv_reqs = self.recv_requests()
-            # self.recv_tree_cache()
             self.dispatching(recv_reqs)
 
-    def recv_tree_cache(self):
+    async def recv_tree_cache(self):
         flag = False
         while True:
             try:
-                recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
+                recv_radix_cache = await self.recv_from_tree_cache.recv_pyobj(
+                    zmq.NOBLOCK
+                )
             except zmq.ZMQError:
                 break
 
@@ -229,6 +232,10 @@ class ControllerMulti:
 
         return recv_reqs
 
+    def create_handle_loop(self):
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.recv_from_tree_cache())
+
 
 def start_controller_process(
     server_args: ServerArgs,
@@ -249,6 +256,7 @@ def start_controller_process(
     pipe_writer.send("init ok")
 
     try:
+        controller.create_handle_loop()
         controller.loop_for_forward()
     except Exception:
         logger.error("Exception in ControllerMulti:\n" + get_exception_traceback())

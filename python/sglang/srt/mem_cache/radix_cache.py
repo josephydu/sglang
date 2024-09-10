@@ -88,12 +88,11 @@ class RadixCache(BasePrefixCache):
 
     ##### Public API #####
     def send_prefix_tree(self):
-        # self.send_radix_tree.send_pyobj(
-        #     RadixCacheSend(
-        #         gpu_id=self.gpu_id, root_node=self.root_node, time=time.time()
-        #     )
-        # )
-        pass
+        self.send_radix_tree.send_pyobj(
+            RadixCacheSend(
+                gpu_id=self.gpu_id, root_node=self.root_node, time=time.time()
+            )
+        )
 
     def reset(self):
         self.root_node = TreeNode()
