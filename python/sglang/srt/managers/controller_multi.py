@@ -167,7 +167,7 @@ class ControllerMulti:
         flag = False
         for key in self.redis_keys:
             dump_data = self.redis.get(key)
-            print(dump_data)
+            # print(dump_data)
             if dump_data:
                 data = pickle.loads(dump_data)
                 self.newest_tree_cache[key] = data
