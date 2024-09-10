@@ -166,19 +166,25 @@ class ControllerMulti:
     def pre_radix_scheduler(self, input_requests):
         if len(input_requests) == 0:
             return
-        recv_radix_caches = []
+
+        # 使用字典来存储每个 gpu_id 的最新数据
+        latest_cache = {}
 
         while True:
             try:
                 recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
-
             except zmq.ZMQError:
                 break
 
-            recv_radix_caches.append(recv_radix_cache)
+            gpu_id = recv_radix_cache.gpu_id
+            if (
+                gpu_id not in latest_cache
+                or recv_radix_cache.time > latest_cache[gpu_id].time
+            ):
+                latest_cache[gpu_id] = recv_radix_cache
 
         # 使用日志记录器记录信息
-        logger.info(f"recv_radix_caches={recv_radix_caches}")
+        logger.info(f"latest_cache={latest_cache}")
 
         self.round_robin_scheduler(input_requests=input_requests)
 
