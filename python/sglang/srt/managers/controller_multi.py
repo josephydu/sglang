@@ -164,9 +164,11 @@ class ControllerMulti:
             recv_radix_caches.append(recv_radix_cache)
 
         if len(recv_radix_caches) > 0:
-            filename = "recv_radix_caches.txt"
+            import json
+
+            filename = "recv_radix_caches.json"
             with open(filename, "w") as file:
-                file.write(recv_radix_caches)
+                json.dump(recv_radix_caches, file)
 
         self.round_robin_scheduler(input_requests=input_requests)
 
