@@ -55,7 +55,6 @@ def _key_match(key0: List, key1: List):
     return i
 
 
-import pickle
 from dataclasses import dataclass
 
 import zmq
@@ -65,6 +64,7 @@ import zmq
 class RadixCacheSend:
     gpu_id: int
     root_node: TreeNode
+    time: time
 
 
 class RadixCache(BasePrefixCache):
@@ -90,8 +90,7 @@ class RadixCache(BasePrefixCache):
     def send_prefix_tree(self):
         self.send_radix_tree.send_pyobj(
             RadixCacheSend(
-                gpu_id=self.gpu_id,
-                root_node=self.root_node,
+                gpu_id=self.gpu_id, root_node=self.root_node, time=time.time()
             )
         )
 
