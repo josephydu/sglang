@@ -123,7 +123,7 @@ class RadixCache(BasePrefixCache):
             value = torch.tensor([], dtype=torch.int32)
 
         # match会改变树的结构，因此match之后更新树节点
-        self.send_prefix_tree()
+        # self.send_prefix_tree()
 
         return value, last_node[0]
 

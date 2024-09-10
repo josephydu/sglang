@@ -175,12 +175,12 @@ class ControllerMulti:
 
     def loop_for_forward(self):
         while True:
+            self.recv_tree_cache()
             recv_reqs = self.recv_requests()
 
             if len(recv_reqs) == 0:
                 continue
 
-            self.recv_tree_cache()
             self.dispatching(recv_reqs)
 
     def recv_tree_cache(self):
@@ -201,7 +201,7 @@ class ControllerMulti:
 
         # 使用日志记录器记录信息
         if flag:
-            logger.info(f"latest_cache={self.newest_tree_cache}")
+            logger.info(f"latest_cache={len(self.newest_tree_cache)}")
 
     def recv_requests(self):
         recv_reqs = []
