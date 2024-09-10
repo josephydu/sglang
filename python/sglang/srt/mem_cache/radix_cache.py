@@ -87,7 +87,7 @@ class RadixCache(BasePrefixCache):
         # self.send_radix_tree.connect(f"tcp://127.0.0.1:10000")
 
         self.redis = redis.Redis(host="localhost", port=6379, db=0)
-        self.redis_key = {f"gpu_{gpu_id}"}
+        self.redis_key = f"gpu_{gpu_id}"
 
         self.reset()
 
