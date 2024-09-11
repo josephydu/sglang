@@ -77,8 +77,9 @@ import zmq
 class RadixCacheSend:
     gpu_id: int
     # root_node: TreeNode
-    key: TreeNode
-    value: TreeNode
+    key: []
+    value: []
+    children: TreeNode
     time: time
 
 
@@ -113,6 +114,7 @@ class RadixCache(BasePrefixCache):
                     gpu_id=self.gpu_id,
                     key=self.root_node.key,
                     value=self.root_node.value,
+                    children=self.root_node.children,
                     time=time.time(),
                 ),
                 zmq.NOBLOCK,
