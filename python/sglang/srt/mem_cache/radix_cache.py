@@ -105,9 +105,10 @@ class RadixCache(BasePrefixCache):
 
     ##### Public API #####
     def send_prefix_tree(self, node):
-        # print(
-        #     f"{self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
-        # )
+        time = time.time()
+        print(
+            f"[{time}]=={self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
+        )
         try:
             self.send_radix_tree.send_pyobj(
                 RadixCacheSend(
@@ -123,9 +124,9 @@ class RadixCache(BasePrefixCache):
             print(
                 "=======================================Radix Cache Queue is full, drop out new radix cache tree======================================="
             )
-        # print(
-        #     f"{self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
-        # )
+        print(
+            f"[{time}]=={self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
+        )
 
     def reset(self):
         self.root_node = TreeNode()
