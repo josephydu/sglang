@@ -147,7 +147,7 @@ class RadixCache(BasePrefixCache):
         res = self._insert_helper(self.root_node, key, value)
 
         # insert会改变树的结构
-        self.send_prefix_tree(deepcopy(self.root_node))
+        # self.send_prefix_tree(deepcopy(self.root_node))
 
         return res
 
