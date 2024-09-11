@@ -201,7 +201,8 @@ class ControllerMulti:
 
         # 使用日志记录器记录信息
         if flag:
-            logger.info(f"latest_cache={len(self.newest_tree_cache)}")
+            # logger.info(f"latest_cache={len(self.newest_tree_cache)}")
+            pass
 
     def recv_requests(self):
         recv_reqs = []
