@@ -67,6 +67,7 @@ class WorkerHandle:
 
 
 logger = logging.getLogger(__name__)
+import pickle
 
 
 class ControllerMulti:
@@ -93,7 +94,7 @@ class ControllerMulti:
         self.recv_from_tokenizer.bind(f"tcp://127.0.0.1:{port_args.controller_port}")
 
         context2 = zmq.Context()
-        self.recv_from_tree_cache = context2.socket(zmq.SUB)
+        self.recv_from_tree_cache = context2.socket(zmq.PULL)
         # self.recv_from_tree_cache.setsockopt(zmq.RCVHWM, 8)
         self.recv_from_tree_cache.bind(f"tcp://127.0.0.1:10000")
 
@@ -188,7 +189,9 @@ class ControllerMulti:
         flag = False
         while True:
             try:
-                recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
+                recv_radix_cache = pickle.loads(
+                    self.recv_from_tree_cache.recv(zmq.NOBLOCK)
+                )
             except zmq.ZMQError:
                 break
 
