@@ -20,6 +20,7 @@ The radix tree data structure for managing the KV cache.
 """
 
 import heapq
+import logging
 import time
 from collections import defaultdict
 from typing import TYPE_CHECKING, Callable, List, Optional
@@ -31,6 +32,8 @@ from sglang.srt.mem_cache.memory_pool import BaseTokenToKVPool, ReqToTokenPool
 
 if TYPE_CHECKING:
     from sglang.srt.managers.schedule_batch import Req
+
+logger = logging.getLogger(__name__)
 
 
 class TreeNode:
@@ -105,7 +108,7 @@ class RadixCache(BasePrefixCache):
 
     ##### Public API #####
     def send_prefix_tree(self, node):
-        print(
+        logger.info(
             f"[{time.time()}]=={self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
         )
         try:
@@ -120,10 +123,10 @@ class RadixCache(BasePrefixCache):
                 zmq.NOBLOCK,
             )
         except zmq.Again as e:
-            print(
+            logger.info(
                 "=======================================Radix Cache Queue is full, drop out new radix cache tree======================================="
             )
-        print(
+        logger.info(
             f"[{time.time()}]=={self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
         )
 
