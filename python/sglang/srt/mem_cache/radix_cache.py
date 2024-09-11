@@ -124,7 +124,7 @@ class RadixCache(BasePrefixCache):
                 "=======================================Radix Cache Queue is full, drop out new radix cache tree======================================="
             )
         print(
-            f"[{time}]=={self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
+            f"[{time.time()}]=={self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
         )
 
     def reset(self):
