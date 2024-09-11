@@ -19,8 +19,10 @@ processes (TokenizerManager, DetokenizerManager, Controller).
 """
 
 import copy
+import multiprocessing
 import uuid
 from dataclasses import dataclass, field
+from multiprocessing import Value
 from typing import Dict, List, Optional, Union
 
 from sglang.srt.managers.schedule_batch import BaseFinishReason
@@ -302,3 +304,15 @@ class UpdateWeightReqOutput:
 class AbortReq:
     # The request id
     rid: str
+
+
+class ControllerInfo:
+    def __init__(self, server_args, model_overide_args):
+        self.available_kv_cache = []
+        self.running_reqs = []
+        self.waiting_reqs = []
+        self.lock = multiprocessing.Lock()
+        for i in range(server_args.dp_size):
+            self.available_kv_cache.append(Value("i", 0))
+            self.running_reqs.append(Value("i", 0))
+            self.waiting_reqs.append(Value("i", 0))
