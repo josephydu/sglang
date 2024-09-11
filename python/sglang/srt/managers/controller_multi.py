@@ -58,6 +58,39 @@ class LoadBalanceMethod(Enum):
             raise ValueError(f"Invalid load balance method: {method}") from exc
 
 
+def _key_match(key0, key1):
+    i = 0
+    for k0, k1 in zip(key0, key1):
+        if k0 != k1:
+            break
+        i += 1
+    return i
+
+
+def match_length(self, node, key):
+    if len(key) == 0:
+        return 0
+
+    total_match_length = 0
+    current_node = node
+
+    while key:
+        if key[0] in current_node.children:
+            child = current_node.children[key[0]]
+            prefix_len = _key_match(child.key, key)
+            if prefix_len == len(child.key):
+                total_match_length += prefix_len
+                key = key[prefix_len:]
+                current_node = child
+            else:
+                total_match_length += prefix_len
+                break
+        else:
+            break
+
+    return total_match_length
+
+
 @dataclasses.dataclass
 class WorkerHandle:
     """Store the handle of a data parallel worker."""
@@ -67,7 +100,6 @@ class WorkerHandle:
 
 
 logger = logging.getLogger(__name__)
-import pickle
 
 
 class ControllerMulti:
@@ -157,6 +189,7 @@ class ControllerMulti:
 
     # TODO 找到哪些操作会改变树
     def pre_radix_scheduler(self, input_requests):
+
         if len(input_requests) == 0:
             return
 
@@ -189,9 +222,7 @@ class ControllerMulti:
         flag = False
         while True:
             try:
-                recv_radix_cache = pickle.loads(
-                    self.recv_from_tree_cache.recv(zmq.NOBLOCK)
-                )
+                recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
             except zmq.ZMQError:
                 break
 
@@ -205,7 +236,7 @@ class ControllerMulti:
 
         # 使用日志记录器记录信息
         if flag:
-            logger.info(f"latest_cache={(self.newest_tree_cache)}")
+            # logger.info(f"latest_cache={(self.newest_tree_cache)}")
             pass
 
     def recv_requests(self):

@@ -58,7 +58,6 @@ def _key_match(key0: List, key1: List):
     return i
 
 
-import pickle
 from copy import deepcopy
 from dataclasses import dataclass
 
@@ -98,15 +97,13 @@ class RadixCache(BasePrefixCache):
         # logger.info(
         #     f"[{time.time()}]=={self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
         # )
-        data = RadixCacheSend(
-            gpu_id=self.gpu_id,
-            time=time.time(),
-            root_node=self.root_node,
-        )
-        serialized_data = pickle.dumps(data)
         try:
-            self.send_radix_tree.send(
-                serialized_data,
+            self.send_radix_tree.send_pyobj(
+                RadixCacheSend(
+                    gpu_id=self.gpu_id,
+                    time=time.time(),
+                    root_node=deepcopy(self.root_node),
+                ),
                 zmq.NOBLOCK,
             )
         except zmq.Again as e:
