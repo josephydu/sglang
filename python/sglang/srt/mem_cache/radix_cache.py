@@ -144,7 +144,7 @@ class RadixCache(BasePrefixCache):
 
         res = self._insert_helper(self.root_node, key, value)
 
-        self.send_radix_tree()
+        self.send_prefix_tree()
         return res
 
     def cache_finished_req(self, req: Req, token_ids: Optional[List[int]] = None):
