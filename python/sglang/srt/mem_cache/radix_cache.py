@@ -76,7 +76,9 @@ import zmq
 @dataclass
 class RadixCacheSend:
     gpu_id: int
-    root_node: TreeNode
+    # root_node: TreeNode
+    key: TreeNode
+    value: TreeNode
     time: time
 
 
@@ -107,7 +109,12 @@ class RadixCache(BasePrefixCache):
         # )
         try:
             self.send_radix_tree.send_pyobj(
-                RadixCacheSend(gpu_id=self.gpu_id, root_node=None, time=time.time()),
+                RadixCacheSend(
+                    gpu_id=self.gpu_id,
+                    key=self.root_node.key,
+                    value=self.root_node.value,
+                    time=time.time(),
+                ),
                 zmq.NOBLOCK,
             )
         except zmq.Again as e:
