@@ -31,6 +31,8 @@ from sglang.srt.mem_cache.radix_cache import TreeNode
 # condition. The request can still generate tokens until it hits the unclipped max_new_tokens.
 CLIP_MAX_NEW_TOKENS = int(os.environ.get("SGLANG_CLIP_MAX_NEW_TOKENS", "4096"))
 
+logger = logging.getLogger(__name__)
+
 
 class PolicyScheduler:
     def __init__(self, policy: str, tree_cache: BasePrefixCache):
@@ -50,7 +52,9 @@ class PolicyScheduler:
                 r.prefix_indices, r.last_node = self.tree_cache.match_prefix(
                     rid=r.rid, key=r.adjust_max_prefix_ids()
                 )
-                print(f"[calc_priority] len_prefix_indices={len(r.prefix_indices)}")
+                logger.info(
+                    f"[calc_priority] len_prefix_indices={len(r.prefix_indices)}"
+                )
             prefix_computed = True
 
         if self.policy == "lpm":

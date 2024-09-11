@@ -174,7 +174,7 @@ class Req:
                 rid=self.rid, key=self.adjust_max_prefix_ids()
             )
 
-            print(
+            logger.info(
                 f"[init_next_round_input] len_prefix_indices={len(self.prefix_indices)}"
             )
         self.extend_input_len = len(self.fill_ids) - len(self.prefix_indices)
