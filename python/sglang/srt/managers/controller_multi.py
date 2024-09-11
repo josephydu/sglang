@@ -92,7 +92,8 @@ class ControllerMulti:
         self.recv_from_tokenizer = context.socket(zmq.PULL)
         self.recv_from_tokenizer.bind(f"tcp://127.0.0.1:{port_args.controller_port}")
 
-        self.recv_from_tree_cache = context.socket(zmq.PULL)
+        context2 = zmq.Context()
+        self.recv_from_tree_cache = context2.socket(zmq.PULL)
         self.recv_from_tree_cache.setsockopt(zmq.RCVHWM, 8)
         self.recv_from_tree_cache.bind(f"tcp://127.0.0.1:10000")
 

@@ -67,6 +67,7 @@ def _key_match(key0: List, key1: List):
     return i
 
 
+from copy import deepcopy
 from dataclasses import dataclass
 
 import zmq
@@ -100,24 +101,22 @@ class RadixCache(BasePrefixCache):
         self.reset()
 
     ##### Public API #####
-    def send_prefix_tree(self):
-        print(
-            f"{self.gpu_id}\t\t{self.root_node.key}\t\t{len(self.root_node.key)}\t\t{self.root_node.value}\t\t{len(self.root_node.value)}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
-        )
+    def send_prefix_tree(self, node):
+        # print(
+        #     f"{self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
+        # )
         try:
             self.send_radix_tree.send_pyobj(
-                RadixCacheSend(
-                    gpu_id=self.gpu_id, root_node=self.root_node, time=time.time()
-                ),
+                RadixCacheSend(gpu_id=self.gpu_id, root_node=node, time=time.time()),
                 zmq.NOBLOCK,
             )
         except zmq.Again as e:
             print(
                 "=======================================Radix Cache Queue is full, drop out new radix cache tree======================================="
             )
-        print(
-            f"{self.gpu_id}\t\t{self.root_node.key}\t\t{len(self.root_node.key)}\t\t{self.root_node.value}\t\t{len(self.root_node.value)}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
-        )
+        # print(
+        #     f"{self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
+        # )
 
     def reset(self):
         self.root_node = TreeNode()
@@ -126,7 +125,7 @@ class RadixCache(BasePrefixCache):
         self.root_node.lock_ref = 1
         self.evictable_size_ = 0
 
-        self.send_prefix_tree()
+        self.send_prefix_tree(deepcopy(self.root_node))
 
     def match_prefix(self, key: List, **kwargs):
         if self.disable:
@@ -155,7 +154,7 @@ class RadixCache(BasePrefixCache):
         res = self._insert_helper(self.root_node, key, value)
 
         # insert会改变树的结构
-        self.send_prefix_tree()
+        self.send_prefix_tree(deepcopy(self.root_node))
 
         return res
 
@@ -239,7 +238,7 @@ class RadixCache(BasePrefixCache):
                 heapq.heappush(leaves, x.parent)
 
         # 会改变树的结构
-        self.send_prefix_tree()
+        self.send_prefix_tree(deepcopy(self.root_node))
 
     def inc_lock_ref(self, node: TreeNode):
         if self.disable:
