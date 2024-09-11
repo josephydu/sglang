@@ -50,6 +50,7 @@ class PolicyScheduler:
                 r.prefix_indices, r.last_node = self.tree_cache.match_prefix(
                     rid=r.rid, key=r.adjust_max_prefix_ids()
                 )
+                print(f"[calc_priority] len_prefix_indices={len(r.prefix_indices)}")
             prefix_computed = True
 
         if self.policy == "lpm":
