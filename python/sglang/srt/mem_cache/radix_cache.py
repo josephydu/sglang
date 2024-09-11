@@ -78,7 +78,7 @@ class RadixCacheSend:
     gpu_id: int
     # root_node: TreeNode
     key: []
-    value: []
+    # value: []
     # children: TreeNode
     time: time
 
@@ -112,8 +112,8 @@ class RadixCache(BasePrefixCache):
             self.send_radix_tree.send_pyobj(
                 RadixCacheSend(
                     gpu_id=self.gpu_id,
-                    key=self.root_node.key,
-                    value=self.root_node.value,
+                    key=deepcopy(self.root_node.key),
+                    # value=self.root_node.value,
                     # children=self.root_node.children,
                     time=time.time(),
                 ),
