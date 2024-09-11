@@ -192,13 +192,13 @@ class ControllerMulti:
             except zmq.ZMQError:
                 break
 
-            gpu_id = recv_radix_cache.gpu_id
-            if (
-                gpu_id not in self.newest_tree_cache
-                or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
-            ):
-                self.newest_tree_cache[gpu_id] = recv_radix_cache
-                flag = True
+            # gpu_id = recv_radix_cache.gpu_id
+            # if (
+            #     gpu_id not in self.newest_tree_cache
+            #     or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
+            # ):
+            #     self.newest_tree_cache[gpu_id] = recv_radix_cache
+            #     flag = True
 
         # 使用日志记录器记录信息
         if flag:
