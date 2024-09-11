@@ -46,6 +46,18 @@ class TreeNode:
         return self.last_access_time < other.last_access_time
 
 
+def compare_tree_nodes(node1: TreeNode, node2: TreeNode) -> bool:
+    if not isinstance(node1, TreeNode) or not isinstance(node2, TreeNode):
+        return False
+    return (
+        node1.key == node2.key
+        and node1.value == node2.value
+        and node1.lock_ref == node2.lock_ref
+        and node1.last_access_time == node2.last_access_time
+        and node1.children == node2.children
+    )
+
+
 def _key_match(key0: List, key1: List):
     i = 0
     for k0, k1 in zip(key0, key1):
@@ -89,6 +101,9 @@ class RadixCache(BasePrefixCache):
 
     ##### Public API #####
     def send_prefix_tree(self):
+        print(
+            f"{self.gpu_id}\t\t{self.root_node.key}\t\t{len(self.root_node.key)}\t\t{self.root_node.value}\t\t{len(self.root_node.value)}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
+        )
         try:
             self.send_radix_tree.send_pyobj(
                 RadixCacheSend(
@@ -100,6 +115,9 @@ class RadixCache(BasePrefixCache):
             print(
                 "=======================================Radix Cache Queue is full, drop out new radix cache tree======================================="
             )
+        print(
+            f"{self.gpu_id}\t\t{self.root_node.key}\t\t{len(self.root_node.key)}\t\t{self.root_node.value}\t\t{len(self.root_node.value)}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
+        )
 
     def reset(self):
         self.root_node = TreeNode()
@@ -137,7 +155,7 @@ class RadixCache(BasePrefixCache):
         res = self._insert_helper(self.root_node, key, value)
 
         # insert会改变树的结构
-        # self.send_prefix_tree()
+        self.send_prefix_tree()
 
         return res
 
@@ -221,7 +239,7 @@ class RadixCache(BasePrefixCache):
                 heapq.heappush(leaves, x.parent)
 
         # 会改变树的结构
-        # self.send_prefix_tree()
+        self.send_prefix_tree()
 
     def inc_lock_ref(self, node: TreeNode):
         if self.disable:

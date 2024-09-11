@@ -168,7 +168,7 @@ class Req:
         return self.finished_reason is not None
 
     def init_next_round_input(self, tree_cache: Optional[BasePrefixCache] = None):
-        print(f"[in]init_next_round_input{tree_cache}")
+        # print(f"[in]init_next_round_input{tree_cache}")
         self.fill_ids = self.origin_input_ids + self.output_ids
         if tree_cache is not None:
             self.prefix_indices, self.last_node = tree_cache.match_prefix(
