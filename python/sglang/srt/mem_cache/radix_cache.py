@@ -107,7 +107,7 @@ class RadixCache(BasePrefixCache):
         # )
         try:
             self.send_radix_tree.send_pyobj(
-                RadixCacheSend(gpu_id=self.gpu_id, root_node=node, time=time.time()),
+                RadixCacheSend(gpu_id=self.gpu_id, root_node=None, time=time.time()),
                 zmq.NOBLOCK,
             )
         except zmq.Again as e:
