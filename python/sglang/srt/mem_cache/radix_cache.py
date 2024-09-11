@@ -137,7 +137,7 @@ class RadixCache(BasePrefixCache):
         res = self._insert_helper(self.root_node, key, value)
 
         # insert会改变树的结构
-        self.send_prefix_tree()
+        # self.send_prefix_tree()
 
         return res
 
@@ -221,7 +221,7 @@ class RadixCache(BasePrefixCache):
                 heapq.heappush(leaves, x.parent)
 
         # 会改变树的结构
-        self.send_prefix_tree()
+        # self.send_prefix_tree()
 
     def inc_lock_ref(self, node: TreeNode):
         if self.disable:

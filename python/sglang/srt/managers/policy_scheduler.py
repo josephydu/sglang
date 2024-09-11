@@ -42,7 +42,6 @@ class PolicyScheduler:
             policy = "fcfs"
 
         self.policy = policy
-        print(policy)
         self.tree_cache = tree_cache
 
     def calc_priority(self, waiting_queue: List[Req], gpu_id: int):
@@ -53,9 +52,6 @@ class PolicyScheduler:
                 # NOTE: the prefix_indices must always be aligned with last_node
                 r.prefix_indices, r.last_node = self.tree_cache.match_prefix(
                     rid=r.rid, key=r.adjust_max_prefix_ids()
-                )
-                logger.info(
-                    f"[calc_priority] len_prefix_indices={len(r.prefix_indices)}"
                 )
             prefix_computed = True
 
