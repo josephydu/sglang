@@ -84,8 +84,8 @@ class RadixCache(BasePrefixCache):
         self.disable = disable
 
         context = zmq.Context()
-        self.send_radix_tree = context.socket(zmq.PUSH)
-        self.send_radix_tree.setsockopt(zmq.SNDHWM, 8)
+        self.send_radix_tree = context.socket(zmq.PUB)
+        # self.send_radix_tree.setsockopt(zmq.SNDHWM, 8)
         self.send_radix_tree.connect(f"tcp://127.0.0.1:10000")
         self.gpu_id = gpu_id
 
