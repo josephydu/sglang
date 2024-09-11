@@ -430,6 +430,7 @@ class ModelTpServer:
             )
 
         for req in self.waiting_queue:
+            print(f"[out]prefix_computed{prefix_computed}")
             req.init_next_round_input(None if prefix_computed else self.tree_cache)
             res = adder.add_one_req(req)
             if (
