@@ -49,18 +49,6 @@ class TreeNode:
         return self.last_access_time < other.last_access_time
 
 
-def compare_tree_nodes(node1: TreeNode, node2: TreeNode) -> bool:
-    if not isinstance(node1, TreeNode) or not isinstance(node2, TreeNode):
-        return False
-    return (
-        node1.key == node2.key
-        and node1.value == node2.value
-        and node1.lock_ref == node2.lock_ref
-        and node1.last_access_time == node2.last_access_time
-        and node1.children == node2.children
-    )
-
-
 def _key_match(key0: List, key1: List):
     i = 0
     for k0, k1 in zip(key0, key1):
@@ -79,10 +67,7 @@ import zmq
 @dataclass
 class RadixCacheSend:
     gpu_id: int
-    # root_node: TreeNode
-    key: []
-    value: []
-    # children: TreeNode
+    root_node: TreeNode
     time: time
 
 
@@ -108,17 +93,13 @@ class RadixCache(BasePrefixCache):
 
     ##### Public API #####
     def send_prefix_tree(self, node):
-        logger.info(
-            f"[{time.time()}]=={self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
-        )
+        # logger.info(
+        #     f"[{time.time()}]=={self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
+        # )
         try:
             self.send_radix_tree.send_pyobj(
                 RadixCacheSend(
-                    gpu_id=self.gpu_id,
-                    key=deepcopy(self.root_node.key),
-                    value=deepcopy(self.root_node.value),
-                    # children=self.root_node.children,
-                    time=time.time(),
+                    gpu_id=self.gpu_id, time=time.time(), root_node=deepcopy(node)
                 ),
                 zmq.NOBLOCK,
             )
@@ -126,9 +107,9 @@ class RadixCache(BasePrefixCache):
             logger.info(
                 "=======================================Radix Cache Queue is full, drop out new radix cache tree======================================="
             )
-        logger.info(
-            f"[{time.time()}]=={self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
-        )
+        # logger.info(
+        #     f"[{time.time()}]=={self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
+        # )
 
     def reset(self):
         self.root_node = TreeNode()
