@@ -42,6 +42,7 @@ class PolicyScheduler:
             policy = "fcfs"
 
         self.policy = policy
+        print(policy)
         self.tree_cache = tree_cache
 
     def calc_priority(self, waiting_queue: List[Req], gpu_id: int):
