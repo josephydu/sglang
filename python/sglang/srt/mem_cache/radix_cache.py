@@ -91,15 +91,18 @@ class RadixCache(BasePrefixCache):
 
         self.reset()
 
-    ##### Public API #####
-    def send_prefix_tree(self, node):
+        self.send_prefix_tree()
+
+    def send_prefix_tree(self):
         # logger.info(
         #     f"[{time.time()}]=={self.gpu_id}\t\t{self.root_node.key}\t\t{self.root_node.value}\t\t{self.root_node.lock_ref}\t\t{self.root_node.last_access_time}"
         # )
         try:
             self.send_radix_tree.send_pyobj(
                 RadixCacheSend(
-                    gpu_id=self.gpu_id, time=time.time(), root_node=deepcopy(node)
+                    gpu_id=self.gpu_id,
+                    time=time.time(),
+                    root_node=deepcopy(self.root_node),
                 ),
                 zmq.NOBLOCK,
             )
@@ -118,8 +121,6 @@ class RadixCache(BasePrefixCache):
         self.root_node.lock_ref = 1
         self.evictable_size_ = 0
 
-        self.send_prefix_tree(deepcopy(self.root_node))
-
     def match_prefix(self, key: List, **kwargs):
         if self.disable:
             return [], self.root_node
@@ -132,9 +133,6 @@ class RadixCache(BasePrefixCache):
         else:
             value = torch.tensor([], dtype=torch.int32)
 
-        # match会改变树的结构，因此match之后更新树节点
-        # self.send_prefix_tree()
-
         return value, last_node[0]
 
     def insert(self, key: List, value=None):
@@ -146,9 +144,7 @@ class RadixCache(BasePrefixCache):
 
         res = self._insert_helper(self.root_node, key, value)
 
-        # insert会改变树的结构
-        # self.send_prefix_tree(deepcopy(self.root_node))
-
+        self.send_radix_tree()
         return res
 
     def cache_finished_req(self, req: Req, token_ids: Optional[List[int]] = None):
@@ -230,9 +226,6 @@ class RadixCache(BasePrefixCache):
             if len(x.parent.children) == 0:
                 heapq.heappush(leaves, x.parent)
 
-        # 会改变树的结构
-        self.send_prefix_tree(deepcopy(self.root_node))
-
     def inc_lock_ref(self, node: TreeNode):
         if self.disable:
             return 0
@@ -263,7 +256,6 @@ class RadixCache(BasePrefixCache):
         return self.evictable_size_
 
     ##### Internal Helper Functions #####
-
     def _match_prefix_helper(
         self, node: TreeNode, key: List, value, last_node: TreeNode
     ):
@@ -326,6 +318,7 @@ class RadixCache(BasePrefixCache):
             new_node.value = value
             node.children[key[0]] = new_node
             self.evictable_size_ += len(value)
+
         return 0
 
     def _print_helper(self, node: TreeNode, indent: int):
