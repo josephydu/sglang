@@ -199,11 +199,11 @@ class ControllerMulti:
         if len(input_requests) == 0:
             return
 
-        for r in input_requests:
-            prefix_length = [
-                match_length(tree_cache.root_node, r.input_ids)
-                for tree_cache in self.newest_tree_cache
-            ]
+            # for r in input_requests:
+            #     prefix_length = [
+            #         match_length(tree_cache.root_node, r.input_ids)
+            #         for tree_cache in self.newest_tree_cache
+            #     ]
             print(prefix_length)
 
         self.round_robin_scheduler(input_requests=input_requests)
