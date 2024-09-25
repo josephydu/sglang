@@ -205,19 +205,19 @@ class ControllerMultiFlex:
         if len(input_requests) == 0:
             return
 
-        # available_mem = [k.value for k in self.controller_info.available_kv_cache]
-        # num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
-        # num_reqs_running = [k.value for k in self.controller_info.running_reqs]
+        available_mem = [k.value for k in self.controller_info.available_kv_cache]
+        num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
+        num_reqs_running = [k.value for k in self.controller_info.running_reqs]
 
-        # all_waitting = False
-        # if min(num_reqs_waiting) > 0:
-        #     # 最小值都大于0，全部waiting
-        #     all_waitting = True
-        # else:
-        #     # 最小值都是0， 则全部waiting
-        #     all_waitting = False
-        # # 选出不waiting
-        # no_waiting = [1 if waiting == 0 else 0 for waiting in num_reqs_waiting]
+        all_waitting = False
+        if min(num_reqs_waiting) > 0:
+            # 最小值都大于0，全部waiting
+            all_waitting = True
+        else:
+            # 最小值都是0， 则全部waiting
+            all_waitting = False
+        # 选出不waiting
+        no_waiting = [1 if waiting == 0 else 0 for waiting in num_reqs_waiting]
 
         # num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
 
@@ -242,9 +242,9 @@ class ControllerMultiFlex:
                 #         )
                 #         futures.append(future)
 
-                #     for future in futures:
-                #         gpu_id, pre_len = future.result()
-                #         prefix_lens[gpu_id] = pre_len
+                # for future in futures:
+                #     gpu_id, pre_len = future.result()
+                #     prefix_lens[gpu_id] = pre_len
 
             # t4 = time.time()
             # with open("match.log", "a+") as f:
@@ -257,48 +257,33 @@ class ControllerMultiFlex:
 
             # logger.info(f"find max idx = {t8 - t7}")
 
-            if len(max_len_indices) == 1:
-                # t9 = time.time()
-                selected_worker_index = max_len_indices[0]
-                self.workers[selected_worker_index].queue.put(r)
-                # t10 = time.time()
-                # logger.info(f"len one = {t10 - t9}")
-                # t5 = time.time()
-                # logger.info(f"if time = {t5 - t4}")
+            # if len(max_len_indices) == 1 and all_waitting:
+            #     # t9 = time.time()
+            #     selected_worker_index = max_len_indices[0]
+            #     self.workers[selected_worker_index].queue.put(r)
+            #     # t10 = time.time()
+            #     # logger.info(f"len one = {t10 - t9}")
+            #     # t5 = time.time()
+            #     # logger.info(f"if time = {t5 - t4}")
+            # else:
+            # t11 = time.time()
+            if all_waitting:
+                index = random.choice(max_len_indices)
+
+                self.workers[index].queue.put(r)
+                num_reqs_waiting[index] += 1
+                available_mem[index] -= len(r.input_ids)
+
             else:
-                self.resources_aware_scheduler([r])
-                # t11 = time.time()
-                # if all_waitting:
-                #     # 全部waiting，选最小的
+                # 选出不waiting的且available mem最大的
+                # no_waiting 和available做乘法，找最大
 
-                #     ratio = [
-                #         run / wait
-                #         for run, wait in zip(num_reqs_running, num_reqs_waiting)
-                #     ]
+                filter_result = [a * b for a, b in zip(no_waiting, available_mem)]
+                index = filter_result.index(max(filter_result))
+                self.workers[index].queue.put(r)
 
-                #     # run越大 认为后续释放的可能性越多，wait越少，说明后续计算能力更强
-                #     min_value = max(ratio)
-                #     # 找到所有最小值的索引
-                #     min_indices = [i for i, x in enumerate(ratio) if x == min_value]
-                #     # 从这些索引中随机选择一个
-                #     index = random.choice(min_indices)
-                #     # 从waitting最小的找到available最大的
-                #     # index = max(min_indices, key=lambda i: available_mem[i])
-                #     # index = min(min_indices, key=lambda i: num_reqs_running[i])
-                #     self.workers[index].queue.put(r)
-                #     num_reqs_waiting[index] += 1
-                #     available_mem[index] -= len(r.input_ids)
-
-                # else:
-                #     # 选出不waiting的且available mem最大的
-                #     # no_waiting 和available做乘法，找最大
-
-                #     filter_result = [a * b for a, b in zip(no_waiting, available_mem)]
-                #     index = filter_result.index(max(filter_result))
-                #     self.workers[index].queue.put(r)
-
-                #     # num_reqs_running[index] += 1
-                #     available_mem[index] -= len(r.input_ids)
+                # num_reqs_running[index] += 1
+                available_mem[index] -= len(r.input_ids)
                 # t12 = time.time()
                 # logger.info(f"len two = {t12 - t11}")
                 # t5 = time.time()
