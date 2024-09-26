@@ -112,7 +112,7 @@ class RadixCache(BasePrefixCache):
             # if self.change_cnt != 0:
             # self.change_cnt -= 1
             self.put_radix_queue()
-            time.sleep(1)
+            time.sleep(0.5)
 
     def put_radix_queue(self):
         if self.pre_radix:

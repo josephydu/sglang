@@ -260,6 +260,15 @@ class ControllerMultiFlex:
 
             # logger.info(f"find max idx = {t8 - t7}")
 
+            if not all_waitting:
+                filter_result = [a * b for a, b in zip(no_waiting, available_mem)]
+                index = filter_result.index(max(filter_result))
+                self.workers[index].queue.put(r)
+
+                # num_reqs_running[index] += 1
+                available_mem[index] -= len(r.input_ids)
+                continue
+
             if len(max_len_indices) == 1:
                 # t9 = time.time()
                 selected_worker_index = max_len_indices[0]
