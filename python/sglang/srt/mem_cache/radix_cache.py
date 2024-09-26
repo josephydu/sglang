@@ -91,7 +91,7 @@ class RadixCache(BasePrefixCache):
             self.send_radix_tree.setsockopt(zmq.SNDHWM, 1000)
             self.send_radix_tree.connect(f"tcp://127.0.0.1:41935")
 
-            self.change_cnt_lock = threading.Lock()
+            # self.change_cnt_lock = threading.Lock()
 
             threading.Thread(target=self.loop_for_send_tree_cache).start()
 
@@ -104,11 +104,11 @@ class RadixCache(BasePrefixCache):
 
     def loop_for_send_tree_cache(self):
         while True:
-            with self.change_cnt_lock:
-                if self.change_cnt != 0:
-                    self.change_cnt -= 1
-                    self.send_prefix_tree()
-            time.sleep(0.5)
+            # with self.change_cnt_lock:
+            # if self.change_cnt != 0:
+            # self.change_cnt -= 1
+            self.send_prefix_tree()
+            time.sleep(1)
 
     def send_prefix_tree(self):
         # t1 = time.time()
@@ -166,9 +166,9 @@ class RadixCache(BasePrefixCache):
             value = [x for x in key]
         res = self._insert_helper(self.root_node, key, value)
 
-        if self.pre_radix:
-            with self.change_cnt_lock:
-                self.change_cnt += 1
+        # if self.pre_radix:
+        # with self.change_cnt_lock:
+        # self.change_cnt += 1
         return res
 
     def cache_finished_req(self, req: Req, token_ids: Optional[List[int]] = None):
@@ -254,9 +254,9 @@ class RadixCache(BasePrefixCache):
             if len(x.parent.children) == 0:
                 heapq.heappush(leaves, x.parent)
         # self.send_prefix_tree()
-        if self.pre_radix:
-            with self.change_cnt_lock:
-                self.change_cnt += 1
+        # if self.pre_radix:
+        # with self.change_cnt_lock:
+        # self.change_cnt += 1
 
     def inc_lock_ref(self, node: TreeNode):
         if self.disable:
