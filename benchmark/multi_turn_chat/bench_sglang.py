@@ -16,6 +16,7 @@ from sglang.utils import dump_state_text
 @sgl.function
 def multi_turns(s, qas):
     for qa in qas:
+        print(qa)
         s += qa["prompt"]
         s += sgl.gen(max_tokens=qa["new_tokens"], ignore_eos=True)
 
