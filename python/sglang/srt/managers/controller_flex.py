@@ -233,7 +233,7 @@ class ControllerMultiFlex:
                     pre_len = get_match_len(radix_cache.root_node, r.input_ids, 0)
                     # t_2 = time.time()
                     prefix_lens[gpu_id] = pre_len
-
+                logger.info(f"prefix_lens = {prefix_lens}")
                 # with ThreadPoolExecutor() as executor:
                 #     futures = []
                 #     for gpu_id, radix_cache in self.newest_tree_cache.items():
@@ -256,6 +256,7 @@ class ControllerMultiFlex:
             # t7 = time.time()
             max_len = max(prefix_lens)
             max_len_indices = [i for i, x in enumerate(prefix_lens) if x == max_len]
+
             # t8 = time.time()
 
             # logger.info(f"find max idx = {t8 - t7}")
@@ -274,7 +275,7 @@ class ControllerMultiFlex:
                 index = max_len_indices[0]
                 self.workers[index].queue.put(r)
 
-                logger.info(f"choose1==>[{index},{max_len}]")
+                # logger.info(f"choose1==>[{index},{max_len}]")
 
                 # t10 = time.time()
                 # logger.info(f"len one = {t10 - t9}")
