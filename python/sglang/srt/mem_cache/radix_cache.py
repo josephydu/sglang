@@ -97,7 +97,8 @@ class RadixCache(BasePrefixCache):
 
             # # self.change_cnt_lock = threading.Lock()
 
-            threading.Thread(target=self.loop_for_send_tree_cache).start()
+            multiprocessing.Process(target=self.loop_for_send_tree_cache).start()
+            # threading.Thread(target=self.loop_for_send_tree_cache).start()
 
         else:
             print(f"dp[{self.gpu_id}] will not use pre_radix....")

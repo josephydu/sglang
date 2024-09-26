@@ -160,8 +160,9 @@ class ControllerMultiFlex:
         self.cnt = 0
 
         if self.pre_radix:
-            self.recv_tree_cache_lock = threading.Lock()
-            threading.Thread(target=self.loop_for_recv_tree_cache).start()
+            # self.recv_tree_cache_lock = threading.Lock()
+            # threading.Thread(target=self.loop_for_recv_tree_cache).start()
+            multiprocessing.Process(target=self.loop_for_recv_tree_cache).start()
 
     def start_dp_worker(self, dp_worker_id: int):
         tp_size = self.server_args.tp_size
@@ -227,12 +228,12 @@ class ControllerMultiFlex:
         for r in input_requests:
             prefix_lens = [0] * self.dp_size
 
-            with self.recv_tree_cache_lock:
-                for gpu_id, radix_cache in self.newest_tree_cache.items():
-                    # t_1 = time.time()
-                    pre_len = get_match_len(radix_cache.root_node, r.input_ids, 0)
-                    # t_2 = time.time()
-                    prefix_lens[gpu_id] = pre_len
+            # with self.recv_tree_cache_lock:
+            for gpu_id, radix_cache in self.newest_tree_cache.items():
+                # t_1 = time.time()
+                pre_len = get_match_len(radix_cache.root_node, r.input_ids, 0)
+                # t_2 = time.time()
+                prefix_lens[gpu_id] = pre_len
 
                 # with ThreadPoolExecutor() as executor:
                 #     futures = []
@@ -442,8 +443,8 @@ class ControllerMultiFlex:
                 logger.info(f"scheduler time = {t2 - t1}")
 
     def loop_for_recv_tree_cache(self):
-        while True:
-            self.recv_tree_cache()
+        # while True:
+        self.recv_tree_cache()
 
     def recv_tree_cache(self):
         # =============================old version =========================
@@ -483,10 +484,10 @@ class ControllerMultiFlex:
                     gpu_id not in self.newest_tree_cache
                     or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
                 ):
-                    with self.recv_tree_cache_lock:
-                        if gpu_id in self.newest_tree_cache:
-                            del self.newest_tree_cache[gpu_id]
-                        self.newest_tree_cache[gpu_id] = recv_radix_cache
+                    # with self.recv_tree_cache_lock:
+                    if gpu_id in self.newest_tree_cache:
+                        del self.newest_tree_cache[gpu_id]
+                    self.newest_tree_cache[gpu_id] = recv_radix_cache
                 del recv_radix_cache
 
     def recv_requests(self):
