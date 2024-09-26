@@ -271,10 +271,10 @@ class ControllerMultiFlex:
 
             if len(max_len_indices) == 1:
                 # t9 = time.time()
-                selected_worker_index = max_len_indices[0]
-                self.workers[selected_worker_index].queue.put(r)
+                index = max_len_indices[0]
+                self.workers[index].queue.put(r)
 
-                logger.info("choose1")
+                logger.info(f"choose1==>[{index},{max_len}]")
 
                 # t10 = time.time()
                 # logger.info(f"len one = {t10 - t9}")
@@ -320,6 +320,8 @@ class ControllerMultiFlex:
                 # logger.info(f"else time = {t5 - t4}")
             # t6 = time.time()
             # logger.info(f"real dispatch time = {t6 - t8}")
+
+            logger.info(f"index = {index}")
 
     def resources_aware_scheduler(self, input_requests):
         if len(input_requests) == 0:
@@ -395,6 +397,8 @@ class ControllerMultiFlex:
                 available_mem[index] -= len(r.input_ids)
             # t2 = time.time()
             # logger.info(f"real dispatch time = {t2 - t1}")
+
+            logger.info(f"index = {index}")
 
         # =======================method1=======================
 
