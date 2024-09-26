@@ -144,8 +144,8 @@ def start_controller_process(
     gpu_ids: List[int] = None,
     dp_worker_id: int = None,
     queue: multiprocessing.connection.Connection = None,
-    controller_info: ControllerInfo = None,
     radix_queue: multiprocessing.connection.Connection = None,
+    controller_info: ControllerInfo = None,
 ):
     """Start a controller process."""
 
