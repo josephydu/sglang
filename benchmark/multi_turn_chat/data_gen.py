@@ -12,6 +12,9 @@ def gen_prompt(tokenizer, token_num):
     return ret
 
 
+import json
+
+
 def gen_arguments(args, tokenizer):
     multi_qas = [{"qas": []} for _ in range(args.num_qa)]
     for i in range(args.num_qa):
@@ -26,4 +29,6 @@ def gen_arguments(args, tokenizer):
                 }
             )
 
+    with open("generated_qas.json", "w") as json_file:
+        json.dump(multi_qas, json_file, indent=4)
     return multi_qas
