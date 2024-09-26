@@ -78,6 +78,7 @@ class ModelTpServer:
         server_args: ServerArgs,
         nccl_port: int,
         model_overide_args: dict,
+        radix_queue: multiprocessing.Queue,
         controller_info: Optional[ControllerInfo] = None,
         dp_worker_id: Optional[int] = None,
     ):
@@ -186,6 +187,7 @@ class ModelTpServer:
                 req_to_token_pool=self.model_runner.req_to_token_pool,
                 token_to_kv_pool=self.model_runner.token_to_kv_pool,
                 disable=server_args.disable_radix_cache,
+                radix_queue=radix_queue,
                 gpu_id=gpu_id,
                 pre_radix=(server_args.load_balance_method == "pre_radix"),
             )

@@ -55,6 +55,7 @@ def _key_match(key0: List, key1: List):
     return i
 
 
+import multiprocessing
 import threading
 from copy import deepcopy
 from dataclasses import dataclass
@@ -77,6 +78,7 @@ class RadixCache(BasePrefixCache):
         disable: bool = False,
         gpu_id: int = 0,
         pre_radix: bool = False,
+        radix_queue: multiprocessing.Queue = None,
     ):
         self.req_to_token_pool = req_to_token_pool
         self.token_to_kv_pool = token_to_kv_pool
@@ -86,12 +88,14 @@ class RadixCache(BasePrefixCache):
         self.send_cnt = 0
         self.change_cnt = 0
         if pre_radix:
-            context = zmq.Context()
-            self.send_radix_tree = context.socket(zmq.PUSH)
-            self.send_radix_tree.setsockopt(zmq.SNDHWM, 1000)
-            self.send_radix_tree.connect(f"tcp://127.0.0.1:41935")
+            self.radix_queue = radix_queue
 
-            # self.change_cnt_lock = threading.Lock()
+            # context = zmq.Context()
+            # self.send_radix_tree = context.socket(zmq.PUSH)
+            # self.send_radix_tree.setsockopt(zmq.SNDHWM, 1000)
+            # self.send_radix_tree.connect(f"tcp://127.0.0.1:41935")
+
+            # # self.change_cnt_lock = threading.Lock()
 
             threading.Thread(target=self.loop_for_send_tree_cache).start()
 
@@ -107,8 +111,20 @@ class RadixCache(BasePrefixCache):
             # with self.change_cnt_lock:
             # if self.change_cnt != 0:
             # self.change_cnt -= 1
-            self.send_prefix_tree()
+            self.put_radix_queue()
             time.sleep(1)
+
+    def put_radix_queue(self):
+        if self.pre_radix:
+            try:
+                node = deepcopy(self.root_node)
+                send_data = RadixCacheSend(
+                    gpu_id=self.gpu_id, root_node=node, time=time.time()
+                )
+                del node
+                self.radix_queue.put(send_data)
+            except Exception as e:
+                return
 
     def send_prefix_tree(self):
         # t1 = time.time()

@@ -17,6 +17,7 @@ limitations under the License.
 
 import logging
 import multiprocessing
+import multiprocessing.connection
 import os
 from typing import List
 
@@ -31,7 +32,6 @@ from sglang.srt.managers.tp_worker import (
 )
 from sglang.srt.server_args import PortArgs, ServerArgs
 from sglang.srt.utils import kill_parent_process
-from sglang.srt.managers.io_struct import ControllerInfo
 from sglang.utils import get_exception_traceback
 
 logger = logging.getLogger(__name__)
@@ -49,6 +49,7 @@ class ControllerSingle:
         is_data_parallel_worker: bool,
         dp_worker_id: int,
         mp_queue: multiprocessing.Queue,
+        radix_queue: multiprocessing.Queue,
         controller_info: ControllerInfo = None,
     ):
         # Parse args
@@ -56,8 +57,10 @@ class ControllerSingle:
         self.is_dp_worker = is_data_parallel_worker
         self.dp_worker_id = dp_worker_id
         self.mp_queue = mp_queue
+
         # Need by multi flex infer
         self.controller_info = controller_info
+        self.radix_queue = radix_queue
 
         # Init communication
         context = zmq.Context(2)
@@ -93,6 +96,7 @@ class ControllerSingle:
             server_args,
             port_args.nccl_ports[dp_worker_id],
             model_overide_args,
+            radix_queue,
             controller_info,
             dp_worker_id,
         )
@@ -141,6 +145,7 @@ def start_controller_process(
     dp_worker_id: int = None,
     queue: multiprocessing.connection.Connection = None,
     controller_info: ControllerInfo = None,
+    radix_queue: multiprocessing.connection.Connection = None,
 ):
     """Start a controller process."""
 
@@ -164,6 +169,7 @@ def start_controller_process(
             is_data_parallel_worker,
             dp_worker_id,
             queue,
+            radix_queue,
             controller_info,
         )
     except Exception:

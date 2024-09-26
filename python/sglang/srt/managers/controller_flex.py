@@ -127,9 +127,9 @@ class ControllerMultiFlex:
         self.recv_from_tokenizer = context.socket(zmq.PULL)
         self.recv_from_tokenizer.bind(f"tcp://127.0.0.1:{port_args.controller_port}")
 
-        self.recv_from_tree_cache = context.socket(zmq.PULL)
-        self.recv_from_tree_cache.setsockopt(zmq.RCVHWM, 1000)
-        self.recv_from_tree_cache.bind(f"tcp://127.0.0.1:41935")
+        # self.recv_from_tree_cache = context.socket(zmq.PULL)
+        # self.recv_from_tree_cache.setsockopt(zmq.RCVHWM, 1000)
+        # self.recv_from_tree_cache.bind(f"tcp://127.0.0.1:41935")
 
         self.pre_radix = server_args.load_balance_method == "pre_radix"
         self.dp_size = server_args.dp_size
@@ -146,6 +146,8 @@ class ControllerMultiFlex:
         self.dispatching = dispatch_lookup[self.load_balance_method]
 
         self.newest_tree_cache = {}
+
+        self.radix_queue = multiprocessing.Queue()
 
         # Start data parallel workers
         self.workers = []
@@ -181,6 +183,7 @@ class ControllerMultiFlex:
                 gpu_ids,
                 dp_worker_id,
                 queue,
+                self.radix_queue,
                 self.controller_info,
             ),
         )
@@ -443,31 +446,47 @@ class ControllerMultiFlex:
             self.recv_tree_cache()
 
     def recv_tree_cache(self):
-        flag = False
+        # =============================old version =========================
+        # flag = False
+        # while True:
+        #     try:
+        #         recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
+        #     except zmq.ZMQError:
+        #         break
+
+        #     gpu_id = recv_radix_cache.gpu_id
+
+        #     if (
+        #         gpu_id not in self.newest_tree_cache
+        #         or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
+        #     ):
+        #         with self.recv_tree_cache_lock:
+        #             if gpu_id in self.newest_tree_cache:
+        #                 del self.newest_tree_cache[gpu_id]
+        #             self.newest_tree_cache[gpu_id] = recv_radix_cache
+        #             flag = True
+
+        #     del recv_radix_cache
+        # # 使用日志记录器记录信息
+        # if flag:
+        #     # logger.info(f"latest_cache={len(self.newest_tree_cache)}")
+        #     pass
+        # torch.cuda.empty_cache()  # 清空未被引用的显存
+        # =============================old version =========================
+
         while True:
-            try:
-                recv_radix_cache = self.recv_from_tree_cache.recv_pyobj(zmq.NOBLOCK)
-            except zmq.ZMQError:
-                break
-
-            gpu_id = recv_radix_cache.gpu_id
-
-            if (
-                gpu_id not in self.newest_tree_cache
-                or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
-            ):
-                with self.recv_tree_cache_lock:
-                    if gpu_id in self.newest_tree_cache:
-                        del self.newest_tree_cache[gpu_id]
-                    self.newest_tree_cache[gpu_id] = recv_radix_cache
-                    flag = True
-
-            del recv_radix_cache
-        # 使用日志记录器记录信息
-        if flag:
-            # logger.info(f"latest_cache={len(self.newest_tree_cache)}")
-            pass
-        torch.cuda.empty_cache()  # 清空未被引用的显存
+            recv_radix_cache = self.radix_queue.get()
+            if recv_radix_cache:
+                gpu_id = recv_radix_cache.gpu_id
+                if (
+                    gpu_id not in self.newest_tree_cache
+                    or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
+                ):
+                    with self.recv_tree_cache_lock:
+                        if gpu_id in self.newest_tree_cache:
+                            del self.newest_tree_cache[gpu_id]
+                        self.newest_tree_cache[gpu_id] = recv_radix_cache
+                del recv_radix_cache
 
     def recv_requests(self):
         recv_reqs = []
