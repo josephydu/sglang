@@ -451,8 +451,8 @@ class ControllerMultiFlex:
                 logger.info(f"scheduler time = {t2 - t1}")
 
     def loop_for_recv_tree_cache(self):
-        # while True:
-        self.recv_tree_cache()
+        while True:
+            self.recv_tree_cache()
 
     def recv_tree_cache(self):
         # =============================old version =========================
