@@ -478,6 +478,7 @@ class ControllerMultiFlex:
             recv_radix_cache = self.radix_queue.get()
             if recv_radix_cache:
                 gpu_id = recv_radix_cache.gpu_id
+                logger.info(f"radix cache==>[gpu{gpu_id}]")
                 if (
                     gpu_id not in self.newest_tree_cache
                     or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
