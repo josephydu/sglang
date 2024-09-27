@@ -275,9 +275,12 @@ class ControllerMultiFlex:
             #     available_mem[index] -= len(r.input_ids)
             #     continue
 
-            if len(max_len_indices) == 1:
-                # t9 = time.time()
+            # if len(max_len_indices) == 1:
+            # t9 = time.time()
+
+            if len(max_len_indices) == 1 and num_reqs_waiting[index] <= 1:
                 index = max_len_indices[0]
+
                 self.workers[index].queue.put(r)
 
                 logger.info(f"choose1==>[{index},{max_len}]")
