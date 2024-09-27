@@ -280,7 +280,7 @@ class ControllerMultiFlex:
                 index = max_len_indices[0]
                 self.workers[index].queue.put(r)
 
-                # logger.info(f"choose1==>[{index},{max_len}]")
+                logger.info(f"choose1==>[{index},{max_len}]")
 
                 # t10 = time.time()
                 # logger.info(f"len one = {t10 - t9}")
@@ -354,6 +354,7 @@ class ControllerMultiFlex:
                     # logger.info(
                     # f"[{i + 1}]after real scheduler {available_mem}, len=({len(r.input_ids)})"
                     # )
+                    logger.info("choose3")
                 # t12 = time.time()
                 # logger.info(f"len two = {t12 - t11}")
                 # t5 = time.time()
