@@ -16,6 +16,11 @@ import json
 
 
 def gen_arguments(args, tokenizer):
+    try:
+        with open("generated_qas.json", "r") as json_file:
+            return json.load(json_file)
+    except Exception as e:
+        pass
     multi_qas = [{"qas": []} for _ in range(args.num_qa)]
     for i in range(args.num_qa):
         qas = multi_qas[i]["qas"]
