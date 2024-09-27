@@ -344,8 +344,8 @@ class ControllerMultiFlex:
                         # 随机选两个worker
 
                     ins1, ins2 = random.sample(non_zero_indices, 2)
-                    ins_end = compare_metrics(ins1, ins2)
-                    self.workers[ins_end].queue.put(r)
+                    index = compare_metrics(ins1, ins2)
+                    self.workers[index].queue.put(r)
                     # available_mem[ins_end] -= len(r.input_ids)
                     # num_reqs_running[ins_end] += 1
                     # num_reqs_waiting[ins_end] += 1
