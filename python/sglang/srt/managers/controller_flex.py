@@ -275,7 +275,7 @@ class ControllerMultiFlex:
             #     available_mem[index] -= len(r.input_ids)
             #     continue
 
-            if len(max_len_indices) == 1:
+            if len(max_len_indices) == 1 and max_len > 2800:
                 # t9 = time.time()
                 index = max_len_indices[0]
                 self.workers[index].queue.put(r)
