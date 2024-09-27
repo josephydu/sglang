@@ -17,7 +17,10 @@ import json
 
 def gen_arguments(args, tokenizer):
     try:
-        with open("generated_qas.json", "r") as json_file:
+        with open(
+            f"generated_qas_{args.min_len_q}_{args.max_len_q}_{args.min_len_a}_{args.max_len_a}_{args.turns}_{args.num_qa}.json",
+            "r",
+        ) as json_file:
             return json.load(json_file)
     except Exception as e:
         pass
@@ -35,6 +38,9 @@ def gen_arguments(args, tokenizer):
                 }
             )
 
-    with open("generated_qas.json", "w") as json_file:
+    with open(
+        f"generated_qas_{args.min_len_q}_{args.max_len_q}_{args.min_len_a}_{args.max_len_a}.json",
+        "w",
+    ) as json_file:
         json.dump(multi_qas, json_file, indent=4)
     return multi_qas
