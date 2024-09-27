@@ -39,7 +39,7 @@ def gen_arguments(args, tokenizer):
             )
 
     with open(
-        f"generated_qas_{args.min_len_q}_{args.max_len_q}_{args.min_len_a}_{args.max_len_a}.json",
+        f"generated_qas_{args.min_len_q}_{args.max_len_q}_{args.min_len_a}_{args.max_len_a}_{args.turns}_{args.num_qa}.json",
         "w",
     ) as json_file:
         json.dump(multi_qas, json_file, indent=4)
