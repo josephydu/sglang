@@ -210,7 +210,7 @@ class ControllerMultiFlex:
 
         available_mem = [k.value for k in self.controller_info.available_kv_cache]
 
-        logger.info(f"[{len(input_requests)}]before real scheduler {available_mem}")
+        # logger.info(f"[{len(input_requests)}]before real scheduler {available_mem}")
         # available_mem[0] -= 100000
         # logger.info(f"[{len(input_requests)}]before real scheduler {available_mem}")
 
@@ -238,7 +238,7 @@ class ControllerMultiFlex:
                     pre_len = get_match_len(radix_cache.root_node, r.input_ids, 0)
                     # t_2 = time.time()
                     prefix_lens[gpu_id] = pre_len
-                logger.info(f"prefix_lens = {prefix_lens}")
+                # logger.info(f"prefix_lens = {prefix_lens}")
                 # with ThreadPoolExecutor() as executor:
                 #     futures = []
                 #     for gpu_id, radix_cache in self.newest_tree_cache.items():
@@ -314,16 +314,34 @@ class ControllerMultiFlex:
                     # no_waiting 和available做乘法，找最大
 
                     filter_result = [a * b for a, b in zip(no_waiting, available_mem)]
-                    index = filter_result.index(max(filter_result))
+
+                    non_zero_indices = [
+                        index for index, value in enumerate(filter_result) if value != 0
+                    ]
+
+                    # 随机选择两个非零的索引
+                    if len(non_zero_indices) < 2:
+                        index = non_zero_indices[0]
+                    else:
+                        ins1, ins2 = random.sample(non_zero_indices, 2)
+                        if available_mem[ins1] > available_mem[ins2]:
+                            index = ins1
+                        elif available_mem[ins1] == available_mem[ins2]:
+                            # 随机从ins1和ins2中选一个
+                            index = random.choice([ins1, ins2])
+                        else:
+                            index = ins2
+
+                    # index = filter_result.index(max(filter_result))
                     self.workers[index].queue.put(r)
 
                     # num_reqs_running[index] += 1
                     available_mem[index] -= len(r.input_ids)
-                    logger.info("choose3")
+                    # logger.info("choose3")
 
-                    logger.info(
-                        f"[{i + 1}]after real scheduler {available_mem}, len=({len(r.input_ids)})"
-                    )
+                    # logger.info(
+                    # f"[{i + 1}]after real scheduler {available_mem}, len=({len(r.input_ids)})"
+                    # )
                 # t12 = time.time()
                 # logger.info(f"len two = {t12 - t11}")
                 # t5 = time.time()
