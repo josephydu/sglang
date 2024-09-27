@@ -319,24 +319,36 @@ class ControllerMultiFlex:
                         index for index, value in enumerate(filter_result) if value != 0
                     ]
 
-                    # 随机选择两个非零的索引
-                    if len(non_zero_indices) < 2:
-                        index = non_zero_indices[0]
-                    else:
-                        ins1, ins2 = random.sample(non_zero_indices, 2)
-                        if available_mem[ins1] > available_mem[ins2]:
-                            index = ins1
-                        elif available_mem[ins1] == available_mem[ins2]:
-                            # 随机从ins1和ins2中选一个
-                            index = random.choice([ins1, ins2])
-                        else:
-                            index = ins2
+                    # 比较两个worker的指标
+                    def compare_metrics(ins1, ins2):
+                        if num_reqs_waiting[ins1] != num_reqs_waiting[ins2]:
+                            return (
+                                ins1
+                                if num_reqs_waiting[ins1] < num_reqs_waiting[ins2]
+                                else ins2
+                            )
+                        if num_reqs_running[ins1] != num_reqs_running[ins2]:
+                            return (
+                                ins1
+                                if num_reqs_running[ins1] < num_reqs_running[ins2]
+                                else ins2
+                            )
+                        if available_mem[ins1] != available_mem[ins2]:
+                            return (
+                                ins1
+                                if available_mem[ins1] > available_mem[ins2]
+                                else ins2
+                            )
+                        return ins1
 
-                    # index = filter_result.index(max(filter_result))
-                    self.workers[index].queue.put(r)
+                        # 随机选两个worker
 
-                    # num_reqs_running[index] += 1
-                    available_mem[index] -= len(r.input_ids)
+                    ins1, ins2 = random.sample(non_zero_indices, 2)
+                    ins_end = compare_metrics(ins1, ins2)
+                    self.workers[ins_end].queue.put(r)
+                    # available_mem[ins_end] -= len(r.input_ids)
+                    # num_reqs_running[ins_end] += 1
+                    # num_reqs_waiting[ins_end] += 1
                     # logger.info("choose3")
 
                     # logger.info(
