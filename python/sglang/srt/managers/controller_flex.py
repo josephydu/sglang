@@ -278,7 +278,7 @@ class ControllerMultiFlex:
             # if len(max_len_indices) == 1:
             # t9 = time.time()
 
-            if len(max_len_indices) == 1 and num_reqs_waiting[index] <= 1:
+            if len(max_len_indices) == 1 and num_reqs_waiting[max_len_indices[0]] <= 1:
                 index = max_len_indices[0]
 
                 self.workers[index].queue.put(r)
