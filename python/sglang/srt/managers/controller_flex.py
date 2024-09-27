@@ -211,6 +211,10 @@ class ControllerMultiFlex:
         available_mem = [k.value for k in self.controller_info.available_kv_cache]
 
         logger.info(f"[{len(input_requests)}]before real scheduler {available_mem}")
+        available_mem[0] -= 100000
+        logger.info(
+            f"[{len(input_requests)}]before real scheduler222222 {available_mem}"
+        )
 
         num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
         num_reqs_running = [k.value for k in self.controller_info.running_reqs]
@@ -319,7 +323,7 @@ class ControllerMultiFlex:
                     available_mem[index] -= len(r.input_ids)
                     logger.info("choose3")
 
-                    logger.info(f"[{i}]after real scheduler {available_mem}")
+                    logger.info(f"[{i + 1}]after real scheduler {available_mem}")
                 # t12 = time.time()
                 # logger.info(f"len two = {t12 - t11}")
                 # t5 = time.time()
