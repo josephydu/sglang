@@ -278,7 +278,11 @@ class ControllerMultiFlex:
             # if len(max_len_indices) == 1:
             # t9 = time.time()
 
-            if len(max_len_indices) == 1 and num_reqs_waiting[max_len_indices[0]] <= 5:
+            if (
+                len(max_len_indices) == 1
+                and num_reqs_waiting[max_len_indices[0]] <= 5
+                and max_len > 2000
+            ):
                 num_reqs_waiting[max_len_indices[0]] += 1
                 index = max_len_indices[0]
 
