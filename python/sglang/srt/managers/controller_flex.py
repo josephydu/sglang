@@ -322,7 +322,7 @@ class ControllerMultiFlex:
             # t6 = time.time()
             # logger.info(f"real dispatch time = {t6 - t8}")
 
-            logger.info(f"index = {index}")
+            logger.info(f"index = {index}, req = {sum(r.input_ids[0:10])}")
 
     def resources_aware_scheduler(self, input_requests):
         if len(input_requests) == 0:

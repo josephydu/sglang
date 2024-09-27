@@ -26,6 +26,7 @@ def gen_arguments(args, tokenizer):
                 {
                     "prompt": gen_prompt(tokenizer, prompt_len),
                     "new_tokens": new_tokens,
+                    "id": i,
                 }
             )
 
