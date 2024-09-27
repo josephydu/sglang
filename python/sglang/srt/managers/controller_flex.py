@@ -319,7 +319,7 @@ class ControllerMultiFlex:
 
                     # num_reqs_running[index] += 1
                     available_mem[index] -= len(r.input_ids)
-                    logger.info("choose3")
+                    # logger.info("choose3")
                     # non_zero_indices = [
                     #     index for index, value in enumerate(filter_result) if value != 0
                     # ]
