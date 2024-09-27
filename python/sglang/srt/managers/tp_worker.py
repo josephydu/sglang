@@ -672,7 +672,7 @@ class ModelTpServer:
         self.decode_forward_ct = (self.decode_forward_ct + 1) % (1 << 30)
         batch.prepare_for_decode()
 
-        if self.controller_info is not None and self.decode_forward_ct % 1 == 0:
+        if self.controller_info is not None and self.decode_forward_ct % 10 == 0:
             with self.controller_info.lock:
                 self.controller_info.available_kv_cache[self.dp_rank].value = (
                     self.token_to_kv_pool.available_size()
