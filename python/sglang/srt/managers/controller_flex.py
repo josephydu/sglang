@@ -314,38 +314,43 @@ class ControllerMultiFlex:
                     # no_waiting 和available做乘法，找最大
 
                     filter_result = [a * b for a, b in zip(no_waiting, available_mem)]
+                    index = filter_result.index(max(filter_result))
+                    self.workers[index].queue.put(r)
 
-                    non_zero_indices = [
-                        index for index, value in enumerate(filter_result) if value != 0
-                    ]
+                    # num_reqs_running[index] += 1
+                    available_mem[index] -= len(r.input_ids)
+                    logger.info("choose3")
+                    # non_zero_indices = [
+                    #     index for index, value in enumerate(filter_result) if value != 0
+                    # ]
 
                     # 比较两个worker的指标
-                    def compare_metrics(ins1, ins2):
-                        if num_reqs_waiting[ins1] != num_reqs_waiting[ins2]:
-                            return (
-                                ins1
-                                if num_reqs_waiting[ins1] < num_reqs_waiting[ins2]
-                                else ins2
-                            )
-                        if num_reqs_running[ins1] != num_reqs_running[ins2]:
-                            return (
-                                ins1
-                                if num_reqs_running[ins1] < num_reqs_running[ins2]
-                                else ins2
-                            )
-                        if available_mem[ins1] != available_mem[ins2]:
-                            return (
-                                ins1
-                                if available_mem[ins1] > available_mem[ins2]
-                                else ins2
-                            )
-                        return ins1
+                    # def compare_metrics(ins1, ins2):
+                    #     if num_reqs_waiting[ins1] != num_reqs_waiting[ins2]:
+                    #         return (
+                    #             ins1
+                    #             if num_reqs_waiting[ins1] < num_reqs_waiting[ins2]
+                    #             else ins2
+                    #         )
+                    #     if num_reqs_running[ins1] != num_reqs_running[ins2]:
+                    #         return (
+                    #             ins1
+                    #             if num_reqs_running[ins1] < num_reqs_running[ins2]
+                    #             else ins2
+                    #         )
+                    #     if available_mem[ins1] != available_mem[ins2]:
+                    #         return (
+                    #             ins1
+                    #             if available_mem[ins1] > available_mem[ins2]
+                    #             else ins2
+                    #         )
+                    #     return ins1
 
-                        # 随机选两个worker
+                    #     # 随机选两个worker
 
-                    ins1, ins2 = random.sample(non_zero_indices, 2)
-                    index = compare_metrics(ins1, ins2)
-                    self.workers[index].queue.put(r)
+                    # ins1, ins2 = random.sample(non_zero_indices, 2)
+                    # index = compare_metrics(ins1, ins2)
+                    # self.workers[index].queue.put(r)
                     # available_mem[index] -= len(r.input_ids)
                     # num_reqs_running[index] += 1
                     # num_reqs_waiting[index] += 1
