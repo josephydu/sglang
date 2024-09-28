@@ -213,7 +213,7 @@ class ControllerMultiFlex:
     # 考虑加上请求退出机制等等。。
     def multi_turn_scheduler(self, input_requests):
                 # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则循环加
-        # for r in input_requests:
+        for r in input_requests:
             len_r = len(r.input_ids)
             if len_r < 10:
                 rid = 0
@@ -263,7 +263,6 @@ class ControllerMultiFlex:
                 
 
             
-        pass
     def pre_radix_scheduler(self, input_requests):
         if len(input_requests) == 0:
             return
