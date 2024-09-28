@@ -212,22 +212,8 @@ class ControllerMultiFlex:
 
     # 考虑加上请求退出机制等等。。
     def multi_turn_scheduler(self, input_requests):
-        available_mem = [k.value for k in self.controller_info.available_kv_cache]
-        num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
-        num_reqs_running = [k.value for k in self.controller_info.running_reqs]
-        all_waitting = False
-        if min(num_reqs_waiting) > 0:
-            # 最小值都大于0，全部waiting
-            all_waitting = True
-        else:
-            # 最小值都是0， 则全部waiting
-            all_waitting = False
-        # 选出不waiting
-        no_waiting = [1 if waiting == 0 else 0 for waiting in num_reqs_waiting]
-        if len(input_requests) == 0:
-            return 
-        
-        for r in input_requests:
+                # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则循环加
+        # for r in input_requests:
             len_r = len(r.input_ids)
             if len_r < 10:
                 rid = 0
@@ -237,29 +223,16 @@ class ControllerMultiFlex:
                 rid = sum(r.input_ids[:10])
                 
             # 记录(rid, random_id),作为字典的键，选择的id作为字典的值
+            
             if rid not in self.choosen_gpu_per_req:
                 logger.info(f'{rid} cache hit rate')
-                # 按照resources_aware调度
-                if all_waitting:
-                    ratio = [
-                        run / wait for run, wait in zip(num_reqs_running, num_reqs_waiting)
-                    ]
-                    min_value = max(ratio)
-                    min_indices = [i for i, x in enumerate(ratio) if x == min_value]
-                    index = random.choice(min_indices)
-                    num_reqs_waiting[index] += 1
-                    available_mem[index] -= len(r.input_ids)
-                else:
-                    filter_result = [a * b for a, b in zip(no_waiting, available_mem)]
-                    index = filter_result.index(max(filter_result))
-                    available_mem[index] -= len(r.input_ids)
-                gpu_idx = index
+                gpu_idx = self.power_of_2_choice([r])
+                
                 self.choosen_gpu_per_req[rid] = gpu_idx
             else:
                 gpu_idx = self.choosen_gpu_per_req[rid]
                 
-            self.workers[gpu_idx].queue.put(r)
-                    
+            self.workers[gpu_idx].queue.put(r)            
 
 
         
@@ -574,6 +547,10 @@ class ControllerMultiFlex:
             # available_mem[ins_end] -= len(r.input_ids)
             # num_reqs_running[ins_end] += 1
             # num_reqs_waiting[ins_end] += 1
+            
+            #TODO 临时加的，只有multi_turn会用到 记得删
+            if len(input_requests) == 1:
+                return ins_end 
 
     def round_robin_scheduler(self, input_requests):
         for r in input_requests:
