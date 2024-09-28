@@ -225,7 +225,7 @@ class ControllerMultiFlex:
             # 记录(rid, random_id),作为字典的键，选择的id作为字典的值
             
             if rid not in self.choosen_gpu_per_req:
-                print(f'{rid} cache hit rate')
+                logger.info(f'{rid} cache hit rate')
                 gpu_idx = self.round_robin_counter
                 self.choosen_gpu_per_req[rid] = gpu_idx
                 self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
