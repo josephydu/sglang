@@ -212,6 +212,18 @@ class ControllerMultiFlex:
 
     # 考虑加上请求退出机制等等。。
     def multi_turn_scheduler(self, input_requests):
+        available_mem = [k.value for k in self.controller_info.available_kv_cache]
+        num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
+        num_reqs_running = [k.value for k in self.controller_info.running_reqs]
+        all_waitting = False
+        if min(num_reqs_waiting) > 0:
+            # 最小值都大于0，全部waiting
+            all_waitting = True
+        else:
+            # 最小值都是0， 则全部waiting
+            all_waitting = False
+        # 选出不waiting
+        no_waiting = [1 if waiting == 0 else 0 for waiting in num_reqs_waiting]
         if len(input_requests) == 0:
             return 
         
@@ -225,16 +237,24 @@ class ControllerMultiFlex:
                 rid = sum(r.input_ids[:10])
                 
             # 记录(rid, random_id),作为字典的键，选择的id作为字典的值
-            
             if rid not in self.choosen_gpu_per_req:
                 logger.info(f'{rid} cache hit rate')
-                
                 # 按照resources_aware调度
-                
-                
-                gpu_idx = self.round_robin_counter
+                if all_waitting:
+                    ratio = [
+                        run / wait for run, wait in zip(num_reqs_running, num_reqs_waiting)
+                    ]
+                    min_value = max(ratio)
+                    min_indices = [i for i, x in enumerate(ratio) if x == min_value]
+                    index = random.choice(min_indices)
+                    num_reqs_waiting[index] += 1
+                    available_mem[index] -= len(r.input_ids)
+                else:
+                    filter_result = [a * b for a, b in zip(no_waiting, available_mem)]
+                    index = filter_result.index(max(filter_result))
+                    available_mem[index] -= len(r.input_ids)
+                gpu_idx = index
                 self.choosen_gpu_per_req[rid] = gpu_idx
-                self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
             else:
                 gpu_idx = self.choosen_gpu_per_req[rid]
                 
