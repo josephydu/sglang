@@ -83,6 +83,7 @@ class LoadBalanceMethod(Enum):
     RESOURCES_AWARE = auto()
     POWER_OF_2_CHOICE = auto()
     PRE_RADIX = auto()
+    MULTI_TURN = auto()
 
     @classmethod
     def from_str(cls, method: str):
@@ -142,10 +143,14 @@ class ControllerMultiFlex:
             LoadBalanceMethod.RESOURCES_AWARE: self.resources_aware_scheduler,
             LoadBalanceMethod.POWER_OF_2_CHOICE: self.power_of_2_choice,
             LoadBalanceMethod.PRE_RADIX: self.pre_radix_scheduler,
+            LoadBalanceMethod.MULTI_TURN: self.multi_turn_scheduler,
         }
         self.dispatching = dispatch_lookup[self.load_balance_method]
 
         self.newest_tree_cache = {}
+        
+        # for multi_turn_scheduler
+        self.choosen_gpu_per_req = {}
 
         self.radix_queue = multiprocessing.Queue()
 
@@ -204,6 +209,34 @@ class ControllerMultiFlex:
     def compute_prefix_length(self, gpu_id, radix_cache, input_ids):
         return gpu_id, get_match_len(radix_cache.root_node, input_ids, 0)
 
+
+    # 考虑加上请求退出机制等等。。
+    def multi_turn_scheduler(self, input_requests):
+        # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则原来的值加上一个随机数
+        for r in input_requests:
+            len_r = len(r.input_ids)
+            if len_r < 10:
+                random_id = random.randint(0, 65535)
+                rid = sum(r.input_ids) + random_id
+            else:
+                random_id = 0
+                rid = sum(r.input_ids[:10]) + random_id
+                
+            # 记录(rid, random_id),作为字典的键，选择的id作为字典的值
+            key_tuple = (rid, random_id)
+            
+            if (key_tuple) not in self.choosen_gpu_per_req:
+                gpu_idx = self.round_robin_counter
+                self.choosen_gpu_per_req[key_tuple] = gpu_idx
+                self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
+            else:
+                gpu_idx = self.choosen_gpu_per_req[key_tuple]
+                
+            self.workers[gpu_idx].queue.put(r)
+                
+
+            
+        pass
     def pre_radix_scheduler(self, input_requests):
         if len(input_requests) == 0:
             return

@@ -351,6 +351,7 @@ class ServerArgs:
                 "resources_aware",
                 "power_of_2_choice",
                 "pre_radix",
+                "multi_turn",
             ],
         )
 
