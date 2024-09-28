@@ -212,7 +212,7 @@ class ControllerMultiFlex:
 
     # 考虑加上请求退出机制等等。。
     def multi_turn_scheduler(self, input_requests):
-        # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则原来的值加上一个随机数
+        # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则循环加
         for r in input_requests:
             len_r = len(r.input_ids)
             if len_r < 10:
@@ -225,6 +225,7 @@ class ControllerMultiFlex:
             # 记录(rid, random_id),作为字典的键，选择的id作为字典的值
             
             if rid not in self.choosen_gpu_per_req:
+                print(f'{rid} cache hit rate')
                 gpu_idx = self.round_robin_counter
                 self.choosen_gpu_per_req[rid] = gpu_idx
                 self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
