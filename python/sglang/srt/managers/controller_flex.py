@@ -216,21 +216,20 @@ class ControllerMultiFlex:
         for r in input_requests:
             len_r = len(r.input_ids)
             if len_r < 10:
-                random_id = random.randint(0, 65535)
-                rid = sum(r.input_ids) + random_id
+                rid = 0
+                for i in range(10):
+                    rid += r.input_ids[i % len_r]  # 使用模运算循环访问列表元素
             else:
-                random_id = 0
-                rid = sum(r.input_ids[:10]) + random_id
+                rid = sum(r.input_ids[:10])
                 
             # 记录(rid, random_id),作为字典的键，选择的id作为字典的值
-            key_tuple = (rid, random_id)
             
-            if (key_tuple) not in self.choosen_gpu_per_req:
+            if rid not in self.choosen_gpu_per_req:
                 gpu_idx = self.round_robin_counter
-                self.choosen_gpu_per_req[key_tuple] = gpu_idx
+                self.choosen_gpu_per_req[rid] = gpu_idx
                 self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
             else:
-                gpu_idx = self.choosen_gpu_per_req[key_tuple]
+                gpu_idx = self.choosen_gpu_per_req[rid]
                 
             self.workers[gpu_idx].queue.put(r)
                 
