@@ -234,7 +234,13 @@ class ControllerMultiFlex:
                 # self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
                 
                 queue_sizes = [worker.queue.qsize() for worker in self.workers]
-                gpu_idx = np.argmin(queue_sizes)
+                min_size = min(queue_sizes)
+
+                # 找到所有最小值的索引
+                min_indices = [i for i, size in enumerate(queue_sizes) if size == min_size]
+
+                # 随机选择一个最小值的索引
+                gpu_idx = np.random.choice(min_indices)
                 self.workers[gpu_idx].queue.put(r)
             else:
                 gpu_idx = self.choosen_gpu_per_req[rid]
