@@ -211,8 +211,11 @@ class ControllerMultiFlex:
 
 
     # 考虑加上请求退出机制等等。。
-    def multi_turn_scheduler(self, input_requests):
-                # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则循环加
+    def multi_turn_scheduler(self, input_requests):  
+        # ==================================round_robin版本=======================================
+        
+        
+        # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则循环加
         for r in input_requests:
             len_r = len(r.input_ids)
             if len_r < 10:
@@ -226,40 +229,13 @@ class ControllerMultiFlex:
             
             if rid not in self.choosen_gpu_per_req:
                 logger.info(f'{rid} cache hit rate')
-                gpu_idx = self.power_of_2_choice([r])
-                
+                gpu_idx = self.round_robin_counter
                 self.choosen_gpu_per_req[rid] = gpu_idx
+                self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
             else:
                 gpu_idx = self.choosen_gpu_per_req[rid]
                 
-            self.workers[gpu_idx].queue.put(r)            
-
-
-        
-        # ==================================round_robin版本=======================================
-        
-        
-        # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则循环加
-        # for r in input_requests:
-        #     len_r = len(r.input_ids)
-        #     if len_r < 10:
-        #         rid = 0
-        #         for i in range(10):
-        #             rid += r.input_ids[i % len_r]  # 使用模运算循环访问列表元素
-        #     else:
-        #         rid = sum(r.input_ids[:10])
-                
-        #     # 记录(rid, random_id),作为字典的键，选择的id作为字典的值
-            
-        #     if rid not in self.choosen_gpu_per_req:
-        #         logger.info(f'{rid} cache hit rate')
-        #         gpu_idx = self.round_robin_counter
-        #         self.choosen_gpu_per_req[rid] = gpu_idx
-        #         self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
-        #     else:
-        #         gpu_idx = self.choosen_gpu_per_req[rid]
-                
-        #     self.workers[gpu_idx].queue.put(r)
+            self.workers[gpu_idx].queue.put(r)
                 
 
             
