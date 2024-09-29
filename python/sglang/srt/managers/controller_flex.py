@@ -247,8 +247,8 @@ class ControllerMultiFlex:
             logger.info(
                 f"update main_available_kv_cache: main{self.main_available_kv_cache}=>pre{self.pre_available_kv_cache}=>now{available_mem}"
             )
-            self.pre_available_kv_cache = available_mem
-            self.main_available_kv_cache = available_mem
+            self.pre_available_kv_cache = available_mem.copy()
+            self.main_available_kv_cache = available_mem.copy()
         # ===============================================================================
         if not self.pre_num_running_req:
             self.pre_num_running_req = num_reqs_running
@@ -263,8 +263,8 @@ class ControllerMultiFlex:
             logger.info(
                 f"update main_num_running_req: main{self.main_num_running_req}=>pre{self.pre_num_running_req}=>now{num_reqs_running}"
             )
-            self.main_num_running_req = num_reqs_running
-            self.pre_num_running_req = num_reqs_running
+            self.main_num_running_req = num_reqs_running.copy()
+            self.pre_num_running_req = num_reqs_running.copy()
 
         # =================================================================================
         if not self.pre_num_waiting_req:
@@ -280,8 +280,8 @@ class ControllerMultiFlex:
             logger.info(
                 f"update main_num_waiting_req: main{self.main_num_waiting_req}=>pre{self.pre_num_waiting_req}=>now{num_reqs_waiting}"
             )
-            self.main_num_waiting_req = num_reqs_waiting
-            self.pre_num_waiting_req = num_reqs_waiting
+            self.main_num_waiting_req = num_reqs_waiting.copy()
+            self.pre_num_waiting_req = num_reqs_waiting.copy()
 
         all_waitting = False
         if min(self.main_num_waiting_req) > 0:
