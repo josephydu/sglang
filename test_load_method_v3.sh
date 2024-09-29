@@ -146,6 +146,9 @@ methods2=(
 for turn in "${turns[@]}"; do
     # 循环处理每个设置
     for method in "${methods1[@]}"; do
+        export http_proxy=http://9.21.0.122:11113
+        export https_proxy=http://9.21.0.122:11113
+
         echo "====================== $(method) start ======================" >> "$LOG_FILE"
         # 启动服务并将其放到后台，重定向输出到日志文件
         /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server --model-path Qwen/Qwen2-7B \
@@ -153,6 +156,9 @@ for turn in "${turns[@]}"; do
             --dp-size 8 \
             $method >> "$LOG_FILE" 2>&1 &
         sleep 200
+
+        unset http_proxy
+        unset https_proxy
 
         /workspace/bin/micromamba run -n sglang python3 /workspace/sglang/benchmark/multi_turn_chat/bench_sglang.py --tokenizer Qwen/Qwen2-7B \
         --port 8080 --parallel 512 \
@@ -163,18 +169,24 @@ for turn in "${turns[@]}"; do
         # done
 
         # 杀死特定的 Python 进程
-        ps -elf | grep '[p]ython' | awk '{print $4}' | xargs kill -s 9
-
+        ps -elf | grep python  | awk '{print $4}' | xargs  kill -s 9 
+        ps -elf | grep python  | awk '{print $4}' | xargs  kill -s 9 
         # 等待一段时间以确保进程被杀死
-        sleep 200
+        sleep 20
         echo "====================== $(method) end ======================" >> "$LOG_FILE"
     done
     for method in "${methods2[@]}"; do
+        export http_proxy=http://9.21.0.122:11113
+        export https_proxy=http://9.21.0.122:11113  
+        
         echo "====================== $(method) start ======================" >> "$LOG_FILE"
         /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server --model-path Qwen/Qwen2-7B \
             --host 0.0.0.0 --port 8080 --mem-fraction-static 0.7 \
             $method >> "$LOG_FILE" 2>&1 &
         sleep 200
+
+        unset http_proxy
+        unset https_proxy
 
         /workspace/bin/micromamba run -n sglang python3 /workspace/sglang/benchmark/multi_turn_chat/bench_sglang.py --tokenizer Qwen/Qwen2-7B \
         --port 8080 --parallel 512 \
@@ -185,10 +197,10 @@ for turn in "${turns[@]}"; do
         # done
 
         # 杀死特定的 Python 进程
-        ps -elf | grep '[p]ython' | awk '{print $4}' | xargs kill -s 9
-
+        ps -elf | grep python  | awk '{print $4}' | xargs  kill -s 9 
+        ps -elf | grep python  | awk '{print $4}' | xargs  kill -s 9 
         # 等待一段时间以确保进程被杀死
-        sleep 200
+        sleep 20
         echo "====================== $(method) end ======================" >> "$LOG_FILE"
     done
 done
