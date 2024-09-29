@@ -136,8 +136,13 @@ class ControllerMultiFlex:
         self.dp_size = server_args.dp_size
 
         self.pre_available_kv_cache = []
-
         self.main_available_kv_cache = []
+
+        self.pre_num_running_req = []
+        self.main_num_running_req = []
+
+        self.pre_num_waiting_req = []
+        self.main_num_waiting_req = []
 
         # Dispatch method
         self.round_robin_counter = 0
@@ -215,10 +220,11 @@ class ControllerMultiFlex:
 
     # 考虑加上请求退出机制等等。。
     def multi_turn_scheduler(self, input_requests):
-
-        available_mem = [
-            k.value for k in self.controller_info.available_kv_cache
-        ]  # 来自子进程的available mem
+        if len(input_requests) == 0:
+            return
+        available_mem = [k.value for k in self.controller_info.available_kv_cache]
+        num_reqs_running = [k.value for k in self.controller_info.running_reqs]
+        num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
         if not self.pre_available_kv_cache:
             self.pre_available_kv_cache = available_mem
 
@@ -231,8 +237,44 @@ class ControllerMultiFlex:
         else:
             self.main_available_kv_cache = available_mem
             self.pre_available_kv_cache = available_mem
+        # ===============================================================================
+        if not self.pre_num_running_req:
+            self.pre_num_running_req = num_reqs_running
 
-            use_available_kv_cache = available_mem
+        if not self.main_num_running_req:
+            self.main_num_running_req = num_reqs_running
+
+        if self.pre_num_running_req == num_reqs_running:
+            # use_num_reqs_running = self.main_available_kv_cache
+            pass
+        else:
+            self.main_num_running_req = num_reqs_running
+            self.pre_num_running_req = num_reqs_running
+
+        # =================================================================================
+        if not self.pre_num_waiting_req:
+            self.pre_num_waiting_req = num_reqs_waiting
+
+        if not self.main_num_waiting_req:
+            self.main_num_waiting_req = num_reqs_waiting
+
+        if self.pre_num_waiting_req == num_reqs_waiting:
+            # use_num_reqs_running = self.main_available_kv_cache
+            pass
+        else:
+            self.main_num_waiting_req = num_reqs_waiting
+            self.pre_num_waiting_req = num_reqs_waiting
+
+        all_waitting = False
+        if min(self.main_num_waiting_req) > 0:
+            # 最小值都大于0，全部waiting
+            all_waitting = True
+        else:
+            # 最小值都是0， 则全部waiting
+            all_waitting = False
+
+        no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+
         for r in input_requests:
             len_r = len(r.input_ids)
             if len_r < 10:
@@ -246,12 +288,25 @@ class ControllerMultiFlex:
 
             if rid not in self.choosen_gpu_per_req:
                 logger.info(f"{rid} cache hit rate")
-                # gpu_idx = self.round_robin_counter
-
                 # 基于resources_aware调度
-                gpu_idx = use_available_kv_cache.index(max(use_available_kv_cache))
-                use_available_kv_cache[gpu_idx] -= len(r.input_ids)
-
+                if all_waitting:
+                    ratio = [
+                        run / wait
+                        for run, wait in zip(
+                            self.main_num_running_req, self.main_num_waiting_req
+                        )
+                    ]
+                    max_raio = max(ratio)
+                    indices = [i for i, x in enumerate(ratio) if x == max_raio]
+                    gpu_idx = random.choice(indices)
+                    self.main_num_waiting_req[gpu_idx] += 1
+                    self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
+                else:
+                    filter_result = [
+                        a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
+                    ]
+                    gpu_idx = filter_result.index(max(filter_result))
+                    available_mem[gpu_idx] -= len(r.input_ids)
                 self.choosen_gpu_per_req[rid] = gpu_idx
             else:
                 gpu_idx = self.choosen_gpu_per_req[rid]
