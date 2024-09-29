@@ -218,6 +218,15 @@ class ControllerMultiFlex:
     def compute_prefix_length(self, gpu_id, radix_cache, input_ids):
         return gpu_id, get_match_len(radix_cache.root_node, input_ids, 0)
 
+    def list_equal(self, A, B):
+        if len(A) != len(B):
+            return False
+
+        for i in range(len(A)):
+            if A[i] != B[i]:
+                return False
+        return True
+
     # 考虑加上请求退出机制等等。。
     def multi_turn_scheduler(self, input_requests):
         if len(input_requests) == 0:
@@ -231,7 +240,7 @@ class ControllerMultiFlex:
         if not self.main_available_kv_cache:
             self.main_available_kv_cache = available_mem
 
-        if self.pre_available_kv_cache == available_mem:
+        if self.list_equal(self.pre_available_kv_cache, available_mem):
             # 使用备份的available_mem
             pass
         else:
@@ -239,9 +248,6 @@ class ControllerMultiFlex:
                 f"update main_available_kv_cache: main{self.main_available_kv_cache}=>pre{self.pre_available_kv_cache}=>now{available_mem}"
             )
             self.pre_available_kv_cache = available_mem
-            logger.info(
-                f"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++{self.pre_available_kv_cache == available_mem}"
-            )
             self.main_available_kv_cache = available_mem
         # ===============================================================================
         if not self.pre_num_running_req:
