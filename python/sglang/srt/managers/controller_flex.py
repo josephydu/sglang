@@ -238,8 +238,11 @@ class ControllerMultiFlex:
             logger.info(
                 f"update main_available_kv_cache: main{self.main_available_kv_cache}=>pre{self.pre_available_kv_cache}=>now{available_mem}"
             )
-            self.main_available_kv_cache = available_mem
             self.pre_available_kv_cache = available_mem
+            logger.info(
+                f"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++{self.pre_available_kv_cache == available_mem}"
+            )
+            self.main_available_kv_cache = available_mem
         # ===============================================================================
         if not self.pre_num_running_req:
             self.pre_num_running_req = num_reqs_running
