@@ -235,6 +235,7 @@ class ControllerMultiFlex:
             # 使用备份的available_mem
             use_available_kv_cache = self.main_available_kv_cache
         else:
+            logger.info("update main_available_kv_cache")
             self.main_available_kv_cache = available_mem
             self.pre_available_kv_cache = available_mem
         # ===============================================================================
@@ -248,6 +249,8 @@ class ControllerMultiFlex:
             # use_num_reqs_running = self.main_available_kv_cache
             pass
         else:
+            logger.info("update main_num_running_req")
+
             self.main_num_running_req = num_reqs_running
             self.pre_num_running_req = num_reqs_running
 
@@ -262,6 +265,7 @@ class ControllerMultiFlex:
             # use_num_reqs_running = self.main_available_kv_cache
             pass
         else:
+            logger.info("update main_num_waiting_req")
             self.main_num_waiting_req = num_reqs_waiting
             self.pre_num_waiting_req = num_reqs_waiting
 
