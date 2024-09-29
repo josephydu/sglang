@@ -296,7 +296,6 @@ class ControllerMultiFlex:
             # 记录(rid, random_id),作为字典的键，选择的id作为字典的值
 
             if rid not in self.choosen_gpu_per_req:
-                logger.info(f"{rid} cache hit rate")
                 # 基于resources_aware调度
                 if all_waitting:
                     ratio = [
@@ -314,7 +313,18 @@ class ControllerMultiFlex:
                     filter_result = [
                         a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
                     ]
-                    gpu_idx = filter_result.index(max(filter_result))
+                    # 找到最大值
+                    max_value = max(filter_result)
+
+                    # 找到所有最大值的索引
+                    max_indices = [
+                        index
+                        for index, value in enumerate(filter_result)
+                        if value == max_value
+                    ]
+
+                    # 随机选择一个索引
+                    gpu_idx = random.choice(max_indices)
 
                     self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
                     logger.info(f"{rid}=>{gpu_idx}=>{self.main_available_kv_cache}")
