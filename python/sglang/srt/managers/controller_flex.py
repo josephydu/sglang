@@ -235,10 +235,10 @@ class ControllerMultiFlex:
         num_reqs_running = [k.value for k in self.controller_info.running_reqs]
         num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
         if not self.pre_available_kv_cache:
-            self.pre_available_kv_cache = available_mem
+            self.pre_available_kv_cache = available_mem.copy()
 
         if not self.main_available_kv_cache:
-            self.main_available_kv_cache = available_mem
+            self.main_available_kv_cache = available_mem.copy()
 
         if self.list_equal(self.pre_available_kv_cache, available_mem):
             # 使用备份的available_mem
@@ -251,10 +251,10 @@ class ControllerMultiFlex:
             self.main_available_kv_cache = available_mem.copy()
         # ===============================================================================
         if not self.pre_num_running_req:
-            self.pre_num_running_req = num_reqs_running
+            self.pre_num_running_req = num_reqs_running.copy()
 
         if not self.main_num_running_req:
-            self.main_num_running_req = num_reqs_running
+            self.main_num_running_req = num_reqs_running.copy()
 
         if self.list_equal(self.pre_num_running_req, num_reqs_running):
             # use_num_reqs_running = self.main_available_kv_cache
@@ -268,10 +268,10 @@ class ControllerMultiFlex:
 
         # =================================================================================
         if not self.pre_num_waiting_req:
-            self.pre_num_waiting_req = num_reqs_waiting
+            self.pre_num_waiting_req = num_reqs_waiting.copy()
 
         if not self.main_num_waiting_req:
-            self.main_num_waiting_req = num_reqs_waiting
+            self.main_num_waiting_req = num_reqs_waiting.copy()
 
         if self.list_equal(self.pre_num_waiting_req, num_reqs_waiting):
             # use_num_reqs_running = self.main_available_kv_cache
