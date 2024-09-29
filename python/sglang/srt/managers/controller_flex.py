@@ -233,7 +233,7 @@ class ControllerMultiFlex:
 
         if self.pre_available_kv_cache == available_mem:
             # 使用备份的available_mem
-            use_available_kv_cache = self.main_available_kv_cache
+            pass
         else:
             logger.info("update main_available_kv_cache")
             self.main_available_kv_cache = available_mem
@@ -311,8 +311,8 @@ class ControllerMultiFlex:
                     ]
                     gpu_idx = filter_result.index(max(filter_result))
 
-                    logger.info(f"{rid}=>{gpu_idx}")
                     self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
+                    logger.info(f"{rid}=>{gpu_idx}=>{self.main_available_kv_cache}")
                 self.choosen_gpu_per_req[rid] = gpu_idx
             else:
                 gpu_idx = self.choosen_gpu_per_req[rid]
