@@ -27,7 +27,8 @@ def gen_arguments(args, tokenizer):
     multi_qas = [{"qas": []} for _ in range(args.num_qa)]
     for i in range(args.num_qa):
         qas = multi_qas[i]["qas"]
-        for _ in range(args.turns):
+        turn_range = random.randint(1, args.turns)
+        for _ in range(turn_range):
             prompt_len = random.randint(args.min_len_q, args.max_len_q)
             new_tokens = random.randint(args.min_len_a, args.max_len_a)
             qas.append(
