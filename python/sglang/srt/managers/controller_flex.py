@@ -236,7 +236,7 @@ class ControllerMultiFlex:
             pass
         else:
             logger.info(
-                f"update main_available_kv_cache: pre{self.pre_available_kv_cache}=>now{available_mem}"
+                f"update main_available_kv_cache: main{self.main_available_kv_cache}=>pre{self.pre_available_kv_cache}=>now{available_mem}"
             )
             self.main_available_kv_cache = available_mem
             self.pre_available_kv_cache = available_mem
@@ -252,7 +252,7 @@ class ControllerMultiFlex:
             pass
         else:
             logger.info(
-                f"update main_num_running_req: pre{self.pre_num_running_req}=>now{num_reqs_running}"
+                f"update main_num_running_req: main{self.main_num_running_req}=>pre{self.pre_num_running_req}=>now{num_reqs_running}"
             )
             self.main_num_running_req = num_reqs_running
             self.pre_num_running_req = num_reqs_running
@@ -269,7 +269,7 @@ class ControllerMultiFlex:
             pass
         else:
             logger.info(
-                f"update main_num_waiting_req: pre{self.pre_num_waiting_req}=>now{num_reqs_waiting}"
+                f"update main_num_waiting_req: main{self.main_num_waiting_req}=>pre{self.pre_num_waiting_req}=>now{num_reqs_waiting}"
             )
             self.main_num_waiting_req = num_reqs_waiting
             self.pre_num_waiting_req = num_reqs_waiting
