@@ -135,6 +135,10 @@ class ControllerMultiFlex:
         self.pre_radix = server_args.load_balance_method == "pre_radix"
         self.dp_size = server_args.dp_size
 
+        self.pre_available_kv_cache = []
+
+        self.main_available_kv_cache = []
+
         # Dispatch method
         self.round_robin_counter = 0
         dispatch_lookup = {
@@ -211,9 +215,24 @@ class ControllerMultiFlex:
 
     # 考虑加上请求退出机制等等。。
     def multi_turn_scheduler(self, input_requests):
-        # ==================================round_robin版本=======================================
 
-        # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则循环加
+        available_mem = [
+            k.value for k in self.controller_info.available_kv_cache
+        ]  # 来自子进程的available mem
+        if not self.pre_available_kv_cache:
+            self.pre_available_kv_cache = available_mem
+
+        if not self.main_available_kv_cache:
+            self.main_available_kv_cache = available_mem
+
+        if self.pre_available_kv_cache == available_mem:
+            # 使用备份的available_mem
+            use_available_kv_cache = self.main_available_kv_cache
+        else:
+            self.main_available_kv_cache = available_mem
+            self.pre_available_kv_cache = available_mem
+
+            use_available_kv_cache = available_mem
         for r in input_requests:
             len_r = len(r.input_ids)
             if len_r < 10:
@@ -227,17 +246,42 @@ class ControllerMultiFlex:
 
             if rid not in self.choosen_gpu_per_req:
                 logger.info(f"{rid} cache hit rate")
-                gpu_idx = self.round_robin_counter
-                # self.workers[gpu_idx].queue.put(r)
+                # gpu_idx = self.round_robin_counter
+
+                # 基于resources_aware调度
+                gpu_idx = use_available_kv_cache.index(max(use_available_kv_cache))
+                use_available_kv_cache[gpu_idx] -= len(r.input_ids)
 
                 self.choosen_gpu_per_req[rid] = gpu_idx
-                self.round_robin_counter = (self.round_robin_counter + 1) % len(
-                    self.workers
-                )
             else:
                 gpu_idx = self.choosen_gpu_per_req[rid]
-
             self.workers[gpu_idx].queue.put(r)
+        self.main_available_kv_cache = use_available_kv_cache
+        # ==================================round_robin版本=======================================
+
+        # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则循环加
+        # for r in input_requests:
+        #     len_r = len(r.input_ids)
+        #     if len_r < 10:
+        #         rid = 0
+        #         for i in range(10):
+        #             rid += r.input_ids[i % len_r]  # 使用模运算循环访问列表元素
+        #     else:
+        #         rid = sum(r.input_ids[:10])
+
+        #     # 记录(rid, random_id),作为字典的键，选择的id作为字典的值
+
+        #     if rid not in self.choosen_gpu_per_req:
+        #         logger.info(f"{rid} cache hit rate")
+        #         gpu_idx = self.round_robin_counter
+        #         self.round_robin_counter = (self.round_robin_counter + 1) % len(
+        #             self.workers
+        #         )
+        #         self.choosen_gpu_per_req[rid] = gpu_idx
+        #     else:
+        #         gpu_idx = self.choosen_gpu_per_req[rid]
+
+        #     self.workers[gpu_idx].queue.put(r)
 
     def pre_radix_scheduler(self, input_requests):
         if len(input_requests) == 0:
