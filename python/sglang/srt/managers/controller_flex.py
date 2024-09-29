@@ -256,7 +256,7 @@ class ControllerMultiFlex:
         if not self.main_num_running_req:
             self.main_num_running_req = num_reqs_running
 
-        if self.pre_num_running_req == num_reqs_running:
+        if self.list_equal(self.pre_num_running_req, num_reqs_running):
             # use_num_reqs_running = self.main_available_kv_cache
             pass
         else:
@@ -273,7 +273,7 @@ class ControllerMultiFlex:
         if not self.main_num_waiting_req:
             self.main_num_waiting_req = num_reqs_waiting
 
-        if self.pre_num_waiting_req == num_reqs_waiting:
+        if self.list_equal(self.pre_num_waiting_req, num_reqs_waiting):
             # use_num_reqs_running = self.main_available_kv_cache
             pass
         else:
