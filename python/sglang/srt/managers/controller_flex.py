@@ -228,7 +228,7 @@ class ControllerMultiFlex:
             if rid not in self.choosen_gpu_per_req:
                 logger.info(f"{rid} cache hit rate")
                 gpu_idx = self.round_robin_counter
-                self.workers[gpu_idx].queue.put(r)
+                # self.workers[gpu_idx].queue.put(r)
 
                 self.choosen_gpu_per_req[rid] = gpu_idx
                 self.round_robin_counter = (self.round_robin_counter + 1) % len(
