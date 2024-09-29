@@ -154,7 +154,7 @@ for turn in "${turns[@]}"; do
         /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server --model-path Qwen/Qwen2-7B \
             --host 0.0.0.0 --port 8080 --mem-fraction-static 0.7 \
             --dp-size 8 \
-            $method >> "$LOG_FILE" 2>&1 &
+            $method >> "$LOG_FILE" 2>&1
         sleep 200
 
         unset http_proxy
@@ -164,7 +164,7 @@ for turn in "${turns[@]}"; do
         --port 8080 --parallel 512 \
         --min-len-q 128 --max-len-q 256 \
         --min-len-a 256 --max-len-a 512 \
-        --turns $turn --num-qa 256
+        --turns $turn --num-qa 256 >> "$LOG_FILE" 2>&1 &
         sleep 100
         # done
 
@@ -192,7 +192,7 @@ for turn in "${turns[@]}"; do
         --port 8080 --parallel 512 \
         --min-len-q 128 --max-len-q 256 \
         --min-len-a 256 --max-len-a 512 \
-        --turns $turn --num-qa 32
+        --turns $turn --num-qa 32 >> "$LOG_FILE" 2>&1
         sleep 100
         # done
 
