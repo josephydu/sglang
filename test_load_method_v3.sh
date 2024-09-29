@@ -149,7 +149,7 @@ for turn in "${turns[@]}"; do
         export http_proxy=http://9.21.0.122:11113
         export https_proxy=http://9.21.0.122:11113
 
-        echo "====================== $(method) start ======================" >> "$LOG_FILE"
+        echo "====================== $method start ======================" >> "$LOG_FILE"
         # 启动服务并将其放到后台，重定向输出到日志文件
         /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server --model-path Qwen/Qwen2-7B \
             --host 0.0.0.0 --port 8080 --mem-fraction-static 0.7 \
@@ -173,13 +173,13 @@ for turn in "${turns[@]}"; do
         ps -elf | grep python  | awk '{print $4}' | xargs  kill -s 9 
         # 等待一段时间以确保进程被杀死
         sleep 20
-        echo "====================== $(method) end ======================" >> "$LOG_FILE"
+        echo "====================== $method end ======================" >> "$LOG_FILE"
     done
     for method in "${methods2[@]}"; do
         export http_proxy=http://9.21.0.122:11113
         export https_proxy=http://9.21.0.122:11113  
         
-        echo "====================== $(method) start ======================" >> "$LOG_FILE"
+        echo "====================== $method start ======================" >> "$LOG_FILE"
         /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server --model-path Qwen/Qwen2-7B \
             --host 0.0.0.0 --port 8080 --mem-fraction-static 0.7 \
             $method >> "$LOG_FILE" 2>&1 &
@@ -201,6 +201,6 @@ for turn in "${turns[@]}"; do
         ps -elf | grep python  | awk '{print $4}' | xargs  kill -s 9 
         # 等待一段时间以确保进程被杀死
         sleep 20
-        echo "====================== $(method) end ======================" >> "$LOG_FILE"
+        echo "====================== $method end ======================" >> "$LOG_FILE"
     done
 done
