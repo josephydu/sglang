@@ -306,7 +306,7 @@ class ControllerMultiFlex:
                         a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
                     ]
                     gpu_idx = filter_result.index(max(filter_result))
-                    available_mem[gpu_idx] -= len(r.input_ids)
+                    self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
                 self.choosen_gpu_per_req[rid] = gpu_idx
             else:
                 gpu_idx = self.choosen_gpu_per_req[rid]
