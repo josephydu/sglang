@@ -320,7 +320,10 @@ class ControllerMultiFlex:
                     self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
                 else:
                     filter_result = [
-                        a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
+                        (a * b) if (c == 0) else (a * b / c)
+                        for a, b, c in zip(
+                            no_waiting, self.main_available_kv_cache, num_reqs_running
+                        )
                     ]
                     # 找到最大值
                     max_value = max(filter_result)
