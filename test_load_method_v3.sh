@@ -131,7 +131,7 @@ echo "====================== $(date) ======================" >> "$LOG_FILE"
 
 # 定义不同的设置
 
-turns=(18 14 16 20 22)
+turns=(8 12 18 14 16 20 22)
 methods1=(
     "--load-balance-method multi_turn"
     "--load-balance-method round_robin --disable-radix-cache"
