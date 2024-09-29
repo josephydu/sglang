@@ -311,7 +311,6 @@ class ControllerMultiFlex:
             else:
                 gpu_idx = self.choosen_gpu_per_req[rid]
             self.workers[gpu_idx].queue.put(r)
-        self.main_available_kv_cache = use_available_kv_cache
         # ==================================round_robin版本=======================================
 
         # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则循环加
