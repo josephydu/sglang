@@ -325,9 +325,10 @@ class ControllerMultiFlex:
 
                     # 随机选择一个索引
                     gpu_idx = random.choice(max_indices)
-
+                    logger.info(
+                        f"after{rid}=>{gpu_idx}=>{self.main_available_kv_cache}"
+                    )
                     self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
-                    logger.info(f"{rid}=>{gpu_idx}=>{self.main_available_kv_cache}")
                 self.choosen_gpu_per_req[rid] = gpu_idx
             else:
                 gpu_idx = self.choosen_gpu_per_req[rid]
