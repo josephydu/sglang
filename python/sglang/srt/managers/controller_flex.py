@@ -84,6 +84,7 @@ class LoadBalanceMethod(Enum):
     POWER_OF_2_CHOICE = auto()
     PRE_RADIX = auto()
     MULTI_TURN = auto()
+    BUCKET = auto()
 
     @classmethod
     def from_str(cls, method: str):
@@ -153,6 +154,7 @@ class ControllerMultiFlex:
             LoadBalanceMethod.POWER_OF_2_CHOICE: self.power_of_2_choice,
             LoadBalanceMethod.PRE_RADIX: self.pre_radix_scheduler,
             LoadBalanceMethod.MULTI_TURN: self.multi_turn_scheduler,
+            LoadBalanceMethod.BUCKET: self.bucket_scheduler,
         }
         self.dispatching = dispatch_lookup[self.load_balance_method]
 
@@ -227,9 +229,7 @@ class ControllerMultiFlex:
                 return False
         return True
 
-    # 考虑加上请求退出机制等等。。
-    def multi_turn_scheduler(self, input_requests):
-        # ===================================================bucket版本=============================================
+    def bucket_scheduler(self, input_requests):
         if len(input_requests) == 0:
             return
 
@@ -237,120 +237,122 @@ class ControllerMultiFlex:
             gpu_idx = r.input_ids[0] % self.dp_size
             self.workers[gpu_idx].queue.put(r)
 
+    # 考虑加上请求退出机制等等。。
+    def multi_turn_scheduler(self, input_requests):
         # ===================================================resources_aware版本=============================================
-        # if len(input_requests) == 0:
-        #     return
-        # available_mem = [k.value for k in self.controller_info.available_kv_cache]
-        # num_reqs_running = [k.value for k in self.controller_info.running_reqs]
-        # num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
-        # if not self.pre_available_kv_cache:
-        #     self.pre_available_kv_cache = available_mem.copy()
+        if len(input_requests) == 0:
+            return
+        available_mem = [k.value for k in self.controller_info.available_kv_cache]
+        num_reqs_running = [k.value for k in self.controller_info.running_reqs]
+        num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
+        if not self.pre_available_kv_cache:
+            self.pre_available_kv_cache = available_mem.copy()
 
-        # if not self.main_available_kv_cache:
-        #     self.main_available_kv_cache = available_mem.copy()
+        if not self.main_available_kv_cache:
+            self.main_available_kv_cache = available_mem.copy()
 
-        # if self.list_equal(self.pre_available_kv_cache, available_mem):
-        #     # 使用备份的available_mem
-        #     pass
-        # else:
-        #     logger.info(
-        #         f"update main_available_kv_cache: main{self.main_available_kv_cache}=>pre{self.pre_available_kv_cache}=>now{available_mem}"
-        #     )
-        #     self.pre_available_kv_cache = available_mem.copy()
-        #     self.main_available_kv_cache = available_mem.copy()
-        # # ===============================================================================
-        # if not self.pre_num_running_req:
-        #     self.pre_num_running_req = num_reqs_running.copy()
+        if self.list_equal(self.pre_available_kv_cache, available_mem):
+            # 使用备份的available_mem
+            pass
+        else:
+            logger.info(
+                f"update main_available_kv_cache: main{self.main_available_kv_cache}=>pre{self.pre_available_kv_cache}=>now{available_mem}"
+            )
+            self.pre_available_kv_cache = available_mem.copy()
+            self.main_available_kv_cache = available_mem.copy()
+        # ===============================================================================
+        if not self.pre_num_running_req:
+            self.pre_num_running_req = num_reqs_running.copy()
 
-        # if not self.main_num_running_req:
-        #     self.main_num_running_req = num_reqs_running.copy()
+        if not self.main_num_running_req:
+            self.main_num_running_req = num_reqs_running.copy()
 
-        # if self.list_equal(self.pre_num_running_req, num_reqs_running):
-        #     # use_num_reqs_running = self.main_available_kv_cache
-        #     pass
-        # else:
-        #     logger.info(
-        #         f"update main_num_running_req: main{self.main_num_running_req}=>pre{self.pre_num_running_req}=>now{num_reqs_running}"
-        #     )
-        #     self.main_num_running_req = num_reqs_running.copy()
-        #     self.pre_num_running_req = num_reqs_running.copy()
+        if self.list_equal(self.pre_num_running_req, num_reqs_running):
+            # use_num_reqs_running = self.main_available_kv_cache
+            pass
+        else:
+            logger.info(
+                f"update main_num_running_req: main{self.main_num_running_req}=>pre{self.pre_num_running_req}=>now{num_reqs_running}"
+            )
+            self.main_num_running_req = num_reqs_running.copy()
+            self.pre_num_running_req = num_reqs_running.copy()
 
-        # # =================================================================================
-        # if not self.pre_num_waiting_req:
-        #     self.pre_num_waiting_req = num_reqs_waiting.copy()
+        # =================================================================================
+        if not self.pre_num_waiting_req:
+            self.pre_num_waiting_req = num_reqs_waiting.copy()
 
-        # if not self.main_num_waiting_req:
-        #     self.main_num_waiting_req = num_reqs_waiting.copy()
+        if not self.main_num_waiting_req:
+            self.main_num_waiting_req = num_reqs_waiting.copy()
 
-        # if self.list_equal(self.pre_num_waiting_req, num_reqs_waiting):
-        #     # use_num_reqs_running = self.main_available_kv_cache
-        #     pass
-        # else:
-        #     logger.info(
-        #         f"update main_num_waiting_req: main{self.main_num_waiting_req}=>pre{self.pre_num_waiting_req}=>now{num_reqs_waiting}"
-        #     )
-        #     self.main_num_waiting_req = num_reqs_waiting.copy()
-        #     self.pre_num_waiting_req = num_reqs_waiting.copy()
+        if self.list_equal(self.pre_num_waiting_req, num_reqs_waiting):
+            # use_num_reqs_running = self.main_available_kv_cache
+            pass
+        else:
+            logger.info(
+                f"update main_num_waiting_req: main{self.main_num_waiting_req}=>pre{self.pre_num_waiting_req}=>now{num_reqs_waiting}"
+            )
+            self.main_num_waiting_req = num_reqs_waiting.copy()
+            self.pre_num_waiting_req = num_reqs_waiting.copy()
 
-        # all_waitting = False
-        # if min(self.main_num_waiting_req) > 0:
-        #     # 最小值都大于0，全部waiting
-        #     all_waitting = True
-        # else:
-        #     # 最小值都是0， 则全部waiting
-        #     all_waitting = False
+        all_waitting = False
+        if min(self.main_num_waiting_req) > 0:
+            # 最小值都大于0，全部waiting
+            all_waitting = True
+        else:
+            # 最小值都是0， 则全部waiting
+            all_waitting = False
 
-        # no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+        no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
 
-        # for r in input_requests:
-        #     len_r = len(r.input_ids)
-        #     if len_r < 10:
-        #         rid = 0
-        #         for i in range(10):
-        #             rid += r.input_ids[i % len_r]  # 使用模运算循环访问列表元素
-        #     else:
-        #         rid = sum(r.input_ids[:10])
+        for r in input_requests:
+            len_r = len(r.input_ids)
+            if len_r < 10:
+                rid = 0
+                for i in range(10):
+                    rid += r.input_ids[i % len_r]  # 使用模运算循环访问列表元素
+            else:
+                rid = sum(r.input_ids[:10])
 
-        #     # 记录(rid, random_id),作为字典的键，选择的id作为字典的值
+            # 记录(rid, random_id),作为字典的键，选择的id作为字典的值
 
-        #     if rid not in self.choosen_gpu_per_req:
-        #         # 基于resources_aware调度
-        #         if all_waitting:
-        #             ratio = [
-        #                 run / wait
-        #                 for run, wait in zip(
-        #                     self.main_num_running_req, self.main_num_waiting_req
-        #                 )
-        #             ]
-        #             max_raio = max(ratio)
-        #             indices = [i for i, x in enumerate(ratio) if x == max_raio]
-        #             gpu_idx = random.choice(indices)
-        #             self.main_num_waiting_req[gpu_idx] += 1
-        #             self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
-        #         else:
-        #             filter_result = [
-        #                 a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
-        #             ]
-        #             # 找到最大值
-        #             max_value = max(filter_result)
+            if rid not in self.choosen_gpu_per_req:
+                # 基于resources_aware调度
+                if all_waitting:
+                    ratio = [
+                        run / wait
+                        for run, wait in zip(
+                            self.main_num_running_req, self.main_num_waiting_req
+                        )
+                    ]
+                    max_raio = max(ratio)
+                    indices = [i for i, x in enumerate(ratio) if x == max_raio]
+                    gpu_idx = random.choice(indices)
+                    self.main_num_waiting_req[gpu_idx] += 1
+                    self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
+                else:
+                    filter_result = [
+                        a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
+                    ]
+                    # 找到最大值
+                    max_value = max(filter_result)
 
-        #             # 找到所有最大值的索引
-        #             max_indices = [
-        #                 index
-        #                 for index, value in enumerate(filter_result)
-        #                 if value == max_value
-        #             ]
+                    # 找到所有最大值的索引
+                    max_indices = [
+                        index
+                        for index, value in enumerate(filter_result)
+                        if value == max_value
+                    ]
 
-        #             # 随机选择一个索引
-        #             gpu_idx = random.choice(max_indices)
-        #             logger.info(
-        #                 f"after{rid}=>{gpu_idx}=>{self.main_available_kv_cache}"
-        #             )
-        #             self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
-        #         self.choosen_gpu_per_req[rid] = gpu_idx
-        #     else:
-        #         gpu_idx = self.choosen_gpu_per_req[rid]
-        #     self.workers[gpu_idx].queue.put(r)
+                    # 随机选择一个索引
+                    gpu_idx = random.choice(max_indices)
+                    logger.info(
+                        f"after{rid}=>{gpu_idx}=>{self.main_available_kv_cache}"
+                    )
+                    self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
+                self.choosen_gpu_per_req[rid] = gpu_idx
+            else:
+                gpu_idx = self.choosen_gpu_per_req[rid]
+            self.workers[gpu_idx].queue.put(r)
         # ==================================round_robin版本=======================================
 
         # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则循环加
