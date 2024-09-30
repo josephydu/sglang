@@ -4,7 +4,7 @@
 current_time=$(date +"%Y%m%d_%H%M%S")
 
 # 根据当前时间生成日志文件名
-LOG_FILE="test_load_method_v4_${current_time}.log"
+LOG_FILE="v4_${current_time}_test_load_method.log"
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 # 在日志文件中写入分隔符和当前时间
