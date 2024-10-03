@@ -235,6 +235,8 @@ class ControllerMultiFlex:
 
         for r in input_requests:
             gpu_idx = r.input_ids[0] % self.dp_size
+            
+            logger.info(f"[rid]{r.rid}=>[first_id]{r.input_ids[0]}=>[gpu_id]{gpu_idx}")
             self.workers[gpu_idx].queue.put(r)
 
     # 考虑加上请求退出机制等等。。
