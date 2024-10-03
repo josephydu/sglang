@@ -14,7 +14,7 @@ echo "====================== $(date) ======================" >> "$LOG_FILE"
 
 turns=(20)
 
-num_qa=(128 256 512 1024 2048 4096)
+num_qa=(1024 2048 4096)
 
 methods1=(
     # "--load-balance-method multi_turn"
