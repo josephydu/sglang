@@ -53,7 +53,7 @@ sleep 200
         --tokenizer Qwen/Qwen1.5-14B --model Qwen/Qwen1.5-14B \
         --random-output-len 1024 --random-input-len 4096 \
         --random-range-ratio 0.5 --seed 1234 \
-        --num-prompts 500 --request-rate-list "[1.0, 1.05, 1.10, 1.18, 1.20, 1.23, 1.25, 1.26, 2, 3, 5, 10]" >> "$LOG_FILE" 2>&1
+        --num-prompts 1000 --request-rate-list "[1.0, 1.05, 1.10, 1.18, 1.20, 1.23, 1.25, 1.26, 2, 3, 5, 10]" >> "$LOG_FILE" 2>&1
 sleep 50
 # done
 ps -elf | grep python  | awk '{print $4}' | xargs  kill -s 9 
@@ -76,7 +76,7 @@ sleep 200
         --tokenizer Qwen/Qwen1.5-14B --model Qwen/Qwen1.5-14B \
         --random-output-len 1024 --random-input-len 4096 \
         --random-range-ratio 0.5 --seed 1234 \
-        --num-prompts 500 --request-rate-list "[1.0, 1.05, 1.10, 1.18, 1.20, 1.23, 1.25, 1.26, 2, 3, 5, 10]" >> "$LOG_FILE" 2>&1
+        --num-prompts 1000 --request-rate-list "[1.0, 1.05, 1.10, 1.18, 1.20, 1.23, 1.25, 1.26, 2, 3, 5, 10]" >> "$LOG_FILE" 2>&1
 sleep 50
 # done
 ps -elf | grep python  | awk '{print $4}' | xargs  kill -s 9 
@@ -98,7 +98,7 @@ sleep 200
         --tokenizer Qwen/Qwen1.5-14B --model Qwen/Qwen1.5-14B \
         --random-output-len 1024 --random-input-len 4096 \
         --random-range-ratio 0.5 --seed 1234 \
-        --num-prompts 500 --request-rate-list "[1.0, 1.05, 1.10, 1.18, 1.20, 1.23, 1.25, 1.26, 2, 3, 5, 10]" >> "$LOG_FILE" 2>&1
+        --num-prompts 1000 --request-rate-list "[1.0, 1.05, 1.10, 1.18, 1.20, 1.23, 1.25, 1.26, 2, 3, 5, 10]" >> "$LOG_FILE" 2>&1
     sleep 50
 ps -elf | grep python  | awk '{print $4}' | xargs  kill -s 9 
 ps -elf | grep python  | awk '{print $4}' | xargs  kill -s 9 
@@ -116,7 +116,7 @@ sleep 200
         --tokenizer Qwen/Qwen1.5-14B --model Qwen/Qwen1.5-14B \
         --random-output-len 1024 --random-input-len 4096 \
         --random-range-ratio 0.5 --seed 1234 \
-        --num-prompts 500 --request-rate-list "[1.0, 1.05, 1.10, 1.18, 1.20, 1.23, 1.25, 1.26, 2, 3, 5, 10]" >> "$LOG_FILE" 2>&1
+        --num-prompts 1000 --request-rate-list "[1.0, 1.05, 1.10, 1.18, 1.20, 1.23, 1.25, 1.26, 2, 3, 5, 10]" >> "$LOG_FILE" 2>&1
     sleep 50
 ps -elf | grep python  | awk '{print $4}' | xargs  kill -s 9
 ps -elf | grep python  | awk '{print $4}' | xargs  kill -s 9 
