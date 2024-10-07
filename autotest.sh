@@ -6,7 +6,7 @@ current_time=$(date +"%Y%m%d_%H%M%S")
 
 # 根据当前时间生成日志文件名
 LOG_FILE="dp_tp_test_${current_time}.log"
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 # 在日志文件中写入分隔符和当前时间
 echo "====================== $(date) ======================" >> "$LOG_FILE"
 
