@@ -17,8 +17,8 @@ turns=(20)
 num_qa=(1024 2048 4096)
 
 methods1=(
-    # "--load-balance-method multi_turn"
-    "--load-balance-method bucket"
+    "--load-balance-method multi_turn"
+    # "--load-balance-method bucket"
     # "--load-balance-method round_robin"
 )
 # methods2=(
