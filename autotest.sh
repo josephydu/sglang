@@ -41,7 +41,7 @@ echo "====================== $(date) ======================" >> "$LOG_FILE"
 
 # 启动服务并将其放到后台，重定向输出到日志文件
 echo "Running with setting: dp=1 tp=8 ======================================================" >> "$LOG_FILE"
-/home/qspace/workspace/josephyou/bin/micromamba run -n sglang python3 -m sglang.launch_server --model-path Qwen/Qwen1.5-14B \
+python3 -m sglang.launch_server --model-path Qwen/Qwen1.5-14B \
     --host 0.0.0.0 --port 8080 --mem-fraction-static 0.8 \
     --dp-size 1 --tp-size 8 --load-balance-method resources_aware
 
