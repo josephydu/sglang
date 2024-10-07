@@ -875,6 +875,9 @@ def run_tp_server(
             server_args,
             nccl_port,
             model_overide_args,
+            None,
+            None,
+            None,
         )
         tp_cpu_group = model_server.model_runner.tp_group.cpu_group
 
