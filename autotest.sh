@@ -43,7 +43,7 @@ echo "====================== $(date) ======================" >> "$LOG_FILE"
 echo "Running with setting: dp=1 tp=8 ======================================================" >> "$LOG_FILE"
 /home/qspace/workspace/josephyou/tools/bin/micromamba run -n sglang2 python3 -m sglang.launch_server --model-path Qwen/Qwen1.5-14B \
     --host 0.0.0.0 --port 8080 --mem-fraction-static 0.8 \
-    --dp-size 1 --tp-size 8 --load-balance-method resources_aware
+    --dp-size 1 --tp-size 8 --load-balance-method resources_aware >> "$LOG_FILE" 2>&1 &
 
 sleep 200
 # for rate in $(seq 3.5 0.25 6); do
