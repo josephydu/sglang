@@ -235,7 +235,7 @@ class ControllerMultiFlex:
 
         for r in input_requests:
             gpu_idx = r.input_ids[0] % self.dp_size
-            
+
             logger.info(f"[rid]{r.rid}=>[first_id]{r.input_ids[0]}=>[gpu_id]{gpu_idx}")
             self.workers[gpu_idx].queue.put(r)
 
@@ -347,14 +347,13 @@ class ControllerMultiFlex:
 
                     # 随机选择一个索引
                     gpu_idx = random.choice(max_indices)
-                    logger.info(
-                        f"after{rid}=>{gpu_idx}=>{self.main_available_kv_cache}"
-                    )
+
                     self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
                 self.choosen_gpu_per_req[rid] = gpu_idx
             else:
                 gpu_idx = self.choosen_gpu_per_req[rid]
             self.workers[gpu_idx].queue.put(r)
+            logger.info(f"[gpu_id_select][{gpu_idx}]")
         # ==================================round_robin版本=======================================
 
         # 对于每个请求，先采取轮询策略，并缓存请求的id，id认为是input_id的前10个和,如果长度不足10，则循环加
