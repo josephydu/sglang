@@ -15,10 +15,7 @@ pids=()
 # 定义清理函数
 cleanup() {
     echo "Cleaning up..."
-    for pid in "${pids[@]}"; do
-        echo "Killing process $pid"
-        kill "$pid" 2>/dev/null
-    done
+    ps -elf | grep sglang  | awk '{print $4}' | xargs  kill -s 9 
     exit
 }
 
