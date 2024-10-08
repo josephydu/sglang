@@ -292,6 +292,19 @@ async def retrieve_file_content(file_id: str):
     return await v1_retrieve_file_content(file_id)
 
 
+def register_node(server_args: ServerArgs):
+    import torch
+
+    url = "http://127.0.0.1:8000/register_nodes"
+    data = {
+        "ip": server_args.host,
+        "port": server_args.port,
+        "gpu_id": torch.cuda.current_device(),
+    }
+    res = requests.post(url, json=data)
+    return res.json()
+
+
 def launch_engine(
     server_args: ServerArgs,
 ):
@@ -358,6 +371,10 @@ def launch_engine(
     # Wait for model to finish loading
     for i in range(len(scheduler_pipe_readers)):
         scheduler_pipe_readers[i].recv()
+
+    # register node to the server
+    msg = register_node(server_args)
+    logger.info(f"register node to the server....{msg}")
 
 
 def launch_server(
