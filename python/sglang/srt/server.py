@@ -295,7 +295,7 @@ async def retrieve_file_content(file_id: str):
 def register_node(server_args: ServerArgs):
     import torch
 
-    url = "http://127.0.0.1:8000/register_nodes"
+    url = "http://127.0.0.1:23000/register_nodes"
     data = {
         "ip": server_args.host,
         "port": server_args.port,
