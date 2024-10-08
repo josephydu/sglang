@@ -6,6 +6,9 @@ n=$(nvidia-smi -L | wc -l)
 # 起始端口
 start_port=25000
 
+# 端口增量
+port_increment=100
+
 # 启动服务的进程 ID 列表
 pids=()
 
@@ -19,13 +22,13 @@ cleanup() {
     exit
 }
 
-# 捕获 EXIT 信号
-trap cleanup EXIT
+# 捕获 EXIT 和 SIGINT 信号
+trap cleanup EXIT SIGINT
 
 # 生成端口并启动服务
 for (( gpu_index=0; gpu_index<n; gpu_index++ )); do
     # 计算当前 GPU 对应的端口
-    port=$((start_port + gpu_index))
+    port=$((start_port + gpu_index * port_increment))
     
     # 启动服务
     echo "Starting service on GPU $gpu_index with port $port"
