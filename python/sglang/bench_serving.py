@@ -176,7 +176,6 @@ async def async_request_openai_completions(
                 url=api_url, json=payload, headers=headers
             ) as response:
                 if response.status == 200:
-                    print(response.content)
                     async for chunk_bytes in response.content:
                         chunk_bytes = chunk_bytes.strip()
                         if not chunk_bytes:
@@ -578,6 +577,9 @@ async def benchmark(
         prompt_len=test_prompt_len,
         output_len=test_output_len,
         extra_request_body=extra_request_body,
+    )
+    print(
+        f"{model_id}, {test_prompt}, {api_url}, {prompt_len}, {output_len}, {extra_request_body}"
     )
     test_output = await request_func(request_func_input=test_input)
     if not test_output.success:
