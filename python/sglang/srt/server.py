@@ -293,13 +293,13 @@ async def retrieve_file_content(file_id: str):
 
 
 def register_node(server_args: ServerArgs):
-    import torch
+    # import torch
 
     url = "http://127.0.0.1:23000/register_nodes"
     data = {
         "ip": server_args.host,
         "port": server_args.port,
-        "gpu_id": torch.cuda.current_device(),
+        # "gpu_id": torch.cuda.current_device(),
     }
     res = requests.post(url, json=data)
     return res.json()
