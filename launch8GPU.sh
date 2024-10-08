@@ -35,5 +35,8 @@ for (( gpu_index=0; gpu_index<n; gpu_index++ )); do
     pids+=($!)
 done
 
+
+
+
 # 等待所有后台进程完成
 wait
