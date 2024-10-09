@@ -173,7 +173,7 @@ async def async_request_openai_completions(
         most_recent_timestamp = st
 
         res = requests.post(url=api_url, json=payload, headers=headers)
-        print(f"res={res}")
+        print(f"res={res.content}")
         return
         # print(f"{payload}")
         try:
