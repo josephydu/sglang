@@ -670,13 +670,13 @@ def v1_generate_response(request, ret, tokenizer_manager, to_file=False):
 async def v1_completions(tokenizer_manager, raw_request: Request):
     request_json = await raw_request.json()
 
-    logger.info(f"[adapter]{request_json}")
+    # logger.info(f"[adapter]{request_json}")
     all_requests = [CompletionRequest(**request_json)]
     adapted_request, request = v1_generate_request(all_requests)
 
-    logger.info(f"[adapter]1")
+    # logger.info(f"[adapter]1")
     if adapted_request.stream:
-        logger.info(f"[adapter]2")
+        # logger.info(f"[adapter]2")
 
         async def generate_stream_resp():
             stream_buffers = {}
@@ -687,6 +687,7 @@ async def v1_completions(tokenizer_manager, raw_request: Request):
                 async for content in tokenizer_manager.generate_request(
                     adapted_request, raw_request
                 ):
+                    print(f"[adapter]{content}")
                     index = content["index"]
 
                     stream_buffer = stream_buffers.get(index, "")
