@@ -674,7 +674,9 @@ async def v1_completions(tokenizer_manager, raw_request: Request):
     all_requests = [CompletionRequest(**request_json)]
     adapted_request, request = v1_generate_request(all_requests)
 
+    logger.info(f"[adapter]1")
     if adapted_request.stream:
+        logger.info(f"[adapter]2")
 
         async def generate_stream_resp():
             stream_buffers = {}
@@ -797,6 +799,7 @@ async def v1_completions(tokenizer_manager, raw_request: Request):
                         exclude_unset=True, exclude_none=True
                     )
                     yield f"data: {final_usage_data}\n\n"
+                    logger.info(f"[adapter]3")
             except ValueError as e:
                 error = create_streaming_error_response(str(e))
                 yield f"data: {error}\n\n"
