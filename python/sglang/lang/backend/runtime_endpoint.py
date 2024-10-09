@@ -169,6 +169,7 @@ class RuntimeEndpoint(BaseBackend):
         self._assert_success(res)
 
         obj = res.json()
+        print(f"[obj]{obj}")
         comp = obj["text"]
         return comp, obj["meta_info"]
 
