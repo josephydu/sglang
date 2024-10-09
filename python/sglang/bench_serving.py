@@ -177,6 +177,7 @@ async def async_request_openai_completions(
                 url=api_url, json=payload, headers=headers
             ) as response:
                 if response.status == 200:
+                    print(response.json())
                     async for chunk_bytes in response.content:
                         print(chunk_bytes)
                         chunk_bytes = chunk_bytes.strip()
