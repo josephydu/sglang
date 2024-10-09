@@ -172,9 +172,7 @@ async def async_request_openai_completions(
         st = time.perf_counter()
         most_recent_timestamp = st
 
-        file_name = "payload.json"
-        with open(file_name, "w") as json_file:
-            json.dump(payload, json_file, indent=4)  #
+        print(api_url)
         try:
             async with session.post(
                 url=api_url, json=payload, headers=headers
