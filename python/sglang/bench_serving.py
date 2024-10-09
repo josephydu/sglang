@@ -190,7 +190,7 @@ async def async_request_openai_completions(
                         else:
                             data = json.loads(chunk)
 
-                            print(f"[rqeust_openai_completions]{data}")
+                            # print(f"[rqeust_openai_completions]{data}")
                             # NOTE: Some completion API might have a last
                             # usage summary response without a token so we
                             # want to check a token was generated
