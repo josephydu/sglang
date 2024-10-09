@@ -669,6 +669,8 @@ def v1_generate_response(request, ret, tokenizer_manager, to_file=False):
 
 async def v1_completions(tokenizer_manager, raw_request: Request):
     request_json = await raw_request.json()
+
+    logger.info(f"[adapter]{request_json}")
     all_requests = [CompletionRequest(**request_json)]
     adapted_request, request = v1_generate_request(all_requests)
 
