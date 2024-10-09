@@ -299,6 +299,8 @@ def register_node(server_args: ServerArgs):
     data = {
         "ip": server_args.host,
         "port": server_args.port,
+        "model_path": tokenizer_manager.model_path,
+        "is_generation": tokenizer_manager.is_generation,
         # "gpu_id": torch.cuda.current_device(),
     }
     res = requests.post(url, json=data)
