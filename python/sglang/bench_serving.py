@@ -2,7 +2,7 @@
 # Adapted from https://github.com/vllm-project/vllm/blob/6366efc67b0aedd2c1721c14385370e50b297fb3/benchmarks/benchmark_serving.py
 
 """
-Benchmark online serving with dynamic requests.
+Benchmark online serving.
 
 Usage:
 python3 -m sglang.bench_serving --backend sglang --num-prompt 10
@@ -149,12 +149,10 @@ async def async_request_openai_completions(
         "completions"
     ), "OpenAI Completions API URL must end with 'completions'."
 
-    prompt = request_func_input.prompt
-
     async with aiohttp.ClientSession(timeout=AIOHTTP_TIMEOUT) as session:
         payload = {
             "model": request_func_input.model,
-            "prompt": prompt,
+            "prompt": request_func_input.prompt,
             "temperature": 0.0,
             "best_of": 1,
             "max_tokens": request_func_input.output_len,
@@ -171,8 +169,6 @@ async def async_request_openai_completions(
         ttft = 0.0
         st = time.perf_counter()
         most_recent_timestamp = st
-
-        print(api_url)
         try:
             async with session.post(
                 url=api_url, json=payload, headers=headers
@@ -190,7 +186,6 @@ async def async_request_openai_completions(
                         else:
                             data = json.loads(chunk)
 
-                            # print(f"[rqeust_openai_completions]{data}")
                             # NOTE: Some completion API might have a last
                             # usage summary response without a token so we
                             # want to check a token was generated
@@ -225,13 +220,6 @@ async def async_request_openai_completions(
     return output
 
 
-async def async_request_gserver(
-    request_func_input: RequestFuncInput,
-    pbar: Optional[tqdm] = None,
-) -> RequestFuncOutput:
-    raise NotImplementedError()
-
-
 def get_model(pretrained_model_name_or_path: str) -> str:
     if os.getenv("SGLANG_USE_MODELSCOPE", "False").lower() == "true":
         import huggingface_hub.constants
@@ -250,13 +238,6 @@ def get_model(pretrained_model_name_or_path: str) -> str:
 def get_tokenizer(
     pretrained_model_name_or_path: str,
 ) -> Union[PreTrainedTokenizer, PreTrainedTokenizerFast]:
-    if pretrained_model_name_or_path.endswith(
-        ".json"
-    ) or pretrained_model_name_or_path.endswith(".model"):
-        from sglang.srt.hf_transformers_utils import get_tokenizer
-
-        return get_tokenizer(pretrained_model_name_or_path)
-
     if pretrained_model_name_or_path is not None and not os.path.exists(
         pretrained_model_name_or_path
     ):
@@ -271,7 +252,6 @@ ASYNC_REQUEST_FUNCS = {
     "vllm": async_request_openai_completions,
     "lmdeploy": async_request_openai_completions,
     "trt": async_request_trt_llm,
-    "gserver": async_request_gserver,
 }
 
 
@@ -301,96 +281,111 @@ class BenchmarkMetrics:
     median_e2e_latency_ms: float
 
 
-SHAREGPT_URL = "https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json"
+default_sharegpt_path = "ShareGPT_V3_unfiltered_cleaned_split.json"
 
 
-def download_and_cache_file(url: str, filename: Optional[str] = None):
-    """Read and cache a file from a url."""
-    if filename is None:
-        filename = os.path.join("/tmp", url.split("/")[-1])
+def download_sharegpt_dataset(path):
+    url = "https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json"
 
-    # Check if the cache file already exists
-    if os.path.exists(filename):
-        return filename
+    print(f"Downloading dataset from {url}")
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
 
-    print(f"Downloading from {url} to {filename}")
+        total_size = int(response.headers.get("content-length", 0))
+        block_size = 8192
 
-    # Stream the response to show the progress bar
-    response = requests.get(url, stream=True)
-    response.raise_for_status()  # Check for request errors
+        with open(path, "wb") as f, tqdm(
+            desc="Downloading",
+            total=total_size,
+            unit="iB",
+            unit_scale=True,
+            unit_divisor=1024,
+        ) as progress_bar:
+            for data in response.iter_content(block_size):
+                size = f.write(data)
+                progress_bar.update(size)
 
-    # Total size of the file in bytes
-    total_size = int(response.headers.get("content-length", 0))
-    chunk_size = 1024  # Download in chunks of 1KB
+        print(f"Dataset downloaded and saved to {path}")
+    except requests.RequestException as e:
+        raise Exception(f"Failed to download dataset: {e}")
 
-    # Use tqdm to display the progress bar
-    with open(filename, "wb") as f, tqdm(
-        desc=filename,
-        total=total_size,
-        unit="B",
-        unit_scale=True,
-        unit_divisor=1024,
-    ) as bar:
-        for chunk in response.iter_content(chunk_size=chunk_size):
-            f.write(chunk)
-            bar.update(len(chunk))
 
-    return filename
+import pickle
 
 
 def sample_sharegpt_requests(
     dataset_path: str,
     num_requests: int,
     tokenizer: PreTrainedTokenizerBase,
-    fixed_output_len: Optional[int] = None,
+    max_seqlen: int,
 ) -> List[Tuple[str, int, int]]:
-    if fixed_output_len is not None and fixed_output_len < 4:
-        raise ValueError("output_len too small")
-
+    cache_path = f"./input_cache_v2_{num_requests}"
+    # 尝试加载缓存的 input_requests
+    if os.path.isfile(cache_path):
+        with open(cache_path, "rb") as f:
+            input_requests = pickle.load(f)
+        print("Loaded input_requests from cache.")
+        return input_requests
+    prompts = []
+    prompt_lens = []
+    response_lens = []
     # Download sharegpt if necessary
-    if not os.path.isfile(dataset_path):
-        dataset_path = download_and_cache_file(SHAREGPT_URL)
+    if not os.path.isfile(dataset_path) and not os.path.isfile(default_sharegpt_path):
+        download_sharegpt_dataset(default_sharegpt_path)
+        dataset_path = default_sharegpt_path
+    else:
+        dataset_path = (
+            dataset_path if os.path.isfile(dataset_path) else default_sharegpt_path
+        )
 
     # Load the dataset.
     with open(dataset_path) as f:
-        dataset = json.load(f)
-    # Filter out the conversations with less than 2 turns.
-    dataset = [data for data in dataset if len(data["conversations"]) >= 2]
-    # Only keep the first two turns of each conversation.
-    dataset = [
-        (data["conversations"][0]["value"], data["conversations"][1]["value"])
-        for data in dataset
-    ]
+        datasets = json.load(f)
+        for data in datasets:
+            if len(data["conversations"]) >= 2:
+                prompt = data["conversations"][0]["value"]
+                res = data["conversations"][1]["value"]
+                prompt_token_ids = tokenizer(prompt).input_ids
+                completion_token_ids = tokenizer(res).input_ids
 
-    # Shuffle the dataset.
-    random.shuffle(dataset)
+                if (
+                    len(prompt_token_ids) + len(completion_token_ids) < max_seqlen
+                    and len(prompt_token_ids) > 0
+                    and len(completion_token_ids) > 0
+                ):
+                    prompts.append(prompt)
+                    prompt_lens.append(len(prompt_token_ids))
+                    response_lens.append(len(completion_token_ids))
+            if len(prompts) > num_requests:
+                break
 
-    # Filter out sequences that are too long or too short
-    filtered_dataset: List[Tuple[str, int, int]] = []
-    for i in range(len(dataset)):
-        if len(filtered_dataset) == num_requests:
-            break
+    sampled_ids = [random.randint(0, len(prompts) - 1) for _ in range(num_requests)]
+    sampled_prompts = [prompts[idx] for idx in sampled_ids]
+    sampled_prompts_lens = [prompt_lens[idx] for idx in sampled_ids]
+    sampled_response_lens = [response_lens[idx] for idx in sampled_ids]
 
-        # Tokenize the prompts and completions.
-        prompt = dataset[i][0]
-        prompt_token_ids = tokenizer.encode(prompt)
-        completion = dataset[i][1]
-        completion_token_ids = tokenizer.encode(completion)
-        prompt_len = len(prompt_token_ids)
-        output_len = (
-            len(completion_token_ids) if fixed_output_len is None else fixed_output_len
-        )
-        if prompt_len < 4 or output_len < 4:
-            # Prune too short sequences.
-            continue
-        if prompt_len > 1024 or (
-            prompt_len + output_len > 2048 and fixed_output_len is None
-        ):
-            # Prune too long sequences.
-            continue
-        filtered_dataset.append((prompt, prompt_len, output_len))
+    for i, (prompt_len, gen_len) in enumerate(
+        zip(sampled_prompts_lens, sampled_response_lens)
+    ):
+        total = prompt_len + gen_len
+        if total > max_seqlen:
+            print(f"truncating long prompt+gen_len {prompt_len=} {gen_len=}")
+            gen_len = max_seqlen - prompt_len
+        sampled_response_lens[i] = gen_len
+    input_requests = list(
+        zip(sampled_prompts, sampled_prompts_lens, sampled_response_lens)
+    )
 
-    return filtered_dataset
+    with open(cache_path, "wb") as f:
+        pickle.dump(input_requests, f)
+        print(f"Saved input_requests_{num_requests} to cache.")
+    print(f"#Input tokens: {np.sum(sampled_prompts_lens)}")
+    print(f"#Output tokens: {np.sum(sampled_response_lens)}")
+    return input_requests
+
+
+import pickle
 
 
 def sample_random_requests(
@@ -401,7 +396,13 @@ def sample_random_requests(
     tokenizer: PreTrainedTokenizerBase,
     dataset_path: str,
 ) -> List[Tuple[str, int, int]]:
-
+    cache_path = f"./input_cache_{num_prompts}"
+    # 尝试加载缓存的 input_requests
+    if os.path.isfile(cache_path):
+        with open(cache_path, "rb") as f:
+            input_requests = pickle.load(f)
+        print("Loaded input_requests from cache.")
+        return input_requests
     input_lens = np.random.randint(
         max(int(input_len * range_ratio), 1),
         input_len + 1,
@@ -417,8 +418,15 @@ def sample_random_requests(
         # Sample token ids from ShareGPT and repeat/truncate them to satisfy the input_lens
 
         # Download sharegpt if necessary
-        if not os.path.isfile(dataset_path):
-            dataset_path = download_and_cache_file(SHAREGPT_URL)
+        if not os.path.isfile(dataset_path) and not os.path.isfile(
+            default_sharegpt_path
+        ):
+            download_sharegpt_dataset(default_sharegpt_path)
+            dataset_path = default_sharegpt_path
+        else:
+            dataset_path = (
+                dataset_path if os.path.isfile(dataset_path) else default_sharegpt_path
+            )
 
         # Load the dataset.
         with open(dataset_path) as f:
@@ -439,7 +447,7 @@ def sample_random_requests(
         for i in range(num_prompts):
             # Tokenize the prompts and completions.
             prompt = dataset[i][0]
-            prompt_token_ids = tokenizer.encode(prompt)
+            prompt_token_ids = tokenizer(prompt).input_ids
             prompt_len = len(prompt_token_ids)
 
             if prompt_len > input_lens[i]:
@@ -461,7 +469,9 @@ def sample_random_requests(
                 ]
             )
             input_requests.append((prompt, int(input_lens[i]), int(output_lens[i])))
-
+    with open(cache_path, "wb") as f:
+        pickle.dump(input_requests, f)
+        print(f"Saved input_requests_{num_prompts} to cache.")
     print(f"#Input tokens: {np.sum(input_lens)}")
     print(f"#Output tokens: {np.sum(output_lens)}")
     return input_requests
@@ -500,15 +510,21 @@ def calculate_metrics(
     tpots: List[float] = []
     ttfts: List[float] = []
     e2e_latencies: List[float] = []
+
+    input_lens: List[float] = []
+
     for i in range(len(outputs)):
         if outputs[i].success:
             output_len = outputs[i].output_len
             output_lens.append(output_len)
             retokenized_output_len = len(
-                tokenizer.encode(outputs[i].generated_text, add_special_tokens=False)
+                tokenizer(outputs[i].generated_text, add_special_tokens=False).input_ids
             )
             retokenized_output_lens.append(retokenized_output_len)
             total_input += input_requests[i][1]
+
+            input_lens.append(input_requests[i][1])
+
             if output_len > 1:
                 tpots.append((outputs[i].latency - outputs[i].ttft) / (output_len - 1))
             itls += outputs[i].itl
@@ -527,6 +543,11 @@ def calculate_metrics(
             "on the benchmark arguments.",
             stacklevel=2,
         )
+
+    # metric_data = [input_lens, output_lens, ttfts]
+    # with open(f'metrics_{time.time()}.json', 'w') as f:
+    #     json.dump(metric_data, f)
+
     metrics = BenchmarkMetrics(
         completed=completed,
         total_input=total_input,
@@ -564,6 +585,7 @@ async def benchmark(
     input_requests: List[Tuple[str, int, int]],
     request_rate: float,
     disable_tqdm: bool,
+    enable_multi: bool,
     extra_request_body: Dict[str, Any],
 ):
     if backend in ASYNC_REQUEST_FUNCS:
@@ -573,6 +595,15 @@ async def benchmark(
 
     print("Starting initial single prompt test run...")
     test_prompt, test_prompt_len, test_output_len = input_requests[0]
+
+    words = test_prompt.split()
+
+    # 使用random.shuffle打乱单词列表
+    random.shuffle(words)
+
+    # 将打乱后的单词列表合并回文本
+    test_prompt = " ".join(words)
+
     test_input = RequestFuncInput(
         model=model_id,
         prompt=test_prompt,
@@ -581,14 +612,6 @@ async def benchmark(
         output_len=test_output_len,
         extra_request_body=extra_request_body,
     )
-    test_output = await request_func(request_func_input=test_input)
-    if not test_output.success:
-        raise ValueError(
-            "Initial test run failed - Please make sure benchmark arguments "
-            f"are correctly specified. Error: {test_output.error}"
-        )
-    else:
-        print("Initial test run completed. Starting main benchmark run...")
 
     pbar = None if disable_tqdm else tqdm(total=len(input_requests))
 
@@ -685,20 +708,19 @@ async def benchmark(
             "backend": args.backend,
             "dataset_name": args.dataset_name,
             "request_rate": request_rate,
-            "total_input_tokens": metrics.total_input,
-            "total_output_tokens": metrics.total_output,
-            "total_output_tokens_retokenized": metrics.total_output_retokenized,
-            "mean_e2e_latency_ms": metrics.mean_e2e_latency_ms,
-            "median_e2e_latency_ms": metrics.median_e2e_latency_ms,
-            "median_ttft_ms": metrics.median_ttft_ms,
-            "median_itl_ms": metrics.median_itl_ms,
-            "output_throughput": metrics.output_throughput,
+            "total_input": metrics.total_input,
+            "total_output": metrics.total_output,
+            "total_output_retokenized": metrics.total_output_retokenized,
+            "mean_e2e_latency": metrics.mean_e2e_latency_ms,
+            "median_e2e_latency": metrics.median_e2e_latency_ms,
+            "median_ttft": metrics.median_ttft_ms,
+            "median_itl": metrics.median_itl_ms,
+            "output_token_throughput": metrics.output_throughput,
             "sharegpt_output_len": args.sharegpt_output_len,
             "random_input_len": args.random_input_len,
             "random_output_len": args.random_output_len,
             "random_range_ratio": args.random_range_ratio,
-            "duration": benchmark_duration,
-            "completed": metrics.completed,
+            "benchmark_duration": benchmark_duration,
         }
     else:
         print(f"Error running benchmark for request rate: {request_rate}")
@@ -748,6 +770,31 @@ async def benchmark(
         "mean_e2e_latency_ms": metrics.mean_e2e_latency_ms,
         "median_e2e_latency_ms": metrics.median_e2e_latency_ms,
     }
+
+    balance_method = os.getenv("LOAD_BALANCE_METHOD")
+    new_item = {
+        "method": balance_method,
+        "mean_ttft": metrics.mean_ttft_ms,
+        "request_rate": request_rate,
+        "request_throughput": metrics.request_throughput,
+        "p99_ttft_ms": metrics.p99_ttft_ms,
+        "mean_e2e_latency_ms": metrics.mean_e2e_latency_ms,
+        "time": datetime.now().isoformat(),
+    }
+    file_name = f"{balance_method}_result.json"
+    if not os.path.exists(file_name):
+        with open(file_name, "w") as f:
+            json.dump([], f)
+
+    with open(file_name, "r") as f:
+        tmp_data = json.load(f)
+
+    tmp_data.append(new_item)
+
+    with open(file_name, "w") as f:
+        json.dump(tmp_data, f, indent=4)
+
+    print(f"add new item to {file_name}: {new_item}")
     return result
 
 
@@ -772,7 +819,6 @@ def run_benchmark(args_: argparse.Namespace):
     global args
     args = args_
 
-    # Set global environments
     set_ulimit()
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -781,14 +827,12 @@ def run_benchmark(args_: argparse.Namespace):
     if args.extra_request_body:
         extra_request_body = json.loads(args.extra_request_body)
 
-    # Set url
     if args.port is None:
         args.port = {
             "sglang": 30000,
             "lmdeploy": 23333,
             "vllm": 8000,
             "trt": 8000,
-            "gserver": 9988,
         }.get(args.backend, 30000)
 
     api_url = (
@@ -811,11 +855,7 @@ def run_benchmark(args_: argparse.Namespace):
         if args.model is None:
             print("Please provide a model using `--model` when using `trt` backend.")
             sys.exit(1)
-    elif args.backend == "gserver":
-        api_url = args.base_url if args.base_url else f"{args.host}:{args.port}"
-        args.model = args.model or "default"
 
-    # Get model name
     if args.model is None:
         try:
             response = requests.get(model_url)
@@ -840,7 +880,6 @@ def run_benchmark(args_: argparse.Namespace):
 
     print(f"{args}\n")
 
-    # Read dataset
     backend = args.backend
     model_id = args.model
     tokenizer_id = args.tokenizer if args.tokenizer is not None else args.model
@@ -848,15 +887,13 @@ def run_benchmark(args_: argparse.Namespace):
     tokenizer = get_tokenizer(tokenizer_id)
 
     if args.dataset_name == "sharegpt":
-        assert args.random_input_len is None and args.random_output_len is None
         input_requests = sample_sharegpt_requests(
             dataset_path=args.dataset_path,
             num_requests=args.num_prompts,
             tokenizer=tokenizer,
-            fixed_output_len=args.sharegpt_output_len,
+            max_seqlen=args.sharegpt_max_seqlen,
         )
     elif args.dataset_name == "random":
-        assert args.random_input_len is not None and args.random_output_len is not None
         input_requests = sample_random_requests(
             input_len=args.random_input_len,
             output_len=args.random_output_len,
@@ -868,21 +905,7 @@ def run_benchmark(args_: argparse.Namespace):
     else:
         raise ValueError(f"Unknown dataset: {args.dataset_name}")
 
-    if not args.multi:
-        return asyncio.run(
-            benchmark(
-                backend=backend,
-                api_url=api_url,
-                model_id=model_id,
-                tokenizer=tokenizer,
-                input_requests=input_requests,
-                request_rate=args.request_rate,
-                disable_tqdm=args.disable_tqdm,
-                extra_request_body=extra_request_body,
-            )
-        )
-    else:
-        # Benchmark multiple rps. TODO: use a fixed duration to compute num_prompts
+    if args.multi:
         request_rates = parse_request_rate_range(args.request_rate_range)
 
         for rate in request_rates:
@@ -895,11 +918,28 @@ def run_benchmark(args_: argparse.Namespace):
                     input_requests=input_requests,
                     request_rate=rate,
                     disable_tqdm=args.disable_tqdm,
+                    enable_multi=args.multi,
                     extra_request_body=extra_request_body,
                 )
             )
+    else:
+
+        return asyncio.run(
+            benchmark(
+                backend=backend,
+                api_url=api_url,
+                model_id=model_id,
+                tokenizer=tokenizer,
+                input_requests=input_requests,
+                request_rate=args.request_rate,
+                disable_tqdm=args.disable_tqdm,
+                enable_multi=args.multi,
+                extra_request_body=extra_request_body,
+            )
+        )
 
 
+# to avoid relying on SGLang's components
 def set_ulimit(target_soft_limit=65535):
     resource_type = resource.RLIMIT_NOFILE
     current_soft, current_hard = resource.getrlimit(resource_type)
@@ -961,6 +1001,12 @@ if __name__ == "__main__":
         help="Number of prompts to process. Default is 1000.",
     )
     parser.add_argument(
+        "--sharegpt-max-seqlen",
+        type=int,
+        default=8192,
+        help="Number of max request len. Default is 8192.",
+    )
+    parser.add_argument(
         "--sharegpt-output-len",
         type=int,
         default=None,
@@ -969,11 +1015,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--random-input-len",
         type=int,
+        default=1024,
         help="Number of input tokens per request, used only for random dataset.",
     )
     parser.add_argument(
         "--random-output-len",
         type=int,
+        default=128,
         help="Number of output tokens per request, used only for random dataset.",
     )
     parser.add_argument(
@@ -988,9 +1036,9 @@ if __name__ == "__main__":
         type=float,
         default=float("inf"),
         help="Number of requests per second. If this is inf, then all the requests are sent at time 0. "
-        "Otherwise, we use Poisson process to synthesize the request arrival times. Default is inf.",
+        "Otherwise, we use Poisson process to synthesize the request arrival times. Default is 128.0.",
     )
-    parser.add_argument("--seed", type=int, default=1, help="The random seed.")
+    parser.add_argument("--seed", type=int, default=0, help="Default is 0.")
     parser.add_argument(
         "--multi",
         action="store_true",
