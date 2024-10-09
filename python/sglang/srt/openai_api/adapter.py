@@ -800,7 +800,7 @@ async def v1_completions(tokenizer_manager, raw_request: Request):
                         exclude_unset=True, exclude_none=True
                     )
                     yield f"data: {final_usage_data}\n\n"
-                    logger.info(f"[adapter]3")
+                    # logger.info(f"[adapter]3")
             except ValueError as e:
                 error = create_streaming_error_response(str(e))
                 yield f"data: {error}\n\n"
