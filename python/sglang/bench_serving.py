@@ -177,9 +177,7 @@ async def async_request_openai_completions(
                 url=api_url, json=payload, headers=headers
             ) as response:
                 if response.status == 200:
-                    print(await response.json())
                     async for chunk_bytes in response.content:
-                        print(chunk_bytes)
                         chunk_bytes = chunk_bytes.strip()
                         if not chunk_bytes:
                             continue
@@ -792,9 +790,9 @@ def run_benchmark(args_: argparse.Namespace):
         }.get(args.backend, 30000)
 
     api_url = (
-        f"{args.base_url}/v1/completions"
+        f"{args.base_url}/generate"
         if args.base_url
-        else f"http://{args.host}:{args.port}/v1/completions"
+        else f"http://{args.host}:{args.port}/generate"
     )
     model_url = (
         f"{args.base_url}/v1/models"
