@@ -171,6 +171,10 @@ async def async_request_openai_completions(
         ttft = 0.0
         st = time.perf_counter()
         most_recent_timestamp = st
+
+        res = requests.post(url=api_url, json=payload, headers=headers)
+        print(f"res={res}")
+        return
         # print(f"{payload}")
         try:
             async with session.post(
@@ -790,9 +794,9 @@ def run_benchmark(args_: argparse.Namespace):
         }.get(args.backend, 30000)
 
     api_url = (
-        f"{args.base_url}/generate"
+        f"{args.base_url}/v1/completions"
         if args.base_url
-        else f"http://{args.host}:{args.port}/generate"
+        else f"http://{args.host}:{args.port}/v1/completions"
     )
     model_url = (
         f"{args.base_url}/v1/models"
