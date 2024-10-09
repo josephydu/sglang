@@ -687,7 +687,7 @@ async def v1_completions(tokenizer_manager, raw_request: Request):
                 async for content in tokenizer_manager.generate_request(
                     adapted_request, raw_request
                 ):
-                    print(f"[adapter]{content}")
+                    # print(f"[adapter]{content}")
                     index = content["index"]
 
                     stream_buffer = stream_buffers.get(index, "")
