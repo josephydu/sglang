@@ -299,7 +299,7 @@ def register_node(server_args: ServerArgs, port_args: PortArgs):
         "port": server_args.port,
         "model_path": tokenizer_manager.model_path,
         "is_generation": tokenizer_manager.is_generation,
-        "controller_info_port": PortArgs.controller_info_port,
+        "controller_info_port": port_args.controller_info_port,
     }
     res = requests.post(url, json=data)
     return res.json()
