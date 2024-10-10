@@ -89,6 +89,7 @@ class Scheduler:
         tp_rank: int,
     ):
         # Parse args
+        self.port_args = port_args
         self.server_args = server_args
         self.tp_rank = tp_rank
         self.tp_size = server_args.tp_size
@@ -98,17 +99,14 @@ class Scheduler:
         self.max_loras_per_batch = server_args.max_loras_per_batch
 
         # Init inter-process communication
-        context = zmq.Context(2)
+        self.context = zmq.Context(2)
 
         if self.tp_rank == 0:
-            self.recv_from_tokenizer = context.socket(zmq.PULL)
+            self.recv_from_tokenizer = self.context.socket(zmq.PULL)
             self.recv_from_tokenizer.bind(f"ipc://{port_args.scheduler_input_ipc_name}")
 
-            self.send_to_detokenizer = context.socket(zmq.PUSH)
+            self.send_to_detokenizer = self.context.socket(zmq.PUSH)
             self.send_to_detokenizer.connect(f"ipc://{port_args.detokenizer_ipc_name}")
-
-            self.send_controller_info = context.socket(zmq.PUSH)
-            self.send_controller_info.bind(f"tcp://*:{port_args.controller_info_port}")
 
             self.controller_info = ControllerInfo()
 
@@ -254,6 +252,9 @@ class Scheduler:
         self.batch_is_full = False
 
     def send_controller_info_loop(self):
+        self.send_controller_info = self.context.socket(zmq.PUSH)
+        self.send_controller_info.bind(f"tcp://*:{self.port_args.controller_info_port}")
+
         while True:
             controller_info_data = f"{self.server_args.host},{self.server_args.port},{self.controller_info.available_kv_cache},{self.controller_info.num_running},{self.controller_info.num_waiting}"
             try:
