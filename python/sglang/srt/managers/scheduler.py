@@ -110,8 +110,6 @@ class Scheduler:
             self.send_controller_info = context.socket(zmq.PUSH)
             self.send_controller_info.bind(f"tcp://*:{port_args.controller_info_port}")
 
-            self.controller_info = ControllerInfo()
-
             self.controller_info_process = threading.Thread(
                 target=self.send_controller_info_loop
             )
@@ -119,9 +117,7 @@ class Scheduler:
         else:
             self.recv_from_tokenizer = self.send_to_detokenizer = None
 
-            self.send_controller_info = self.controller_info = (
-                self.controller_info_process
-            ) = None
+            self.send_controller_info = self.controller_info_process = None
 
         # Init tokenizer
         self.model_config = ModelConfig(
@@ -203,15 +199,7 @@ class Scheduler:
         self.policy = SchedulePolicy(self.schedule_policy, self.tree_cache)
 
         # Init Controller Info
-        if (
-            self.controller_info is not None
-            and self.controller_info_process is not None
-        ):
-            self.controller_info.available_kv_cache = (
-                self.token_to_kv_pool.available_size()
-            )
-            self.controller_info.num_running = 0
-            self.controller_info.num_waiting = 0
+        if self.controller_info_process is not None:
             self.controller_info_process.start()
 
         # Init running status
@@ -258,7 +246,7 @@ class Scheduler:
 
     def send_controller_info_loop(self):
         while True:
-            controller_info_data = f"{self.server_args.host},{self.server_args.port},{self.controller_info.available_kv_cache},{self.controller_info.num_running},{self.controller_info.num_waiting}"
+            controller_info_data = f"{self.server_args.host},{self.server_args.port},{self.token_to_kv_pool.available_size()},{0 if self.running_batch is None else len(self.running_batch.reqs)},{len(self.waiting_queue)}"
             try:
                 self.send_controller_info.send_string(controller_info_data, zmq.NOBLOCK)
             except zmq.Again:
@@ -680,15 +668,6 @@ class Scheduler:
             self.process_batch_result_decode(batch, result)
         else:
             self.process_batch_result_prefill(batch, result)
-
-        if self.controller_info is not None:
-            self.controller_info.available_kv_cache = (
-                self.token_to_kv_pool.available_size()
-            )
-            self.controller_info.num_running = (
-                0 if self.running_batch is None else len(self.running_batch.reqs)
-            )
-            self.controller_info.num_waiting = len(self.waiting_queue)
 
     def process_batch_result_prefill(self, batch: ScheduleBatch, result):
         if self.is_generation:
