@@ -198,10 +198,6 @@ class Scheduler:
         self.tree_cache_metrics = {"total": 0, "hit": 0}
         self.policy = SchedulePolicy(self.schedule_policy, self.tree_cache)
 
-        # Init Controller Info
-        if self.controller_info_process is not None:
-            self.controller_info_process.start()
-
         # Init running status
         self.waiting_queue: List[Req] = []
         self.running_batch: ScheduleBatch = None
@@ -244,12 +240,18 @@ class Scheduler:
         self.new_token_ratio_decay = global_config.new_token_ratio_decay
         self.batch_is_full = False
 
+        # Start Send Controller Info
+        if self.controller_info_process is not None:
+            self.controller_info_process.start()
+
     def send_controller_info_loop(self):
         while True:
-            controller_info_data = f"{self.server_args.host},{self.server_args.port},{self.token_to_kv_pool.available_size()},{0 if self.running_batch is None else len(self.running_batch.reqs)},{len(self.waiting_queue)}"
             try:
+                controller_info_data = f"{self.server_args.host},{self.server_args.port},{self.token_to_kv_pool.available_size()},{0 if self.running_batch is None else len(self.running_batch.reqs)},{len(self.waiting_queue)}"
                 self.send_controller_info.send_string(controller_info_data, zmq.NOBLOCK)
             except zmq.Again:
+                pass
+            except Exception:
                 pass
             time.sleep(1)
 
