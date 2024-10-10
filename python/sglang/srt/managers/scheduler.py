@@ -253,7 +253,7 @@ class Scheduler:
                 pass
             except Exception:
                 pass
-            time.sleep(1)
+            time.sleep(0.1)
 
     @torch.inference_mode()
     def event_loop(self):
