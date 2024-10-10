@@ -514,6 +514,7 @@ def calculate_metrics(
     input_lens: List[float] = []
 
     for i in range(len(outputs)):
+        print(f"[success]{outputs[i].success},error={outputs[i].error}")
         if outputs[i].success:
             output_len = outputs[i].output_len
             output_lens.append(output_len)
