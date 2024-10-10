@@ -18,9 +18,9 @@ limitations under the License.
 import json
 import logging
 import os
+import threading
 import time
 import warnings
-from multiprocessing import Process
 from typing import List, Optional, Union
 
 import torch
@@ -89,7 +89,6 @@ class Scheduler:
         tp_rank: int,
     ):
         # Parse args
-        self.port_args = port_args
         self.server_args = server_args
         self.tp_rank = tp_rank
         self.tp_size = server_args.tp_size
@@ -99,21 +98,23 @@ class Scheduler:
         self.max_loras_per_batch = server_args.max_loras_per_batch
 
         # Init inter-process communication
-        self.context = zmq.Context(2)
+        context = zmq.Context(2)
 
         if self.tp_rank == 0:
-            self.recv_from_tokenizer = self.context.socket(zmq.PULL)
+            self.recv_from_tokenizer = context.socket(zmq.PULL)
             self.recv_from_tokenizer.bind(f"ipc://{port_args.scheduler_input_ipc_name}")
 
-            self.send_to_detokenizer = self.context.socket(zmq.PUSH)
+            self.send_to_detokenizer = context.socket(zmq.PUSH)
             self.send_to_detokenizer.connect(f"ipc://{port_args.detokenizer_ipc_name}")
+
+            self.send_controller_info = context.socket(zmq.PUSH)
+            self.send_controller_info.bind(f"tcp://*:{port_args.controller_info_port}")
 
             self.controller_info = ControllerInfo()
 
-            self.controller_info_process = Process(
+            self.controller_info_process = threading.Thread(
                 target=self.send_controller_info_loop
             )
-            self.controller_info_process.start()
             # Start a new Process to send controller info
         else:
             self.recv_from_tokenizer = self.send_to_detokenizer = None
@@ -202,12 +203,16 @@ class Scheduler:
         self.policy = SchedulePolicy(self.schedule_policy, self.tree_cache)
 
         # Init Controller Info
-        if self.controller_info is not None:
+        if (
+            self.controller_info is not None
+            and self.controller_info_process is not None
+        ):
             self.controller_info.available_kv_cache = (
                 self.token_to_kv_pool.available_size()
             )
             self.controller_info.num_running = 0
             self.controller_info.num_waiting = 0
+            self.controller_info_process.start()
 
         # Init running status
         self.waiting_queue: List[Req] = []
@@ -252,9 +257,6 @@ class Scheduler:
         self.batch_is_full = False
 
     def send_controller_info_loop(self):
-        self.send_controller_info = self.context.socket(zmq.PUSH)
-        self.send_controller_info.bind(f"tcp://*:{self.port_args.controller_info_port}")
-
         while True:
             controller_info_data = f"{self.server_args.host},{self.server_args.port},{self.controller_info.available_kv_cache},{self.controller_info.num_running},{self.controller_info.num_waiting}"
             try:
