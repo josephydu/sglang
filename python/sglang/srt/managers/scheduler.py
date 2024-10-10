@@ -17,10 +17,10 @@ limitations under the License.
 
 import json
 import logging
-import multiprocessing
 import os
 import time
 import warnings
+from multiprocessing import Process
 from typing import List, Optional, Union
 
 import torch
@@ -36,6 +36,7 @@ from sglang.srt.managers.io_struct import (
     AbortReq,
     BatchEmbeddingOut,
     BatchTokenIDOut,
+    ControllerInfo,
     FlushCacheReq,
     TokenizedEmbeddingReqInput,
     TokenizedGenerateReqInput,
@@ -105,8 +106,23 @@ class Scheduler:
 
             self.send_to_detokenizer = context.socket(zmq.PUSH)
             self.send_to_detokenizer.connect(f"ipc://{port_args.detokenizer_ipc_name}")
+
+            self.send_controller_info = context.socket(zmq.PUSH)
+            self.send_controller_info.bind(f"tcp://*:{port_args.controller_info_port}")
+
+            self.controller_info = ControllerInfo()
+
+            self.controller_info_process = Process(
+                target=self.send_controller_info_loop
+            )
+            self.controller_info_process.start()
+            # Start a new Process to send controller info
         else:
             self.recv_from_tokenizer = self.send_to_detokenizer = None
+
+            self.send_controller_info = self.controller_info = (
+                self.controller_info_process
+            ) = None
 
         # Init tokenizer
         self.model_config = ModelConfig(
@@ -187,6 +203,14 @@ class Scheduler:
         self.tree_cache_metrics = {"total": 0, "hit": 0}
         self.policy = SchedulePolicy(self.schedule_policy, self.tree_cache)
 
+        # Init Controller Info
+        if self.controller_info is not None:
+            self.controller_info.available_kv_cache = (
+                self.token_to_kv_pool.available_size()
+            )
+            self.controller_info.num_running = 0
+            self.controller_info.num_waiting = 0
+
         # Init running status
         self.waiting_queue: List[Req] = []
         self.running_batch: ScheduleBatch = None
@@ -228,6 +252,15 @@ class Scheduler:
         self.new_token_ratio = self.min_new_token_ratio
         self.new_token_ratio_decay = global_config.new_token_ratio_decay
         self.batch_is_full = False
+
+    def send_controller_info_loop(self):
+        while True:
+            controller_info_data = f"{self.server_args.host},{self.server_args.port},{self.controller_info.available_kv_cache},{self.controller_info.num_running},{self.controller_info.num_waiting}"
+            try:
+                self.send_controller_info.send_string(controller_info_data, zmq.NOBLOCK)
+            except zmq.Again:
+                pass
+            time.sleep(1)
 
     @torch.inference_mode()
     def event_loop(self):
@@ -631,6 +664,7 @@ class Scheduler:
                     )
                 else:
                     next_token_ids = torch.full((batch.batch_size(),), 0)
+
             return logits_output, next_token_ids
         else:  # embedding or reward model
             assert batch.extend_num_tokens != 0
@@ -643,6 +677,15 @@ class Scheduler:
             self.process_batch_result_decode(batch, result)
         else:
             self.process_batch_result_prefill(batch, result)
+
+        if self.controller_info is not None:
+            self.controller_info.available_kv_cache = (
+                self.token_to_kv_pool.available_size()
+            )
+            self.controller_info.num_running = (
+                0 if self.running_batch is None else len(self.running_batch.reqs)
+            )
+            self.controller_info.num_waiting = len(self.waiting_queue)
 
     def process_batch_result_prefill(self, batch: ScheduleBatch, result):
         if self.is_generation:

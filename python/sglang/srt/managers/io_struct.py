@@ -344,3 +344,10 @@ class UpdateWeightReqOutput:
 class AbortReq:
     # The request id
     rid: str
+
+
+class ControllerInfo:
+    def __init__(self):
+        self.available_kv_cache = 0
+        self.num_waiting = 0
+        self.num_running = 0

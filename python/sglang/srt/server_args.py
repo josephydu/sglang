@@ -621,6 +621,8 @@ class PortArgs:
     # The port for nccl initialization for multiple TP groups (torch.dist)
     nccl_ports: List[int]
 
+    controller_info_port: int
+
     @classmethod
     def init_new(self, server_args):
         port = server_args.port + 1
@@ -629,11 +631,18 @@ class PortArgs:
                 break
             port += 1
 
+        controller_info_port = port + 1
+        while True:
+            if is_port_available(controller_info_port):
+                break
+            controller_info_port += 1
+
         return PortArgs(
             tokenizer_ipc_name=tempfile.NamedTemporaryFile(delete=False).name,
             scheduler_input_ipc_name=tempfile.NamedTemporaryFile(delete=False).name,
             detokenizer_ipc_name=tempfile.NamedTemporaryFile(delete=False).name,
             nccl_ports=[port],
+            controller_info_port=controller_info_port,
         )
 
 

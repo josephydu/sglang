@@ -292,20 +292,17 @@ async def retrieve_file_content(file_id: str):
     return await v1_retrieve_file_content(file_id)
 
 
-def register_node(server_args: ServerArgs):
-    # import torch
-
+def register_node(server_args: ServerArgs, port_args: PortArgs):
     url = "http://127.0.0.1:23000/register_nodes"
     data = {
         "ip": server_args.host,
         "port": server_args.port,
         "model_path": tokenizer_manager.model_path,
         "is_generation": tokenizer_manager.is_generation,
-        # "gpu_id": torch.cuda.current_device(),
+        "controller_info_port": PortArgs.controller_info_port,
     }
     res = requests.post(url, json=data)
     return res.json()
-    # pass
 
 
 def launch_engine(
@@ -376,7 +373,7 @@ def launch_engine(
         scheduler_pipe_readers[i].recv()
 
     # register node to the server
-    msg = register_node(server_args)
+    msg = register_node(server_args, port_args)
     logger.info(f"register node to the server....{msg}")
 
 
