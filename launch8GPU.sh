@@ -31,6 +31,7 @@ for (( gpu_index=0; gpu_index<n; gpu_index++ )); do
     echo "Starting service on GPU $gpu_index with port $port"
     CUDA_VISIBLE_DEVICES=$gpu_index python3 -m sglang.launch_server --model-path /root/.cache/huggingface/hub/models--Qwen--Qwen2-7B/snapshots/453ed1575b739b5b03ce3758b23befdb0967f40e --host 127.0.0.1 --mem-fraction-static 0.7 --port $port &
     
+    sleep(20)
     # 保存进程 ID
     pids+=($!)
 done
