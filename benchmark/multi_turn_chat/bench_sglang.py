@@ -16,7 +16,7 @@ from sglang.utils import dump_state_text
 @sgl.function
 def multi_turns(s, qas):
     for qa in qas:
-        s += "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+        # s += "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
         s += qa["prompt"]
         s += sgl.gen(max_tokens=qa["new_tokens"], ignore_eos=True)
 
@@ -37,7 +37,7 @@ def main(args):
         progress_bar=True,
     )
 
-    print(states)
+    # print(states)
     latency = time.time() - tic
 
     print(f"Latency: {latency:.3f}")
