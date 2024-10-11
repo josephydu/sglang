@@ -35,6 +35,8 @@ def main(args):
         num_threads=args.parallel,
         progress_bar=True,
     )
+
+    print(states)
     latency = time.time() - tic
 
     print(f"Latency: {latency:.3f}")
