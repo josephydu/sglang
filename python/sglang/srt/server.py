@@ -164,6 +164,7 @@ async def update_weights(obj: UpdateWeightReqInput, request: Request):
 
 # fastapi implicitly converts json in the request to obj (dataclass)
 async def generate_request(obj: GenerateReqInput, request: Request):
+    print(f"[generate_request]{obj.rid}, {obj.text}")
     """Handle a generate request."""
     if obj.stream:
 
