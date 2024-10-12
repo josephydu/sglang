@@ -49,7 +49,7 @@ for rate in 9.1 9.2 9.3 9.4 9.58 9.6 9.65 9.7 10.0; do
                 --model /root/.cache/huggingface/hub/models--meta-llama--Meta-Llama-3.1-8B-Instruct/snapshots/0e9e39f249a16976918f6564b8830bc894c89659 \
                 --random-output-len 1024 --random-input-len 4096 \
                 --random-range-ratio 0.5 --seed 1234 \
-                --num-prompts 1000 --request-rate $rate >> "$LOG_FILE" 2>&1
+                --num-prompts 100000 --request-rate $rate >> "$LOG_FILE" 2>&1
         sleep 100
         # done
 
