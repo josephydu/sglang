@@ -18,9 +18,11 @@ The definition of objects transfered between different
 processes (TokenizerManager, DetokenizerManager, Controller).
 """
 
+import multiprocessing
 import uuid
 from dataclasses import dataclass
 from enum import Enum
+from multiprocessing import Value
 from typing import Dict, List, Optional, Union
 
 from sglang.srt.managers.schedule_batch import BaseFinishReason
@@ -349,3 +351,15 @@ class AbortReq:
 class ProfileReq(Enum):
     START_PROFILE = 1
     STOP_PROFILE = 2
+
+
+class ControllerInfo:
+    def __init__(self, dp_size):
+        self.available_kv_cache = []
+        self.running_reqs = []
+        self.waiting_reqs = []
+        self.lock = multiprocessing.Lock()
+        for i in range(dp_size):
+            self.available_kv_cache.append(Value("i", 0))
+            self.running_reqs.append(Value("i", 0))
+            self.waiting_reqs.append(Value("i", 0))

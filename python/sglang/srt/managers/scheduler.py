@@ -36,6 +36,7 @@ from sglang.srt.managers.io_struct import (
     AbortReq,
     BatchEmbeddingOut,
     BatchTokenIDOut,
+    ControllerInfo,
     FlushCacheReq,
     ProfileReq,
     TokenizedEmbeddingReqInput,
@@ -87,6 +88,7 @@ class Scheduler:
         port_args: PortArgs,
         gpu_id: int,
         tp_rank: int,
+        controller_info: Optional[ControllerInfo] = None,
     ):
         # Parse args
         self.server_args = server_args
@@ -245,6 +247,16 @@ class Scheduler:
                 ],
                 with_stack=True,
             )
+
+        # init controller info
+        if controller_info:
+            self.controller_info = controller_info
+            self.gpu_id = gpu_id
+            self.controller_info.available_kv_cache[self.gpu_id].value = (
+                self.token_to_kv_pool.available_size()
+            )
+        else:
+            self.controller_info = None
 
     @torch.inference_mode()
     def event_loop(self):
@@ -669,6 +681,20 @@ class Scheduler:
         else:
             self.process_batch_result_prefill(batch, result)
 
+        # update controller info
+        if self.controller_info:
+            with self.controller_info.lock:
+                self.controller_info.available_kv_cache[self.gpu_id].value = (
+                    self.token_to_kv_pool.available_size()
+                    + self.tree_cache.evictable_size()
+                )
+                self.controller_info.running_reqs[self.gpu_id].value = (
+                    0 if self.running_batch is None else len(self.running_batch.reqs)
+                )
+                self.controller_info.waiting_reqs[self.gpu_id].value = len(
+                    self.waiting_queue
+                )
+
     def process_batch_result_prefill(self, batch: ScheduleBatch, result):
         if self.is_generation:
             logits_output, next_token_ids = result
@@ -1044,6 +1070,7 @@ def run_scheduler_process(
     tp_rank: int,
     dp_rank: Optional[int],
     pipe_writer,
+    controller_info,
 ):
     if dp_rank is None:
         configure_logger(server_args, prefix=f" TP{tp_rank}")
@@ -1053,7 +1080,7 @@ def run_scheduler_process(
     suppress_other_loggers()
 
     try:
-        scheduler = Scheduler(server_args, port_args, gpu_id, tp_rank)
+        scheduler = Scheduler(server_args, port_args, gpu_id, tp_rank, controller_info)
         pipe_writer.send("ready")
         scheduler.event_loop()
     except Exception:

@@ -22,6 +22,7 @@ from enum import Enum, auto
 import zmq
 
 from sglang.srt.managers.io_struct import (
+    ControllerInfo,
     TokenizedEmbeddingReqInput,
     TokenizedGenerateReqInput,
     TokenizedRewardReqInput,
@@ -36,6 +37,8 @@ from sglang.srt.utils import (
 from sglang.utils import get_exception_traceback
 
 logger = logging.getLogger(__name__)
+
+import random
 
 
 class LoadBalanceMethod(Enum):
@@ -79,6 +82,17 @@ class DataParallelController:
         }
         self.dispatching = dispatch_lookup[self.load_balance_method]
 
+        # For resources aware
+        self.controller_info = ControllerInfo(server_args.dp_size)
+        self.pre_available_kv_cache = []
+        self.main_available_kv_cache = []
+
+        self.pre_num_running_req = []
+        self.main_num_running_req = []
+
+        self.pre_num_waiting_req = []
+        self.main_num_waiting_req = []
+
         # Start data parallel workers
         base_gpu_id = 0
         self.workers = []
@@ -87,10 +101,7 @@ class DataParallelController:
             tmp_port_args.detokenizer_ipc_name = port_args.detokenizer_ipc_name
 
             send_to = self.launch_tensor_parallel_group(
-                server_args,
-                tmp_port_args,
-                base_gpu_id,
-                dp_rank,
+                server_args, tmp_port_args, base_gpu_id, dp_rank, self.controller_info
             )
 
             self.workers.append(send_to)
@@ -102,6 +113,7 @@ class DataParallelController:
         port_args: PortArgs,
         base_gpu_id: int,
         dp_rank: int,
+        controller_info: ControllerInfo,
     ):
         # Launch tensor parallel scheduler processes
         scheduler_procs = []
@@ -116,7 +128,15 @@ class DataParallelController:
             gpu_id = base_gpu_id + tp_rank % tp_size_per_node
             proc = mp.Process(
                 target=run_scheduler_process,
-                args=(server_args, port_args, gpu_id, tp_rank, dp_rank, writer),
+                args=(
+                    server_args,
+                    port_args,
+                    gpu_id,
+                    tp_rank,
+                    dp_rank,
+                    writer,
+                    controller_info,
+                ),
             )
             proc.start()
             scheduler_procs.append(proc)
@@ -145,7 +165,7 @@ class DataParallelController:
         if not self.main_available_kv_cache:
             self.main_available_kv_cache = available_mem.copy()
 
-        if self.list_equal(self.pre_available_kv_cache, available_mem):
+        if self.pre_available_kv_cache == available_mem:
             # 使用备份的available_mem
             pass
         else:
@@ -161,7 +181,7 @@ class DataParallelController:
         if not self.main_num_running_req:
             self.main_num_running_req = num_reqs_running.copy()
 
-        if self.list_equal(self.pre_num_running_req, num_reqs_running):
+        if self.pre_num_running_req == num_reqs_running:
             # use_num_reqs_running = self.main_available_kv_cache
             pass
         else:
@@ -178,7 +198,7 @@ class DataParallelController:
         if not self.main_num_waiting_req:
             self.main_num_waiting_req = num_reqs_waiting.copy()
 
-        if self.list_equal(self.pre_num_waiting_req, num_reqs_waiting):
+        if self.pre_num_waiting_req == num_reqs_waiting:
             # use_num_reqs_running = self.main_available_kv_cache
             pass
         else:
@@ -197,19 +217,6 @@ class DataParallelController:
             all_waitting = False
 
         no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
-
-        len_r = len(req.input_ids)
-        if len_r < 10:
-            rid = 0
-            for i in range(10):
-                rid += r.input_ids[i % len_r]  # 使用模运算循环访问列表元素
-        else:
-            rid = sum(r.input_ids[:10])
-
-        # 记录(rid, random_id),作为字典的键，选择的id作为字典的值
-
-        # if rid not in self.choosen_gpu_per_req:
-        # 基于resources_aware调度
         if all_waitting:
             ratio = [
                 run / wait
@@ -221,7 +228,7 @@ class DataParallelController:
             indices = [i for i, x in enumerate(ratio) if x == max_raio]
             gpu_idx = random.choice(indices)
             self.main_num_waiting_req[gpu_idx] += 1
-            self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
+            self.main_available_kv_cache[gpu_idx] -= len(req.input_ids)
         else:
             filter_result = [
                 a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
@@ -236,12 +243,8 @@ class DataParallelController:
 
             # 随机选择一个索引
             gpu_idx = random.choice(max_indices)
-
-            self.main_available_kv_cache[gpu_idx] -= len(r.input_ids)
-        # self.choosen_gpu_per_req[rid] = gpu_idx
-        # else:
-        # gpu_idx = self.choosen_gpu_per_req[rid]
-        self.workers[gpu_idx].queue.put(r)
+            self.main_available_kv_cache[gpu_idx] -= len(req.input_ids)
+        self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
         raise NotImplementedError()

@@ -412,10 +412,7 @@ class ServerArgs:
             type=str,
             default=ServerArgs.load_balance_method,
             help="The load balancing strategy for data parallelism.",
-            choices=[
-                "round_robin",
-                "shortest_queue",
-            ],
+            choices=["round_robin", "shortest_queue", "resources_aware"],
         )
 
         # Multi-node distributed serving args
