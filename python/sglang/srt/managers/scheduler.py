@@ -249,7 +249,7 @@ class Scheduler:
             )
 
         # init controller info
-        if controller_info:
+        if controller_info and self.tp_rank == 0:
             self.controller_info = controller_info
             self.gpu_id = gpu_id
             self.controller_info.available_kv_cache[self.gpu_id].value = (
