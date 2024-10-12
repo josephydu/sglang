@@ -41,7 +41,7 @@ for turn in "${turns[@]}"; do
                 --host 0.0.0.0 --port 8080 --mem-fraction-static 0.8 \
                 --dp-size 8 \
                 $method >> "$LOG_FILE" 2>&1 &
-            sleep 200
+            sleep 300
 
             unset http_proxy
             unset https_proxy

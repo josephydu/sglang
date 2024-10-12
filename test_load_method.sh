@@ -4,6 +4,8 @@
 #!/bin/bash
 
 # 获取当前时间并格式化为所需的文件名格式
+unset http_proxy
+unset https_proxy
 current_time=$(date +"%Y%m%d_%H%M%S")
 
 # 根据当前时间生成日志文件名
