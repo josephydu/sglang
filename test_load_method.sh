@@ -27,10 +27,10 @@ for rate in 9.1 9.2 9.3 9.4 9.58 9.6 9.65 9.7 10.0; do
         echo "Running with setting: $setting ======================================================" >> "$LOG_FILE"
         
         # 启动服务并将其放到后台，重定向输出到日志文件
-        /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server --model-path Meta-llama/Meta-Llama-3.1-8B \
-            --host 0.0.0.0 --port 8080 --mem-fraction-static 0.8 \
-            --dp-size 8 --chunked-prefill-size 2048 \
-            --disable-radix-cache --random-seed 418729308 \
+        /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server \
+            --model-path /root/.cache/huggingface/hub/models--meta-llama--Meta-Llama-3.1-8B-Instruct/snapshots/0e9e39f249a16976918f6564b8830bc894c89659 \
+            --host 127.0.0.1 --port 8080 --mem-fraction-static 0.7 \
+            --dp-size 8 \
             --load-balance-method $method >> "$LOG_FILE" 2>&1 &
         export LOAD_BALANCE_METHOD=$method
 
@@ -43,10 +43,11 @@ for rate in 9.1 9.2 9.3 9.4 9.58 9.6 9.65 9.7 10.0; do
         echo "Running with request-rate: $rate" | tee -a "$LOG_FILE"  # 输出当前的 request-rate 值并追加到日志文件
         /workspace/bin/micromamba run -n sglang python3 -m sglang.bench_serving --backend sglang \
                 --host 127.0.0.1 --port 8080 --dataset-name random \
-                --tokenizer Meta-llama/Meta-Llama-3.1-8B --model Meta-llama/Meta-Llama-3.1-8B \
+                --tokenizer /root/.cache/huggingface/hub/models--meta-llama--Meta-Llama-3.1-8B-Instruct/snapshots/0e9e39f249a16976918f6564b8830bc894c89659 \
+                --model /root/.cache/huggingface/hub/models--meta-llama--Meta-Llama-3.1-8B-Instruct/snapshots/0e9e39f249a16976918f6564b8830bc894c89659 \
                 --random-output-len 1024 --random-input-len 4096 \
                 --random-range-ratio 0.5 --seed 1234 \
-                --num-prompts 100000 --request-rate $rate >> "$LOG_FILE" 2>&1
+                --num-prompts 1000 --request-rate $rate >> "$LOG_FILE" 2>&1
         sleep 100
         # done
 
