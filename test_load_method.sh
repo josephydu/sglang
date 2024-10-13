@@ -22,7 +22,7 @@ settings["resources_aware"]="dp8 resources_aware"
 settings["round_robin"]="dp8 round_robin"
 
 # for rate in $(seq 16 0.1 16.2); do
-for rate in 9.1 9.2 9.3 9.4 9.58 9.6 9.65 9.7 10.0; do
+for rate in 7.0 7.2 7.6 7.8 8.0 8.2 8.4 8.6 8.8 9.0; do
     # 循环处理每个设置
     for method in "${!settings[@]}"; do
         setting=${settings[$method]}
@@ -49,7 +49,7 @@ for rate in 9.1 9.2 9.3 9.4 9.58 9.6 9.65 9.7 10.0; do
                 --model /root/.cache/huggingface/hub/models--meta-llama--Meta-Llama-3.1-8B-Instruct/snapshots/0e9e39f249a16976918f6564b8830bc894c89659 \
                 --random-output-len 1024 --random-input-len 4096 \
                 --random-range-ratio 0.5 --seed 1234 \
-                --num-prompts 100000 --request-rate $rate >> "$LOG_FILE" 2>&1
+                --num-prompts 20000 --request-rate $rate >> "$LOG_FILE" 2>&1
         sleep 100
         # done
 
