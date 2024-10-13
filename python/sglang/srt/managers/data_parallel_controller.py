@@ -47,6 +47,8 @@ class LoadBalanceMethod(Enum):
     ROUND_ROBIN = auto()
     SHORTEST_QUEUE = auto()
     RESOURCES_AWARE = auto()
+    PRE_RADIX = auto()
+    BUCKET = auto()
 
     @classmethod
     def from_str(cls, method: str):
@@ -79,10 +81,13 @@ class DataParallelController:
             LoadBalanceMethod.ROUND_ROBIN: self.round_robin_scheduler,
             LoadBalanceMethod.SHORTEST_QUEUE: self.shortest_queue_scheduler,
             LoadBalanceMethod.RESOURCES_AWARE: self.resources_aware_scheduler,
+            LoadBalanceMethod.PRE_RADIX: self.pre_radix_scheduler,
+            LoadBalanceMethod.BUCKET: self.bucket_scheduler,
         }
         self.dispatching = dispatch_lookup[self.load_balance_method]
 
         # For resources aware
+        self.dp_size = server_args.dp_size
         self.controller_info = ControllerInfo(server_args.dp_size)
         self.pre_available_kv_cache = []
         self.main_available_kv_cache = []
@@ -92,6 +97,9 @@ class DataParallelController:
 
         self.pre_num_waiting_req = []
         self.main_num_waiting_req = []
+        
+        # For pre_radix
+        self.choosen_gpu_per_req = []
 
         # Start data parallel workers
         base_gpu_id = 0
@@ -246,9 +254,120 @@ class DataParallelController:
             self.main_available_kv_cache[gpu_idx] -= len(req.input_ids)
         self.workers[gpu_idx].send_pyobj(req)
 
+
+    def pre_radix_scheduler(self, req):
+        available_mem = [k.value for k in self.controller_info.available_kv_cache]
+        num_reqs_running = [k.value for k in self.controller_info.running_reqs]
+        num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
+        if not self.pre_available_kv_cache:
+            self.pre_available_kv_cache = available_mem.copy()
+
+        if not self.main_available_kv_cache:
+            self.main_available_kv_cache = available_mem.copy()
+
+        if self.pre_available_kv_cache == available_mem:
+            # 使用备份的available_mem
+            pass
+        else:
+            # logger.info(
+            #     f"update main_available_kv_cache: main{self.main_available_kv_cache}=>pre{self.pre_available_kv_cache}=>now{available_mem}"
+            # )
+            self.pre_available_kv_cache = available_mem.copy()
+            self.main_available_kv_cache = available_mem.copy()
+        # ===============================================================================
+        if not self.pre_num_running_req:
+            self.pre_num_running_req = num_reqs_running.copy()
+
+        if not self.main_num_running_req:
+            self.main_num_running_req = num_reqs_running.copy()
+
+        if self.pre_num_running_req == num_reqs_running:
+            # use_num_reqs_running = self.main_available_kv_cache
+            pass
+        else:
+            # logger.info(
+            #     f"update main_num_running_req: main{self.main_num_running_req}=>pre{self.pre_num_running_req}=>now{num_reqs_running}"
+            # )
+            self.main_num_running_req = num_reqs_running.copy()
+            self.pre_num_running_req = num_reqs_running.copy()
+
+        # =================================================================================
+        if not self.pre_num_waiting_req:
+            self.pre_num_waiting_req = num_reqs_waiting.copy()
+
+        if not self.main_num_waiting_req:
+            self.main_num_waiting_req = num_reqs_waiting.copy()
+
+        if self.pre_num_waiting_req == num_reqs_waiting:
+            # use_num_reqs_running = self.main_available_kv_cache
+            pass
+        else:
+            # logger.info(
+            #     f"update main_num_waiting_req: main{self.main_num_waiting_req}=>pre{self.pre_num_waiting_req}=>now{num_reqs_waiting}"
+            # )
+            self.main_num_waiting_req = num_reqs_waiting.copy()
+            self.pre_num_waiting_req = num_reqs_waiting.copy()
+
+        all_waitting = False
+        if min(self.main_num_waiting_req) > 0:
+            # 最小值都大于0，全部waiting
+            all_waitting = True
+        else:
+            # 最小值都是0， 则全部waiting
+            all_waitting = False
+
+        no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+        len_r = len(req.input_ids)
+        if len_r < 10:
+            rid = 0
+            for i in range(10):
+                rid += req.input_ids[i % len_r] 
+        else:
+            rid = sum(req.input_ids[:10])
+
+        if rid not in self.choosen_gpu_per_req:
+            if all_waitting:
+                ratio = [
+                    run / wait
+                    for run, wait in zip(
+                        self.main_num_running_req, self.main_num_waiting_req
+                    )
+                ]
+                max_raio = max(ratio)
+                indices = [i for i, x in enumerate(ratio) if x == max_raio]
+                gpu_idx = random.choice(indices)
+                self.main_num_waiting_req[gpu_idx] += 1
+                self.main_available_kv_cache[gpu_idx] -= len(req.input_ids)
+            else:
+                filter_result = [
+                    a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
+                ]
+                # 找到最大值
+                max_value = max(filter_result)
+
+                # 找到所有最大值的索引
+                max_indices = [
+                    index
+                    for index, value in enumerate(filter_result)
+                    if value == max_value
+                ]
+
+                # 随机选择一个索引
+                gpu_idx = random.choice(max_indices)
+
+                self.main_available_kv_cache[gpu_idx] -= len(req.input_ids)
+            self.choosen_gpu_per_req[rid] = gpu_idx
+        else:
+            gpu_idx = self.choosen_gpu_per_req[rid]
+        self.workers[gpu_idx].send_pyobj(req)
+
     def shortest_queue_scheduler(self, input_requests):
         raise NotImplementedError()
 
+    def bucket_scheduler(self, req):
+        gpu_idx = req.input_ids[0] % self.dp_size
+
+        self.workers[gpu_idx].send_pyobj(req)
     def event_loop(self):
         while True:
             while True:
