@@ -41,7 +41,7 @@ for turn in "${turns[@]}"; do
             # 启动服务并将其放到后台，重定向输出到日志文件
             /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server \
                 --model-path /root/.cache/huggingface/hub/models--Qwen--Qwen2-7B/snapshots/453ed1575b739b5b03ce3758b23befdb0967f40e \
-                --host 127.0.0.1 --port 8080 --mem-fraction-static 0.8 \
+                --host 127.0.0.1 --port 8080 --mem-fraction-static 0.7 \
                 --dp-size 8 \
                 $method >> "$LOG_FILE" 2>&1 &
             sleep 300
