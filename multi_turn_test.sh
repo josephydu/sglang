@@ -39,7 +39,7 @@ for turn in "${turns[@]}"; do
             echo "====================== $method turn=$turn qa=$qa start ======================" >> "$LOG_FILE"
             # 启动服务并将其放到后台，重定向输出到日志文件
             /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server \
-                --model-path root/.cache/huggingface/hub/models--Qwen--Qwen2-7B/snapshots/453ed1575b739b5b03ce3758b23befdb0967f40e \
+                --model-path /root/.cache/huggingface/hub/models--Qwen--Qwen2-7B/snapshots/453ed1575b739b5b03ce3758b23befdb0967f40e \
                 --host 127.0.0.1 --port 8080 --mem-fraction-static 0.8 \
                 --dp-size 8 \
                 $method >> "$LOG_FILE" 2>&1 &
@@ -49,7 +49,7 @@ for turn in "${turns[@]}"; do
             unset https_proxy
 
             /workspace/bin/micromamba run -n sglang python3 /workspace/sglang/benchmark/multi_turn_chat/bench_sglang.py \
-            --tokenizer root/.cache/huggingface/hub/models--Qwen--Qwen2-7B/snapshots/453ed1575b739b5b03ce3758b23befdb0967f40e \
+            --tokenizer /root/.cache/huggingface/hub/models--Qwen--Qwen2-7B/snapshots/453ed1575b739b5b03ce3758b23befdb0967f40e \
             --port 8080 --parallel 512 \
             --min-len-q 128 --max-len-q 256 \
             --min-len-a 256 --max-len-a 512 \
