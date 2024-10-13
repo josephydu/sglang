@@ -2,7 +2,8 @@
 
 # 获取当前时间并格式化为所需的文件名格式
 current_time=$(date +"%Y%m%d_%H%M%S")
-
+unset http_proxy
+unset https_proxy
 # 根据当前时间生成日志文件名
 LOG_FILE="multi_turn_${current_time}_test_load_method.log"
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
@@ -32,13 +33,14 @@ for turn in "${turns[@]}"; do
 
         # 循环处理每个设置
         for method in "${methods1[@]}"; do
-            export http_proxy=http://9.21.0.122:11113
-            export https_proxy=http://9.21.0.122:11113
+            unset http_proxy
+            unset https_proxy
 
             echo "====================== $method turn=$turn qa=$qa start ======================" >> "$LOG_FILE"
             # 启动服务并将其放到后台，重定向输出到日志文件
-            /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server --model-path Qwen/Qwen2-7B \
-                --host 0.0.0.0 --port 8080 --mem-fraction-static 0.8 \
+            /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server \
+                --model-path root/.cache/huggingface/hub/models--Qwen--Qwen2-7B/snapshots/453ed1575b739b5b03ce3758b23befdb0967f40e \
+                --host 127.0.0.1 --port 8080 --mem-fraction-static 0.8 \
                 --dp-size 8 \
                 $method >> "$LOG_FILE" 2>&1 &
             sleep 300
@@ -46,7 +48,8 @@ for turn in "${turns[@]}"; do
             unset http_proxy
             unset https_proxy
 
-            /workspace/bin/micromamba run -n sglang python3 /workspace/sglang/benchmark/multi_turn_chat/bench_sglang.py --tokenizer Qwen/Qwen2-7B \
+            /workspace/bin/micromamba run -n sglang python3 /workspace/sglang/benchmark/multi_turn_chat/bench_sglang.py \
+            --tokenizer root/.cache/huggingface/hub/models--Qwen--Qwen2-7B/snapshots/453ed1575b739b5b03ce3758b23befdb0967f40e \
             --port 8080 --parallel 512 \
             --min-len-q 128 --max-len-q 256 \
             --min-len-a 256 --max-len-a 512 \
