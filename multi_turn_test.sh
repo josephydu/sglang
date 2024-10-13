@@ -18,9 +18,10 @@ turns=(20)
 num_qa=(128 256 512 1024 2048 4096)
 
 methods1=(
-    "--load-balance-method resources_aware"
-    # "--load-balance-method bucket"
-    "--load-balance-method round_robin"
+    # "--load-balance-method resources_aware"
+    "--load-balance-method pre_radix" 
+    "--load-balance-method bucket"
+    # "--load-balance-method round_robin"
 )
 # methods2=(
     # "--dp-size 1"
