@@ -99,7 +99,7 @@ class DataParallelController:
         self.main_num_waiting_req = []
         
         # For pre_radix
-        self.choosen_gpu_per_req = []
+        self.choosen_gpu_per_req = {}
 
         # Start data parallel workers
         base_gpu_id = 0
