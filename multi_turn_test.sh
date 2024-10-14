@@ -18,10 +18,10 @@ turns=(20)
 num_qa=(128 256 512 1024 2048 4096)
 
 methods1=(
-    # "--load-balance-method resources_aware"
+    "--load-balance-method round_robin"
+    "--load-balance-method resources_aware"
     "--load-balance-method pre_radix" 
     "--load-balance-method bucket"
-    # "--load-balance-method round_robin"
 )
 # methods2=(
     # "--dp-size 1"
@@ -51,7 +51,7 @@ for turn in "${turns[@]}"; do
 
             /workspace/bin/micromamba run -n sglang python3 /workspace/sglang/benchmark/multi_turn_chat/bench_sglang.py \
             --tokenizer /root/.cache/huggingface/hub/models--Qwen--Qwen2-7B/snapshots/453ed1575b739b5b03ce3758b23befdb0967f40e \
-            --port 8080 --parallel 512 \
+            --port 8080 --parallel 256 \
             --min-len-q 128 --max-len-q 256 \
             --min-len-a 256 --max-len-a 512 \
             --turns $turn --num-qa $qa >> "$LOG_FILE" 2>&1
