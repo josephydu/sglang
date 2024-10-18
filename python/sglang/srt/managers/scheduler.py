@@ -17,10 +17,11 @@ limitations under the License.
 
 import json
 import logging
-import multiprocessing
 import os
 import time
 import warnings
+from collections import deque
+from types import SimpleNamespace
 from typing import List, Optional, Union
 
 import torch
@@ -78,6 +79,9 @@ logger = logging.getLogger(__name__)
 # Crash on warning if we are running CI tests
 crash_on_warning = os.getenv("SGLANG_IS_IN_CI", "false") == "true"
 
+# Test retract decode
+test_retract = os.getenv("SGLANG_TEST_RETRACT", "false") == "true"
+
 
 class Scheduler:
     """A scheduler that manages a tensor parallel GPU worker."""
@@ -109,7 +113,8 @@ class Scheduler:
             self.send_to_detokenizer = context.socket(zmq.PUSH)
             self.send_to_detokenizer.connect(f"ipc://{port_args.detokenizer_ipc_name}")
         else:
-            self.recv_from_tokenizer = self.send_to_detokenizer = None
+            self.recv_from_tokenizer = None
+            self.send_to_detokenizer = SimpleNamespace(send_pyobj=lambda x: None)
 
         # Init tokenizer
         self.model_config = ModelConfig(
@@ -192,8 +197,8 @@ class Scheduler:
 
         # Init running status
         self.waiting_queue: List[Req] = []
-        self.running_batch: ScheduleBatch = None
-        self.out_pyobjs = []
+        self.running_batch: Optional[ScheduleBatch] = None
+        self.cur_batch: Optional[ScheduleBatch] = None
         self.decode_forward_ct = 0
         self.stream_interval = server_args.stream_interval
         self.num_generated_tokens = 0
@@ -232,6 +237,7 @@ class Scheduler:
         self.new_token_ratio_decay = global_config.new_token_ratio_decay
         self.batch_is_full = False
 
+        # Init profiler
         if os.getenv("SGLANG_TORCH_PROFILER_DIR", "") == "":
             self.profiler = None
         else:
@@ -248,6 +254,25 @@ class Scheduler:
                 with_stack=True,
             )
 
+        # Init states for overlap schedule
+        if self.server_args.enable_overlap_schedule:
+            self.forward_batch_generation = (
+                self.tp_worker.forward_batch_generation_non_blocking
+            )
+            self.resolve_next_token_ids = (
+                lambda bid, x: self.tp_worker.resolve_future_token_ids(bid)
+            )
+
+            def cache_finished_req(req):
+                free_delta = int(self.running_batch and req in self.cur_batch.reqs)
+                self.tree_cache.cache_finished_req(req, free_delta=free_delta)
+
+            self.cache_finished_req = cache_finished_req
+        else:
+            self.forward_batch_generation = self.tp_worker.forward_batch_generation
+            self.resolve_next_token_ids = lambda bid, x: x.tolist()
+            self.cache_finished_req = self.tree_cache.cache_finished_req
+
         # init controller info
         if controller_info and self.tp_rank == 0:
             self.controller_info = controller_info
@@ -259,14 +284,60 @@ class Scheduler:
             self.controller_info = None
 
     @torch.inference_mode()
-    def event_loop(self):
+    def event_loop_normal(self):
+        self.last_batch = None
+
         while True:
             recv_reqs = self.recv_requests()
             self.process_input_requests(recv_reqs)
 
-            self.run_step()
+            batch = self.get_next_batch_to_run()
 
-            self.send_results()
+            if batch:
+                result = self.run_batch(batch)
+                self.process_batch_result(batch, result)
+
+                # Decode multiple steps to reduce the overhead
+                if batch.forward_mode.is_decode():
+                    for _ in range(self.server_args.num_continuous_decode_steps - 1):
+                        if not self.running_batch:
+                            break
+                        self.update_running_batch()
+                        if not self.running_batch:
+                            break
+                        result = self.run_batch(batch)
+                        self.process_batch_result(batch, result)
+            else:
+                self.check_memory()
+                self.new_token_ratio = global_config.init_new_token_ratio
+
+            self.last_batch = batch
+
+    @torch.inference_mode()
+    def event_loop_overlap(self):
+        result_queue = deque()
+
+        self.last_batch = None
+        self.running_batch = None
+
+        while True:
+            recv_reqs = self.recv_requests()
+            self.process_input_requests(recv_reqs)
+
+            batch = self.get_next_batch_to_run()
+            self.cur_batch = batch
+            if batch:
+                result = self.run_batch(batch)
+                result_queue.append((batch.copy(), result))
+
+            if self.last_batch:
+                tmp_batch, tmp_result = result_queue.popleft()
+                self.process_batch_result(tmp_batch, tmp_result)
+            elif batch is None:
+                self.check_memory()
+                self.new_token_ratio = global_config.init_new_token_ratio
+
+            self.last_batch = batch
 
     def recv_requests(self):
         if self.tp_rank == 0:
@@ -299,7 +370,9 @@ class Scheduler:
                 self.abort_request(recv_req)
             elif isinstance(recv_req, UpdateWeightReqInput):
                 success, message = self.update_weights(recv_req)
-                self.out_pyobjs.append(UpdateWeightReqOutput(success, message))
+                self.send_to_detokenizer.send_pyobj(
+                    UpdateWeightReqOutput(success, message)
+                )
             elif isinstance(recv_req, ProfileReq):
                 if recv_req == ProfileReq.START_PROFILE:
                     self.start_profile()
@@ -397,12 +470,6 @@ class Scheduler:
 
         self.waiting_queue.append(req)
 
-    def send_results(self):
-        if self.tp_rank == 0:
-            for obj in self.out_pyobjs:
-                self.send_to_detokenizer.send_pyobj(obj)
-            self.out_pyobjs = []
-
     def print_decode_stats(self):
         num_used = self.max_total_num_tokens - (
             self.token_to_kv_pool.available_size() + self.tree_cache.evictable_size()
@@ -410,9 +477,10 @@ class Scheduler:
         throughput = self.num_generated_tokens / (time.time() - self.last_stats_tic)
         self.num_generated_tokens = 0
         self.last_stats_tic = time.time()
+        num_running_reqs = len(self.running_batch.reqs) if self.running_batch else 0
         logger.info(
             f"Decode batch. "
-            f"#running-req: {len(self.running_batch.reqs)}, "
+            f"#running-req: {num_running_reqs}, "
             f"#token: {num_used}, "
             f"token usage: {num_used / self.max_total_num_tokens:.2f}, "
             f"gen throughput (token/s): {throughput:.2f}, "
@@ -440,44 +508,45 @@ class Scheduler:
             )
             exit(1) if crash_on_warning else None
 
-    def run_step(self):
+    def get_next_batch_to_run(self):
+        # Merge the prefill batch into the running batch
+        if (
+            self.last_batch
+            and not self.last_batch.forward_mode.is_decode()
+            and not self.last_batch.is_empty()
+        ):
+            if self.current_inflight_req:
+                self.last_batch.filter_batch(
+                    current_inflight_req=self.current_inflight_req
+                )
+                self.tree_cache.cache_unfinished_req(self.current_inflight_req)
+                # Inflight request keeps its rid but will get a new req_pool_idx.
+                self.req_to_token_pool.free(self.current_inflight_req.req_pool_idx)
+                self.batch_is_full = False
+            if not self.last_batch.is_empty():
+                if self.running_batch is None:
+                    self.running_batch = self.last_batch
+                else:
+                    self.running_batch.merge_batch(self.last_batch)
+
+        # Prefill first
         new_batch = self.get_new_batch_prefill()
         if new_batch is not None:
-            # Run a new prefill batch
-            # replace run_batch with the uncommented line to use pytorch profiler
-            # result = pytorch_profile(
-            #     "profile_prefill_step", self.run_batch, new_batch, data_size=len(new_batch.reqs)
-            # )
-            result = self.run_batch(new_batch)
-            self.process_batch_result(new_batch, result)
-        else:
-            if self.running_batch is not None:
-                # Run a few decode batches continuously for reducing overhead
-                for _ in range(global_config.num_continue_decode_steps):
-                    batch = self.get_new_batch_decode()
+            return new_batch
 
-                    if batch:
-                        # replace run_batch with the uncommented line to use pytorch profiler
-                        # result = pytorch_profile(
-                        #     "profile_decode_step",
-                        #     self.run_batch,
-                        #     batch,
-                        #     data_size=len(batch.reqs),
-                        # )
-                        result = self.run_batch(batch)
-                        self.process_batch_result(batch, result)
+        # Check memory
+        if self.running_batch is None:
+            return
 
-                    if self.running_batch.is_empty():
-                        self.running_batch = None
-
-                    if self.running_batch is None:
-                        break
-
-                    if self.out_pyobjs and self.running_batch.has_stream:
-                        break
-            else:
-                self.check_memory()
-                self.new_token_ratio = global_config.init_new_token_ratio
+        # Run decode
+        before_bs = self.running_batch.batch_size()
+        self.update_running_batch()
+        if not self.running_batch:
+            self.batch_is_full = False
+            return None
+        if before_bs != self.running_batch.batch_size():
+            self.batch_is_full = False
+        return self.running_batch
 
     def get_new_batch_prefill(self) -> Optional[ScheduleBatch]:
         # Handle the cases where prefill is not allowed
@@ -486,9 +555,7 @@ class Scheduler:
         ) and self.current_inflight_req is None:
             return None
 
-        running_bs = (
-            len(self.running_batch.reqs) if self.running_batch is not None else 0
-        )
+        running_bs = len(self.running_batch.reqs) if self.running_batch else 0
         if running_bs >= self.max_running_requests:
             self.batch_is_full = True
             return None
@@ -509,7 +576,7 @@ class Scheduler:
         )
 
         has_inflight = self.current_inflight_req is not None
-        if self.current_inflight_req is not None:
+        if has_inflight:
             self.current_inflight_req.init_next_round_input(
                 None if prefix_computed else self.tree_cache
             )
@@ -517,7 +584,7 @@ class Scheduler:
                 self.current_inflight_req
             )
 
-        if self.lora_paths is not None:
+        if self.lora_paths:
             lora_set = (
                 set([req.lora_path for req in self.running_batch.reqs])
                 if self.running_batch is not None
@@ -526,7 +593,7 @@ class Scheduler:
 
         for req in self.waiting_queue:
             if (
-                self.lora_paths is not None
+                self.lora_paths
                 and len(
                     lora_set
                     | set([req.lora_path for req in adder.can_run_list])
@@ -548,16 +615,20 @@ class Scheduler:
                     self.batch_is_full = True
                 break
 
+        # Update waiting queue
         can_run_list = adder.can_run_list
+        if len(can_run_list) == 0:
+            return None
+        self.waiting_queue = [
+            x for x in self.waiting_queue if x not in set(can_run_list)
+        ]
 
         if adder.new_inflight_req is not None:
             assert self.current_inflight_req is None
             self.current_inflight_req = adder.new_inflight_req
 
-        if len(can_run_list) == 0:
-            return None
-
-        self.waiting_queue = [x for x in self.waiting_queue if x not in can_run_list]
+        if self.current_inflight_req:
+            self.current_inflight_req.is_inflight_req += 1
 
         # Print stats
         if self.tp_rank == 0:
@@ -610,21 +681,27 @@ class Scheduler:
         new_batch.prepare_for_extend(self.model_config.vocab_size)
 
         # Mixed-style chunked prefill
-        decoding_reqs = []
         if self.is_mixed_chunk and self.running_batch is not None:
             self.running_batch.prepare_for_decode()
             new_batch.mix_with_running(self.running_batch)
-            decoding_reqs = self.running_batch.reqs
+            new_batch.decoding_reqs = self.running_batch.reqs
             self.running_batch = None
-        new_batch.decoding_reqs = decoding_reqs
+        else:
+            new_batch.decoding_reqs = None
 
         return new_batch
 
-    def get_new_batch_decode(self) -> Optional[ScheduleBatch]:
+    def update_running_batch(self):
+        global test_retract
         batch = self.running_batch
 
+        batch.filter_batch()
+        if batch.is_empty():
+            self.running_batch = None
+            return
+
         # Check if decode out of memory
-        if not batch.check_decode_mem():
+        if not batch.check_decode_mem() or (test_retract and batch.batch_size() > 10):
             old_ratio = self.new_token_ratio
 
             retracted_reqs, new_token_ratio = batch.retract_decode()
@@ -647,17 +724,17 @@ class Scheduler:
             jump_forward_reqs = batch.check_for_jump_forward(self.pad_input_ids_func)
             self.waiting_queue.extend(jump_forward_reqs)
             if batch.is_empty():
-                return None
+                self.running_batch = None
+                return
 
         # Update batch tensors
         batch.prepare_for_decode()
-        return batch
 
     def run_batch(self, batch: ScheduleBatch):
         if self.is_generation:
             if batch.forward_mode.is_decode() or batch.extend_num_tokens != 0:
                 model_worker_batch = batch.get_model_worker_batch()
-                logits_output, next_token_ids = self.tp_worker.forward_batch_generation(
+                logits_output, next_token_ids = self.forward_batch_generation(
                     model_worker_batch
                 )
             else:
@@ -668,19 +745,22 @@ class Scheduler:
                     )
                 else:
                     next_token_ids = torch.full((batch.batch_size(),), 0)
-            return logits_output, next_token_ids
+            batch.output_ids = next_token_ids
+            ret = logits_output, next_token_ids, model_worker_batch.bid
         else:  # embedding or reward model
             assert batch.extend_num_tokens != 0
             model_worker_batch = batch.get_model_worker_batch()
             embeddings = self.tp_worker.forward_batch_embedding(model_worker_batch)
-            return embeddings
+            ret = embeddings, model_worker_batch.bid
+        return ret
 
     def process_batch_result(self, batch: ScheduleBatch, result):
         if batch.forward_mode.is_decode():
             self.process_batch_result_decode(batch, result)
+            if batch.is_empty():
+                self.running_batch = None
         else:
             self.process_batch_result_prefill(batch, result)
-
         # update controller info
         if self.controller_info:
             with self.controller_info.lock:
@@ -694,15 +774,10 @@ class Scheduler:
                 self.controller_info.waiting_reqs[self.gpu_id].value = len(
                     self.waiting_queue
                 )
-
     def process_batch_result_prefill(self, batch: ScheduleBatch, result):
         if self.is_generation:
-            logits_output, next_token_ids = result
-            batch.sampling_info.penalizer_orchestrator.cumulate_output_tokens(
-                next_token_ids
-            )
-
-            if logits_output:
+            logits_output, next_token_ids, bid = result
+            if batch.return_logprob:
                 # Move logprobs to cpu
                 if logits_output.next_token_logprobs is not None:
                     logits_output.next_token_logprobs = (
@@ -720,84 +795,74 @@ class Scheduler:
                         logits_output.normalized_prompt_logprobs.tolist()
                     )
 
-            next_token_ids = next_token_ids.tolist()
+            next_token_ids = self.resolve_next_token_ids(bid, next_token_ids)
 
             # Check finish conditions
             logprob_pt = 0
             for i, req in enumerate(batch.reqs):
-                if req is not self.current_inflight_req:
+                if req.is_inflight_req > 0:
+                    req.is_inflight_req -= 1
+                else:
                     # Inflight reqs' prefill is not finished
                     req.completion_tokens_wo_jump_forward += 1
                     req.output_ids.append(next_token_ids[i])
                     req.check_finished()
 
-                if req.regex_fsm is not None:
-                    req.regex_fsm_state = req.regex_fsm.get_next_state(
-                        req.regex_fsm_state, next_token_ids[i]
-                    )
+                    if req.finished():
+                        self.cache_finished_req(req)
+                    elif not batch.decoding_reqs or req not in batch.decoding_reqs:
+                        self.tree_cache.cache_unfinished_req(req)
 
-                if req.finished():
-                    self.tree_cache.cache_finished_req(req)
-                elif req not in batch.decoding_reqs:
-                    # To reduce overhead, only cache prefill reqs
-                    self.tree_cache.cache_unfinished_req(req)
+                    if req.regex_fsm is not None:
+                        req.regex_fsm_state = req.regex_fsm.get_next_state(
+                            req.regex_fsm_state, next_token_ids[i]
+                        )
 
-                if req is self.current_inflight_req:
-                    # Inflight request would get a new req idx
-                    self.req_to_token_pool.free(req.req_pool_idx)
-
-                if req.return_logprob:
-                    logprob_pt += self.add_logprob_return_values(
-                        i, req, logprob_pt, next_token_ids, logits_output
-                    )
+                    if req.return_logprob:
+                        logprob_pt += self.add_logprob_return_values(
+                            i, req, logprob_pt, next_token_ids, logits_output
+                        )
         else:  # embedding or reward model
             assert batch.extend_num_tokens != 0
-            embeddings = result
+            embeddings, bid = result
+            embeddings = embeddings.tolist()
 
             # Check finish conditions
             for i, req in enumerate(batch.reqs):
                 req.embedding = embeddings[i]
-                if req is not self.current_inflight_req:
+                if req.is_inflight_req > 0:
+                    req.is_inflight_req -= 1
+                else:
                     # Inflight reqs' prefill is not finished
                     # dummy output token for embedding models
                     req.output_ids.append(0)
                     req.check_finished()
 
                 if req.finished():
-                    self.tree_cache.cache_finished_req(req)
+                    self.cache_finished_req(req)
                 else:
                     self.tree_cache.cache_unfinished_req(req)
 
-                if req is self.current_inflight_req:
-                    # Inflight request would get a new req idx
-                    self.req_to_token_pool.free(req.req_pool_idx)
-
-        self.handle_finished_requests(batch)
-
-        if not batch.is_empty():
-            if self.running_batch is None:
-                self.running_batch = batch
-            else:
-                self.running_batch.merge_batch(batch)
+        self.stream_output(batch.reqs)
 
     def process_batch_result_decode(self, batch: ScheduleBatch, result):
-        logits_output, next_token_ids = result
-        batch.sampling_info.penalizer_orchestrator.cumulate_output_tokens(
-            next_token_ids
-        )
+        logits_output, next_token_ids, bid = result
         self.num_generated_tokens += len(batch.reqs)
 
         # Move logprobs to cpu
-        if logits_output.next_token_logprobs is not None:
+        if batch.return_logprob:
             next_token_logprobs = logits_output.next_token_logprobs[
                 torch.arange(len(next_token_ids), device=next_token_ids.device),
                 next_token_ids,
             ].tolist()
 
-        next_token_ids = next_token_ids.tolist()
+        next_token_ids = self.resolve_next_token_ids(bid, next_token_ids)
 
         # Check finish condition
         for i, (req, next_token_id) in enumerate(zip(batch.reqs, next_token_ids)):
+            if self.server_args.enable_overlap_schedule and req.finished():
+                continue
+
             req.completion_tokens_wo_jump_forward += 1
             req.output_ids.append(next_token_id)
             req.check_finished()
@@ -808,7 +873,7 @@ class Scheduler:
                 )
 
             if req.finished():
-                self.tree_cache.cache_finished_req(req)
+                self.cache_finished_req(req)
 
             if req.return_logprob:
                 req.output_token_logprobs.append(
@@ -817,7 +882,7 @@ class Scheduler:
                 if req.top_logprobs_num > 0:
                     req.output_top_logprobs.append(logits_output.output_top_logprobs[i])
 
-        self.handle_finished_requests(batch)
+        self.stream_output(batch.reqs)
 
         self.decode_forward_ct = (self.decode_forward_ct + 1) % (1 << 30)
         if self.tp_rank == 0 and self.decode_forward_ct % 40 == 0:
@@ -896,7 +961,7 @@ class Scheduler:
 
         return num_input_logprobs
 
-    def handle_finished_requests(self, batch: ScheduleBatch):
+    def stream_output(self, reqs: List[Req]):
         output_rids = []
         output_meta_info = []
         output_finished_reason: List[BaseFinishReason] = []
@@ -907,22 +972,15 @@ class Scheduler:
             output_read_offsets = []
             output_skip_special_tokens = []
             output_spaces_between_special_tokens = []
+            output_no_stop_trim = []
         else:  # embedding or reward model
             output_embeddings = []
-        unfinished_indices = []
 
-        for i, req in enumerate(batch.reqs):
-            if not req.finished() and req is not self.current_inflight_req:
-                unfinished_indices.append(i)
-            else:
-                self.batch_is_full = False
+        is_stream_iter = self.decode_forward_ct % self.stream_interval == 0
 
+        for req in reqs:
             if req.finished() or (
-                req.stream
-                and (
-                    self.decode_forward_ct % self.stream_interval == 0
-                    or len(req.output_ids) == 1
-                )
+                req.stream and (is_stream_iter or len(req.output_ids) == 1)
             ):
                 output_rids.append(req.rid)
                 output_finished_reason.append(req.finished_reason)
@@ -938,11 +996,13 @@ class Scheduler:
                     output_spaces_between_special_tokens.append(
                         req.sampling_params.spaces_between_special_tokens
                     )
+                    output_no_stop_trim.append(req.sampling_params.no_stop_trim)
 
                     meta_info = {
                         "prompt_tokens": len(req.origin_input_ids),
                         "completion_tokens": len(req.output_ids),
                         "completion_tokens_wo_jump_forward": req.completion_tokens_wo_jump_forward,
+                        "cached_tokens": req.cached_tokens,
                         "finish_reason": (
                             req.finished_reason.to_json()
                             if req.finished_reason is not None
@@ -974,7 +1034,7 @@ class Scheduler:
         # Send to detokenizer
         if output_rids:
             if self.is_generation:
-                self.out_pyobjs.append(
+                self.send_to_detokenizer.send_pyobj(
                     BatchTokenIDOut(
                         output_rids,
                         output_vids,
@@ -985,10 +1045,11 @@ class Scheduler:
                         output_spaces_between_special_tokens,
                         output_meta_info,
                         output_finished_reason,
+                        output_no_stop_trim,
                     )
                 )
             else:  # embedding or reward model
-                self.out_pyobjs.append(
+                self.send_to_detokenizer.send_pyobj(
                     BatchEmbeddingOut(
                         output_rids,
                         output_embeddings,
@@ -996,9 +1057,6 @@ class Scheduler:
                         output_finished_reason,
                     )
                 )
-
-        # Remove finished reqs: update batch tensors
-        batch.filter_batch(unfinished_indices)
 
     def flush_cache(self):
         if len(self.waiting_queue) == 0 and (
@@ -1035,8 +1093,9 @@ class Scheduler:
         # Delete requests in the running batch
         if self.running_batch:
             for req in self.running_batch.reqs:
-                if req.rid == recv_req.rid:
+                if req.rid == recv_req.rid and not req.finished():
                     req.finished_reason = FINISH_ABORT()
+                    self.cache_finished_req(req)
                     break
 
     def update_weights(self, recv_req: UpdateWeightReqInput):
@@ -1082,7 +1141,10 @@ def run_scheduler_process(
     try:
         scheduler = Scheduler(server_args, port_args, gpu_id, tp_rank, controller_info)
         pipe_writer.send("ready")
-        scheduler.event_loop()
+        if server_args.enable_overlap_schedule:
+            scheduler.event_loop_overlap()
+        else:
+            scheduler.event_loop_normal()
     except Exception:
         msg = get_exception_traceback()
         logger.error(msg)
