@@ -231,11 +231,13 @@ class DataParallelController:
             for gpu_id, radix_cache in self.newest_tree_cache.items():
                 pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
                 prefix_lens[gpu_id] = pre_len
+                
+            logger.info(f'[zmq_radix_scheduler]{prefix_lens}')
 
             
             # NOTE: 100 is used to reduce the influence of random input 
             # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
-            if max(prefix_lens) <= 10:
+            if max(prefix_lens) <= 200:
                 self.resources_aware_scheduler(req)
             else:
                 gpu_idx = prefix_lens.index(max(prefix_lens))
