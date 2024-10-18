@@ -242,6 +242,8 @@ class DataParallelController:
             else:
                 gpu_idx = prefix_lens.index(max(prefix_lens))
                 self.workers[gpu_idx].send_pyobj(req)
+                logger.info(f"[zmq_radix_scheduler] select gpuid = {gpu_idx}")
+                
                 
 
     def resources_aware_scheduler(self, req):
@@ -334,6 +336,7 @@ class DataParallelController:
             gpu_idx = random.choice(max_indices)
             self.main_available_kv_cache[gpu_idx] -= len(req.input_ids)
         self.workers[gpu_idx].send_pyobj(req)
+        logger.info(f"[resources_aware] select gpuid = {gpu_idx}")
 
 
     def pre_radix_scheduler(self, req):
