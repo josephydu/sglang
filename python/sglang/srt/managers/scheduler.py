@@ -280,6 +280,7 @@ class Scheduler:
                 )
                 del node
                 self.controller_info.radix_queue.put(send_data)
+                logger.info("[send_tree_cache_to_queue] has send new data")
             except Exception as e:
                 return
 
