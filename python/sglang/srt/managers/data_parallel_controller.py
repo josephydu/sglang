@@ -232,7 +232,10 @@ class DataParallelController:
                 pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
                 prefix_lens[gpu_id] = pre_len
 
-            if max(prefix_lens) == 0:
+            
+            # NOTE: 100 is used to reduce the influence of random input 
+            # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
+            if max(prefix_lens) <= 100:
                 self.resources_aware_scheduler(req)
             else:
                 gpu_idx = prefix_lens.index(max(prefix_lens))
