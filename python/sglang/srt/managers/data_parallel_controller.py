@@ -235,7 +235,7 @@ class DataParallelController:
             
             # NOTE: 100 is used to reduce the influence of random input 
             # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
-            if max(prefix_lens) <= 100:
+            if max(prefix_lens) <= 200:
                 self.resources_aware_scheduler(req)
             else:
                 gpu_idx = prefix_lens.index(max(prefix_lens))
