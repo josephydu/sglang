@@ -452,7 +452,7 @@ class DataParallelController:
                 except zmq.ZMQError:
                     break
 
-                logger.info(f"[event_loop]{type(recv_req)}")
+                # logger.info(f"[event_loop]{type(recv_req)}")
                 if isinstance(
                     recv_req,
                     (
