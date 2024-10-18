@@ -59,7 +59,7 @@ from sglang.srt.managers.schedule_policy import (
 )
 from sglang.srt.managers.tp_worker import TpModelWorker
 from sglang.srt.mem_cache.chunk_cache import ChunkCache
-from sglang.srt.mem_cache.radix_cache import RadixCache
+from sglang.srt.mem_cache.radix_cache import RadixCache, RadixCacheSend
 from sglang.srt.server_args import PortArgs, ServerArgs
 from sglang.srt.utils import (
     broadcast_pyobj,
@@ -72,6 +72,8 @@ from sglang.srt.utils import (
     suppress_other_loggers,
 )
 from sglang.utils import get_exception_traceback
+
+from copy import deepcopy
 
 logger = logging.getLogger(__name__)
 
@@ -255,8 +257,31 @@ class Scheduler:
             self.controller_info.available_kv_cache[self.gpu_id].value = (
                 self.token_to_kv_pool.available_size()
             )
+            
+            if self.server_args.load_balance_method == "pre_raidx":
+                self.pre_radix = True
+                import threading
+                self.change_cnt_lock = threading.Lock()
+                threading.Thread(target=self.loop_for_send_tree_cache).start()
         else:
             self.controller_info = None
+
+    def loop_for_send_tree_cache(self):
+        while True:
+            self.send_tree_cache_to_queue()
+            time.sleep(1)
+            
+    def send_tree_cache_to_queue(self):
+        if self.pre_radix:
+            try:
+                node = deepcopy(self.root_node)
+                send_data = RadixCacheSend(
+                    gpu_id=self.gpu_id, root_node=node, time=time.time()
+                )
+                del node
+                self.controller_info.radix_queue.put(send_data)
+            except Exception as e:
+                return
 
     @torch.inference_mode()
     def event_loop(self):

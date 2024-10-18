@@ -17,6 +17,7 @@ limitations under the License.
 
 import logging
 import multiprocessing as mp
+import multiprocessing.connection
 from enum import Enum, auto
 
 import zmq
@@ -40,7 +41,31 @@ logger = logging.getLogger(__name__)
 
 import random
 
+# for zmq radix scheduler 
+def _key_match(key0, key1):
+    i = 0
+    for k0, k1 in zip(key0, key1):
+        if k0 != k1:
+            break
+        i += 1
+    return i
 
+
+def get_match_len(node, key, match_length: int) -> int:
+    if len(key) == 0:
+        return match_length
+
+    if key[0] in node.children.keys():
+        child = node.children[key[0]]
+        prefix_len = _key_match(child.key, key)
+        match_length += prefix_len
+        if prefix_len < len(child.key):
+            return match_length
+        else:
+            return get_match_len(child, key[prefix_len:], match_length)
+    else:
+        return match_length
+    
 class LoadBalanceMethod(Enum):
     """Load balance method."""
 
@@ -49,6 +74,7 @@ class LoadBalanceMethod(Enum):
     RESOURCES_AWARE = auto()
     PRE_RADIX = auto()
     BUCKET = auto()
+    ZMQ_RADIX = auto()
 
     @classmethod
     def from_str(cls, method: str):
@@ -83,6 +109,8 @@ class DataParallelController:
             LoadBalanceMethod.RESOURCES_AWARE: self.resources_aware_scheduler,
             LoadBalanceMethod.PRE_RADIX: self.pre_radix_scheduler,
             LoadBalanceMethod.BUCKET: self.bucket_scheduler,
+            LoadBalanceMethod.ZMQ_RADIX: self.zmq_radix_scheduler
+            
         }
         self.dispatching = dispatch_lookup[self.load_balance_method]
 
@@ -101,6 +129,17 @@ class DataParallelController:
         # For pre_radix
         self.choosen_gpu_per_req = {}
 
+        # For zmq_radix
+        self.zmq_raidx = server_args.load_balance_method == "zmq_radix"
+        
+        if self.zmq_raidx:
+            import threading
+            self.newest_tree_cache = {}
+            
+            self.recv_tree_cache_lock = threading.Lock()
+            threading.Thread(target=self.loop_for_recv_tree_cache).start()
+        else:
+            self.newest_tree_cache = None
         # Start data parallel workers
         base_gpu_id = 0
         self.workers = []
@@ -114,6 +153,8 @@ class DataParallelController:
 
             self.workers.append(send_to)
             base_gpu_id += server_args.tp_size
+            
+        
 
     def launch_tensor_parallel_group(
         self,
@@ -159,10 +200,33 @@ class DataParallelController:
 
         return send_to
 
+    def loop_for_recv_tree_cache(self):
+        while True:
+            self.recv_tree_cache()
+    def recv_tree_cache(self):
+        while True:
+            recv_radix_cache = self.controller_info.radix_queue.get()
+            if recv_radix_cache:
+                gpu_id = recv_radix_cache.gpu_id
+                if (
+                    gpu_id not in self.newest_tree_cache
+                    or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
+                ):
+                    with self.recv_tree_cache_lock:
+                        if gpu_id in self.newest_tree_cache:
+                            del self.newest_tree_cache[gpu_id]
+                        self.newest_tree_cache[gpu_id] = recv_radix_cache
+                del recv_radix_cache
+
+    
     def round_robin_scheduler(self, req):
         self.workers[self.round_robin_counter].send_pyobj(req)
         self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
 
+    def zmq_radix_scheduler(self, req):
+        pass
+        
+    
     def resources_aware_scheduler(self, req):
         available_mem = [k.value for k in self.controller_info.available_kv_cache]
         num_reqs_running = [k.value for k in self.controller_info.running_reqs]

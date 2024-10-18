@@ -359,6 +359,10 @@ class ControllerInfo:
         self.running_reqs = []
         self.waiting_reqs = []
         self.lock = multiprocessing.Lock()
+        
+        # For pre radix
+        self.radix_queue = multiprocessing.Queue()
+
         for i in range(dp_size):
             self.available_kv_cache.append(Value("i", 0))
             self.running_reqs.append(Value("i", 0))
