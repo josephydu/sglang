@@ -273,7 +273,7 @@ class Scheduler:
     def send_tree_cache_to_queue(self):
         if self.pre_radix:
             try:
-                node = deepcopy(self.root_node)
+                node = deepcopy(self.tree_cache.root_node)
                 send_data = RadixCacheSend(
                     gpu_id=self.gpu_id, root_node=node, time=time.time()
                 )
