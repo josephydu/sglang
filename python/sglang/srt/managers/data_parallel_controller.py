@@ -466,7 +466,8 @@ def run_data_parallel_controller_process(
     try:
         controller = DataParallelController(server_args, port_args)
         pipe_writer.send("ready")
-        controller.recv_tree_cache_thread.start()
+        if controller.recv_tree_cache_thread:
+            controller.recv_tree_cache_thread.start()
         controller.event_loop()
     except Exception:
         msg = get_exception_traceback()
