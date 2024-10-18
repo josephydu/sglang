@@ -259,6 +259,7 @@ class Scheduler:
             )
             
             if self.server_args.load_balance_method == "zmq_radix":
+                logger.info("start the zmq_radix")
                 self.pre_radix = True
                 import threading
                 self.change_cnt_lock = threading.Lock()

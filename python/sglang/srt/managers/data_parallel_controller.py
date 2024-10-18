@@ -205,7 +205,7 @@ class DataParallelController:
             self.recv_tree_cache()
     def recv_tree_cache(self):
         while True:
-            recv_radix_cache = self.controller_info.radix_queue.get(block=False)
+            recv_radix_cache = self.controller_info.radix_queue.get()
             if recv_radix_cache:
                 logger.info('[recv_tree_cache] receive new data')
                 gpu_id = recv_radix_cache.gpu_id
