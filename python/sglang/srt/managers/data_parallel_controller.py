@@ -132,14 +132,6 @@ class DataParallelController:
         # For zmq_radix
         self.zmq_raidx = server_args.load_balance_method == "zmq_radix"
         
-        if self.zmq_raidx:
-            import threading
-            self.newest_tree_cache = {}
-            
-            self.recv_tree_cache_lock = threading.Lock()
-            threading.Thread(target=self.loop_for_recv_tree_cache).start()
-        else:
-            self.newest_tree_cache = None
         # Start data parallel workers
         base_gpu_id = 0
         self.workers = []
@@ -154,6 +146,14 @@ class DataParallelController:
             self.workers.append(send_to)
             base_gpu_id += server_args.tp_size
             
+        if self.zmq_raidx:
+            import threading
+            self.newest_tree_cache = {}
+            
+            self.recv_tree_cache_lock = threading.Lock()
+            threading.Thread(target=self.loop_for_recv_tree_cache).start()
+        else:
+            self.newest_tree_cache = None
         
 
     def launch_tensor_parallel_group(
