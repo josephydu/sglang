@@ -207,7 +207,7 @@ class DataParallelController:
         while True:
             recv_radix_cache = self.controller_info.radix_queue.get()
             if recv_radix_cache:
-                logger.info('[recv_tree_cache] receive new data')
+                # logger.info('[recv_tree_cache] receive new data')
                 gpu_id = recv_radix_cache.gpu_id
                 if (
                     gpu_id not in self.newest_tree_cache
@@ -225,9 +225,20 @@ class DataParallelController:
         self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
 
     def zmq_radix_scheduler(self, req):
-        pass
-        
-    
+        prefix_lens = [0] * self.dp_size
+
+        with self.recv_tree_cache_lock:
+            for gpu_id, radix_cache in self.newest_tree_cache.items():
+                pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
+                prefix_lens[gpu_id] = pre_len
+
+            if max(prefix_lens) == 0:
+                self.resources_aware_scheduler(req)
+            else:
+                gpu_idx = prefix_lens.index(max(prefix_lens))
+                self.workers[gpu_idx].send_pyobj(req)
+                
+
     def resources_aware_scheduler(self, req):
         available_mem = [k.value for k in self.controller_info.available_kv_cache]
         num_reqs_running = [k.value for k in self.controller_info.running_reqs]
@@ -441,6 +452,7 @@ class DataParallelController:
                 except zmq.ZMQError:
                     break
 
+                logger.info(f"[event_loop]{type(recv_req)}")
                 if isinstance(
                     recv_req,
                     (

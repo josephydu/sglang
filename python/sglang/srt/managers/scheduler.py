@@ -279,9 +279,9 @@ class Scheduler:
                 )
                 del node
                 self.controller_info.radix_queue.put(send_data)
-                logger.info("[send_tree_cache_to_queue] has send new data")
+                # logger.info("[send_tree_cache_to_queue] has send new data")
             except Exception as e:
-                logger.info(f"[send_tree_cache_to_queue]error:{e}")
+                # logger.info(f"[send_tree_cache_to_queue]error:{e}")
                 return
 
     @torch.inference_mode()
