@@ -151,7 +151,7 @@ class DataParallelController:
             self.newest_tree_cache = {}
             
             self.recv_tree_cache_lock = threading.Lock()
-            threading.Thread(target=self.loop_for_recv_tree_cache).start()
+            self.recv_tree_cache_thread = threading.Thread(target=self.loop_for_recv_tree_cache)
         else:
             self.newest_tree_cache = None
         
@@ -466,6 +466,7 @@ def run_data_parallel_controller_process(
     try:
         controller = DataParallelController(server_args, port_args)
         pipe_writer.send("ready")
+        controller.recv_tree_cache_thread.start()
         controller.event_loop()
     except Exception:
         msg = get_exception_traceback()
