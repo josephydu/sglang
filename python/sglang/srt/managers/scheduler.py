@@ -257,9 +257,7 @@ class Scheduler:
             self.controller_info.available_kv_cache[self.gpu_id].value = (
                 self.token_to_kv_pool.available_size()
             )
-            logger.info(f'[__init__]{self.server_args.load_balance_method}, {self.server_args.load_balance_method == "zmq_radix"}')
             if self.server_args.load_balance_method == "zmq_radix":
-                logger.info("start the zmq_radix")
                 self.pre_radix = True
                 import threading
                 self.change_cnt_lock = threading.Lock()
@@ -283,6 +281,7 @@ class Scheduler:
                 self.controller_info.radix_queue.put(send_data)
                 logger.info("[send_tree_cache_to_queue] has send new data")
             except Exception as e:
+                logger.info(f"[send_tree_cache_to_queue]error:{e}")
                 return
 
     @torch.inference_mode()
