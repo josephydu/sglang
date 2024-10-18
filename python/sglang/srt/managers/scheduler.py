@@ -258,7 +258,7 @@ class Scheduler:
                 self.token_to_kv_pool.available_size()
             )
             
-            if self.server_args.load_balance_method == "pre_raidx":
+            if self.server_args.load_balance_method == "zmq_radix":
                 self.pre_radix = True
                 import threading
                 self.change_cnt_lock = threading.Lock()
