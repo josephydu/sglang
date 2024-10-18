@@ -242,7 +242,10 @@ class DataParallelController:
             else:
                 gpu_idx = prefix_lens.index(max(prefix_lens))
                 self.workers[gpu_idx].send_pyobj(req)
-                logger.info(f"[zmq_radix_scheduler] select gpuid = {gpu_idx}")
+                
+                len_r = len(req.input_ids)
+                rid = sum(req.input_ids[:10]) if len_r >= 10 else sum(req.input_ids[i % len_r] for i in range(10))
+                logger.info(f"[zmq_radix_scheduler] [{rid}] select gpuid = {gpu_idx}")
                 
                 
 
@@ -250,10 +253,10 @@ class DataParallelController:
         available_mem = [k.value for k in self.controller_info.available_kv_cache]
         num_reqs_running = [k.value for k in self.controller_info.running_reqs]
         num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
-        if not self.pre_available_kv_cache:
+        if len(self.pre_available_kv_cache) == 0:
             self.pre_available_kv_cache = available_mem.copy()
 
-        if not self.main_available_kv_cache:
+        if len(self.main_available_kv_cache) == 0:
             self.main_available_kv_cache = available_mem.copy()
 
         if self.pre_available_kv_cache == available_mem:
@@ -266,10 +269,10 @@ class DataParallelController:
             self.pre_available_kv_cache = available_mem.copy()
             self.main_available_kv_cache = available_mem.copy()
         # ===============================================================================
-        if not self.pre_num_running_req:
+        if len(self.pre_num_running_req) == 0:
             self.pre_num_running_req = num_reqs_running.copy()
 
-        if not self.main_num_running_req:
+        if len(self.main_num_running_req) == 0:
             self.main_num_running_req = num_reqs_running.copy()
 
         if self.pre_num_running_req == num_reqs_running:
@@ -283,10 +286,10 @@ class DataParallelController:
             self.pre_num_running_req = num_reqs_running.copy()
 
         # =================================================================================
-        if not self.pre_num_waiting_req:
+        if len(self.pre_num_waiting_req) == 0:
             self.pre_num_waiting_req = num_reqs_waiting.copy()
 
-        if not self.main_num_waiting_req:
+        if len(self.main_num_waiting_req) == 0:
             self.main_num_waiting_req = num_reqs_waiting.copy()
 
         if self.pre_num_waiting_req == num_reqs_waiting:
@@ -336,7 +339,11 @@ class DataParallelController:
             gpu_idx = random.choice(max_indices)
             self.main_available_kv_cache[gpu_idx] -= len(req.input_ids)
         self.workers[gpu_idx].send_pyobj(req)
-        logger.info(f"[resources_aware] select gpuid = {gpu_idx}")
+        
+        
+        len_r = len(req.input_ids)
+        rid = sum(req.input_ids[:10]) if len_r >= 10 else sum(req.input_ids[i % len_r] for i in range(10))
+        logger.info(f"[resources_aware] [{rid}] select gpuid = {gpu_idx}")
 
 
     def pre_radix_scheduler(self, req):
