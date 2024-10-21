@@ -154,6 +154,7 @@ class DataParallelController:
             self.recv_tree_cache_thread = threading.Thread(target=self.loop_for_recv_tree_cache)
         else:
             self.newest_tree_cache = None
+            self.recv_tree_cache_thread = None
         
 
     def launch_tensor_parallel_group(
