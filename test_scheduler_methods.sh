@@ -143,9 +143,10 @@ for rate in 7.0 7.1 7.2 7.3 7.4 7.5 7.6 7.7 7.8 7.9; do
         echo "Running with setting: $setting ======================================================" >> "$LOG_FILE"
         
         # 启动服务并将其放到后台，重定向输出到日志文件
-        /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server --model-path Meta-llama/Meta-Llama-3.1-8B \
+        /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server \
+            --model-path /root/.cache/huggingface/hub/models--meta-llama--Meta-Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b/ \
             --host 0.0.0.0 --port 8080 --mem-fraction-static 0.7 \
-            --dp-size 8
+            --dp-size 8 \
             --load-balance-method $method >> "$LOG_FILE" 2>&1 &
         export LOAD_BALANCE_METHOD=$method
 
