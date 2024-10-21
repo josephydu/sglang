@@ -2,7 +2,7 @@
 # Adapted from https://github.com/vllm-project/vllm/blob/6366efc67b0aedd2c1721c14385370e50b297fb3/benchmarks/benchmark_serving.py
 
 """
-Benchmark online serving with dynamic requests.
+Benchmark online serving.
 
 Usage:
 python3 -m sglang.bench_serving --backend sglang --num-prompt 10
@@ -473,6 +473,9 @@ def sample_sharegpt_requests(
     return filtered_dataset
 
 
+import pickle
+
+
 def sample_random_requests(
     input_len: int,
     output_len: int,
@@ -481,7 +484,13 @@ def sample_random_requests(
     tokenizer: PreTrainedTokenizerBase,
     dataset_path: str,
 ) -> List[Tuple[str, int, int]]:
-
+    cache_path = f"./input_cache_{num_prompts}"
+    # 尝试加载缓存的 input_requests
+    if os.path.isfile(cache_path):
+        with open(cache_path, "rb") as f:
+            input_requests = pickle.load(f)
+        print("Loaded input_requests from cache.")
+        return input_requests
     input_lens = np.random.randint(
         max(int(input_len * range_ratio), 1),
         input_len + 1,
@@ -541,7 +550,9 @@ def sample_random_requests(
                 ]
             )
             input_requests.append((prompt, int(input_lens[i]), int(output_lens[i])))
-
+    with open(cache_path, "wb") as f:
+        pickle.dump(input_requests, f)
+        print(f"Saved input_requests_{num_prompts} to cache.")
     print(f"#Input tokens: {np.sum(input_lens)}")
     print(f"#Output tokens: {np.sum(output_lens)}")
     return input_requests
@@ -830,6 +841,31 @@ async def benchmark(
         "mean_e2e_latency_ms": metrics.mean_e2e_latency_ms,
         "median_e2e_latency_ms": metrics.median_e2e_latency_ms,
     }
+
+    balance_method = os.getenv("LOAD_BALANCE_METHOD")
+    new_item = {
+        "method": balance_method,
+        "mean_ttft": metrics.mean_ttft_ms,
+        "request_rate": request_rate,
+        "request_throughput": metrics.request_throughput,
+        "p99_ttft_ms": metrics.p99_ttft_ms,
+        "mean_e2e_latency_ms": metrics.mean_e2e_latency_ms,
+        "time": datetime.now().isoformat(),
+    }
+    file_name = f"{balance_method}_result.json"
+    if not os.path.exists(file_name):
+        with open(file_name, "w") as f:
+            json.dump([], f)
+
+    with open(file_name, "r") as f:
+        tmp_data = json.load(f)
+
+    tmp_data.append(new_item)
+
+    with open(file_name, "w") as f:
+        json.dump(tmp_data, f, indent=4)
+
+    print(f"add new item to {file_name}: {new_item}")
     return result
 
 
