@@ -232,7 +232,6 @@ class DataParallelController:
                 pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
                 prefix_lens[gpu_id] = pre_len
                 
-            logger.info(f'[zmq_radix_scheduler]{prefix_lens}')
 
             
             # NOTE: 100 is used to reduce the influence of random input 
@@ -242,10 +241,6 @@ class DataParallelController:
             else:
                 gpu_idx = prefix_lens.index(max(prefix_lens))
                 self.workers[gpu_idx].send_pyobj(req)
-                
-                len_r = len(req.input_ids)
-                rid = sum(req.input_ids[:10]) if len_r >= 10 else sum(req.input_ids[i % len_r] for i in range(10))
-                logger.info(f"[zmq_radix_scheduler] [{rid}] select gpuid = {gpu_idx}")
                 
                 
 
@@ -341,10 +336,6 @@ class DataParallelController:
         self.workers[gpu_idx].send_pyobj(req)
         
         
-        len_r = len(req.input_ids)
-        rid = sum(req.input_ids[:10]) if len_r >= 10 else sum(req.input_ids[i % len_r] for i in range(10))
-        logger.info(f"[resources_aware] [{rid}] select gpuid = {gpu_idx}")
-
 
     def pre_radix_scheduler(self, req):
         available_mem = [k.value for k in self.controller_info.available_kv_cache]
