@@ -176,3 +176,5 @@ for random_output_len in 128 256 512; do
                 sleep 300
             done
         done
+    done
+done
