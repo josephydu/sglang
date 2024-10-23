@@ -134,8 +134,8 @@ declare -A settings
 settings["resources_aware"]="dp8 resources_aware"
 settings["round_robin"]="dp8 round_robin"
 
-for random_input_len in 128 256 512; do
-    for random_output_len in 512 1024 2048; do
+for random_output_len in 128 256 512; do
+    for random_input_len in 512 1024 2048; do
         for rate in 7.0 7.1 7.2 7.3 7.4 7.5 7.6 7.7 7.8 7.9; do
         # for rate in 9.0 9.1 9.2 9.3 9.4 9.5 9.6 9.7 9.8 9.9; do
         # for rate in 8.0 8.1 8.2 8.3 8.4 8.5 8.6 8.7 8.8 8.9; do
@@ -163,7 +163,7 @@ for random_input_len in 128 256 512; do
                         --host 127.0.0.1 --port 8080 --dataset-name random \
                         --tokenizer /root/.cache/huggingface/hub/models--meta-llama--Meta-Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b/ \
                         --model /root/.cache/huggingface/hub/models--meta-llama--Meta-Llama-3.1-8B/snapshots/d04e592bb4f6aa9cfee91e2e20afa771667e1d4b/ \
-                        --random-output-len 1024 --random-input-len 4096 \
+                        --random-output-len $random_output_len --random-input-len $random_input_len \
                         --random-range-ratio 0.5 --seed 1234 \
                         --num-prompts 10000 --request-rate $rate >> "$LOG_FILE" 2>&1
                 sleep 100
