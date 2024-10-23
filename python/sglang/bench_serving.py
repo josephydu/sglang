@@ -559,6 +559,10 @@ def sample_random_requests(
     return input_requests
 
 
+random_output_len = 0
+random_input_len = 0
+
+
 async def get_request(
     input_requests: List[Tuple[str, int, int]],
     request_rate: float,
@@ -855,6 +859,8 @@ async def benchmark(
         "p99_ttft_ms": metrics.p99_ttft_ms,
         "p90_ttft_ms": metrics.p90_ttft_ms,
         "mean_e2e_latency_ms": metrics.mean_e2e_latency_ms,
+        "random_input_len": random_input_len,
+        "random_output_len": random_output_len,
         "time": datetime.now().isoformat(),
     }
     file_name = f"{balance_method}_result.json"
@@ -1158,4 +1164,6 @@ if __name__ == "__main__":
         "additional generate params like sampling params.",
     )
     args = parser.parse_args()
+    random_output_len = args.random_output_len
+    random_input_len = args.random_input_len
     run_benchmark(args)
