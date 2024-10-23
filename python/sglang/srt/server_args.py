@@ -446,6 +446,7 @@ class ServerArgs:
                 "shortest_queue",
                 "resources_aware",
                 "pre_radix",
+                "power_of_2_choice",
             ],
         )
         # Multi-node distributed serving args

@@ -75,6 +75,7 @@ class LoadBalanceMethod(Enum):
     SHORTEST_QUEUE = auto()
     RESOURCES_AWARE = auto()
     PRE_RADIX = auto()
+    POWER_OF_2_CHOICE = auto()
 
     @classmethod
     def from_str(cls, method: str):
@@ -108,6 +109,7 @@ class DataParallelController:
             LoadBalanceMethod.SHORTEST_QUEUE: self.shortest_queue_scheduler,
             LoadBalanceMethod.RESOURCES_AWARE: self.resources_aware_scheduler,
             LoadBalanceMethod.PRE_RADIX: self.pre_radix_scheduler,
+            LoadBalanceMethod.POWER_OF_2_CHOICE: self.power_of_2_choice_scheduler,
         }
         self.dispatching = dispatch_lookup[self.load_balance_method]
 
@@ -216,6 +218,39 @@ class DataParallelController:
                             del self.newest_tree_cache[gpu_id]
                         self.newest_tree_cache[gpu_id] = recv_radix_cache
                 del recv_radix_cache
+
+    # 比较两个worker的指标
+    def compare_metrics(self, ins1, ins2):
+        if self.main_num_waiting_req[ins1] != self.main_num_waiting_req[ins2]:
+            return (
+                ins1
+                if self.main_num_waiting_req[ins1] < self.main_num_waiting_req[ins2]
+                else ins2
+            )
+        if self.main_num_running_req[ins1] != self.main_num_running_req[ins2]:
+            return (
+                ins1
+                if self.main_num_running_req[ins1] < self.main_num_running_req[ins2]
+                else ins2
+            )
+        if self.main_available_kv_cache[ins1] != self.main_available_kv_cache[ins2]:
+            return (
+                ins1
+                if self.main_available_kv_cache[ins1]
+                > self.main_available_kv_cache[ins2]
+                else ins2
+            )
+        return ins1
+
+    def power_of_2_choice_scheduler(self, req):
+        self.update_memory_and_requests()
+        instances_len = len(self.workers)
+
+        ins1, ins2 = random.sample(range(0, instances_len), 2)
+        ins_end = self.compare_metrics(ins1, ins2)
+        self.main_available_kv_cache[ins_end] -= len(req.input_ids)
+        self.main_num_running_req[ins_end] += 1
+        self.workers[ins_end].send_pyobj(req)
 
     def round_robin_scheduler(self, req):
         self.workers[self.round_robin_counter].send_pyobj(req)
