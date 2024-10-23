@@ -485,7 +485,7 @@ def sample_random_requests(
     tokenizer: PreTrainedTokenizerBase,
     dataset_path: str,
 ) -> List[Tuple[str, int, int]]:
-    cache_path = f"./input_cache_{num_prompts}"
+    cache_path = f"./input_cache_{random_input_len}_{random_output_len}_{num_prompts}"
     # 尝试加载缓存的 input_requests
     if os.path.isfile(cache_path):
         with open(cache_path, "rb") as f:
