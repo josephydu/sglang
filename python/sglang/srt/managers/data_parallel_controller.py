@@ -295,6 +295,7 @@ class DataParallelController:
             self.pre_num_waiting_req = num_reqs_waiting.copy()
 
     def allocate_gpu(self, req):
+        logger.info(f"[allocate_gpu]{self.main_num_waiting_req}")
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
 
