@@ -325,7 +325,7 @@ class DataParallelController:
             gpu_idx = random.choice(max_indices)
             logger.info(f"filter_result{filter_result},gpu_idx={gpu_idx}")
 
-        self.main_num_waiting_req[gpu_idx] += 1
+        # self.main_num_waiting_req[gpu_idx] += 1
         self.main_available_kv_cache[gpu_idx] -= len(req.input_ids)
         return gpu_idx
 
