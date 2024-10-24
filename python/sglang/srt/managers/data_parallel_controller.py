@@ -313,7 +313,7 @@ class DataParallelController:
             max_ratio = max(ratio)
             indices = [i for i, x in enumerate(ratio) if x == max_ratio]
             gpu_idx = random.choice(indices)
-            # logger.info(f"all waiting{gpu_idx}")
+            logger.info(f"[all waiting]{gpu_idx}")
         else:
             filter_result = [
                 a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
