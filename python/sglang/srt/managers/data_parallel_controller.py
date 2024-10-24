@@ -283,6 +283,10 @@ class DataParallelController:
             self.main_num_running_req = num_reqs_running.copy()
             self.pre_num_running_req = num_reqs_running.copy()
 
+        logger.info(
+            f"[self.main_num_waiting_req]{self.main_num_waiting_req}\t[self.pre_num_waiting_req]{self.pre_num_waiting_req}\t[num_reqs_waiting]{num_reqs_waiting}"
+        )
+        logger.info(self.pre_num_waiting_req != num_reqs_waiting)
         if not self.pre_num_waiting_req:
             self.pre_num_waiting_req = num_reqs_waiting.copy()
         if not self.main_num_waiting_req:
