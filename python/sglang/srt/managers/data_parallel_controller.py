@@ -266,6 +266,9 @@ class DataParallelController:
         if not self.main_available_kv_cache:
             self.main_available_kv_cache = available_mem.copy()
         if self.pre_available_kv_cache != available_mem:
+            logger.info(
+                f"update available because: old{self.pre_available_kv_cache}, new{available_mem}"
+            )
             self.pre_available_kv_cache = available_mem.copy()
             self.main_available_kv_cache = available_mem.copy()
 
@@ -274,6 +277,9 @@ class DataParallelController:
         if not self.main_num_running_req:
             self.main_num_running_req = num_reqs_running.copy()
         if self.pre_num_running_req != num_reqs_running:
+            logger.info(
+                f"update running because: old{self.pre_num_running_req}, new{num_reqs_running}"
+            )
             self.main_num_running_req = num_reqs_running.copy()
             self.pre_num_running_req = num_reqs_running.copy()
 
@@ -282,6 +288,9 @@ class DataParallelController:
         if not self.main_num_waiting_req:
             self.main_num_waiting_req = num_reqs_waiting.copy()
         if self.pre_num_waiting_req != num_reqs_waiting:
+            logger.info(
+                f"update waiting because: old{self.pre_num_waiting_req}, new{num_reqs_waiting}"
+            )
             self.main_num_waiting_req = num_reqs_waiting.copy()
             self.pre_num_waiting_req = num_reqs_waiting.copy()
 
@@ -299,6 +308,7 @@ class DataParallelController:
             max_ratio = max(ratio)
             indices = [i for i, x in enumerate(ratio) if x == max_ratio]
             gpu_idx = random.choice(indices)
+            logger.info(f"all waiting{gpu_idx}")
         else:
             filter_result = [
                 a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
@@ -308,6 +318,7 @@ class DataParallelController:
                 index for index, value in enumerate(filter_result) if value == max_value
             ]
             gpu_idx = random.choice(max_indices)
+            logger.info(f"filter_result{filter_result},gpu_idx={gpu_idx}")
 
         self.main_num_waiting_req[gpu_idx] += 1
         self.main_available_kv_cache[gpu_idx] -= len(req.input_ids)
