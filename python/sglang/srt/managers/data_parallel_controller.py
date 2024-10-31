@@ -225,7 +225,7 @@ class DataParallelController:
                         self.newest_tree_cache[gpu_id] = recv_radix_cache
                 del recv_radix_cache
             t2 = time.time()
-            logger.info(f"[loop_for_recv_tree_cache]time={t2 - t1}")
+            logger.info(f"[loop_for_recv_tree_cache]time={t2 - t1:.8f}")
 
     # 比较两个worker的指标
     def compare_metrics(self, ins1, ins2):
