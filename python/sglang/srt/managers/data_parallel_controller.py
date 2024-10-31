@@ -206,7 +206,7 @@ class DataParallelController:
             t1 = time.time()
             self.recv_tree_cache()
             t2 = time.time()
-            logger.info(f"[recv_tree_cache]time={t2 - t1}")
+            logger.info(f"[loop_for_recv_tree_cache]time={t2 - t1}")
 
     def recv_tree_cache(self):
         while True:
