@@ -39,6 +39,7 @@ from sglang.utils import get_exception_traceback
 
 logger = logging.getLogger(__name__)
 
+import queue
 import random
 import time
 
@@ -207,7 +208,10 @@ class DataParallelController:
     def recv_tree_cache(self):
         while True:
             t1 = time.time()
-            recv_radix_cache = self.controller_info.radix_queue.get_nowait()
+            try:
+                recv_radix_cache = self.controller_info.radix_queue.get_nowait()
+            except queue.Empty:
+                continue
             if recv_radix_cache:
                 # logger.info('[recv_tree_cache] receive new data')
                 gpu_id = recv_radix_cache.gpu_id
