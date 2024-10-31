@@ -205,7 +205,6 @@ class DataParallelController:
         self.cnt = 0
         while True:
             self.recv_tree_cache()
-            self.cnt += 1
 
     def recv_tree_cache(self):
         while True:
@@ -230,6 +229,7 @@ class DataParallelController:
             if self.cnt % 100 == 0:
                 t2 = time.time()
                 logger.info(f"[loop_for_recv_tree_cache]time={t2 - t1:.8f}")
+                self.cnt += 1
 
     # 比较两个worker的指标
     def compare_metrics(self, ins1, ins2):
