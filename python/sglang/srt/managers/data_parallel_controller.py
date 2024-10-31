@@ -203,13 +203,11 @@ class DataParallelController:
 
     def loop_for_recv_tree_cache(self):
         while True:
-            t1 = time.time()
             self.recv_tree_cache()
-            t2 = time.time()
-            logger.info(f"[loop_for_recv_tree_cache]time={t2 - t1}")
 
     def recv_tree_cache(self):
         while True:
+            t1 = time.time()
             try:
                 recv_radix_cache = self.controller_info.radix_queue.get_nowait()
             except queue.Empty:
@@ -226,6 +224,8 @@ class DataParallelController:
                             del self.newest_tree_cache[gpu_id]
                         self.newest_tree_cache[gpu_id] = recv_radix_cache
                 del recv_radix_cache
+            t2 = time.time()
+            logger.info(f"[loop_for_recv_tree_cache]time={t2 - t1}")
 
     # 比较两个worker的指标
     def compare_metrics(self, ins1, ins2):
