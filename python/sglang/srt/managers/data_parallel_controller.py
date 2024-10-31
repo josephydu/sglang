@@ -40,6 +40,7 @@ from sglang.utils import get_exception_traceback
 logger = logging.getLogger(__name__)
 
 import random
+import time
 
 
 # for pre radix scheduler
@@ -205,7 +206,8 @@ class DataParallelController:
 
     def recv_tree_cache(self):
         while True:
-            recv_radix_cache = self.controller_info.radix_queue.get()
+            t1 = time.time()
+            recv_radix_cache = self.controller_info.radix_queue.get_nowait()
             if recv_radix_cache:
                 # logger.info('[recv_tree_cache] receive new data')
                 gpu_id = recv_radix_cache.gpu_id
@@ -218,6 +220,8 @@ class DataParallelController:
                             del self.newest_tree_cache[gpu_id]
                         self.newest_tree_cache[gpu_id] = recv_radix_cache
                 del recv_radix_cache
+            t2 = time.time()
+            logger.info(f"[recv_tree_cache]time={t2 - t1}")
 
     # 比较两个worker的指标
     def compare_metrics(self, ins1, ins2):
