@@ -202,8 +202,10 @@ class DataParallelController:
         return send_to
 
     def loop_for_recv_tree_cache(self):
+        self.cnt = 0
         while True:
             self.recv_tree_cache()
+            self.cnt += 1
 
     def recv_tree_cache(self):
         while True:
@@ -224,6 +226,8 @@ class DataParallelController:
                             del self.newest_tree_cache[gpu_id]
                         self.newest_tree_cache[gpu_id] = recv_radix_cache
                 del recv_radix_cache
+
+            if self.cnt % 100 == 0:
                 t2 = time.time()
                 logger.info(f"[loop_for_recv_tree_cache]time={t2 - t1:.8f}")
 
