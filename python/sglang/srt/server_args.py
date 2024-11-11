@@ -468,7 +468,7 @@ class ServerArgs:
                 "round_robin",
                 "shortest_queue",
                 "resources_aware",
-                "pre_radix",
+                "cache_aware",
             ],
         )
         # Multi-node distributed serving args

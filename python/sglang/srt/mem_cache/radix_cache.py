@@ -20,25 +20,18 @@ The radix tree data structure for managing the KV cache.
 """
 
 import heapq
-import time
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, List, Optional
 
 import torch
+import time
 
 from sglang.srt.mem_cache.base_prefix_cache import BasePrefixCache
 from sglang.srt.mem_cache.memory_pool import BaseTokenToKVPool, ReqToTokenPool
 
 if TYPE_CHECKING:
     from sglang.srt.managers.schedule_batch import Req
-
-
-@dataclass
-class RadixCacheSend:
-    gpu_id: int
-    root_node: TreeNode
-    time: time
 
 
 class TreeNode:

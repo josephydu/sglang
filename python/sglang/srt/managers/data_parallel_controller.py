@@ -15,9 +15,12 @@ limitations under the License.
 
 """A controller that dispatches requests to multiple data parallel workers."""
 
+import random
+import threading
+import time
+
 import logging
 import multiprocessing as mp
-import multiprocessing.connection
 from enum import Enum, auto
 
 import zmq
@@ -28,6 +31,7 @@ from sglang.srt.managers.io_struct import (
     TokenizedGenerateReqInput,
 )
 from sglang.srt.managers.scheduler import run_scheduler_process
+from sglang.srt.mem_cache.radix_cache import TreeNode
 from sglang.srt.server_args import PortArgs, ServerArgs
 from sglang.srt.utils import (
     configure_logger,
@@ -35,37 +39,15 @@ from sglang.srt.utils import (
     kill_parent_process,
     suppress_other_loggers,
 )
+
 from sglang.utils import get_exception_traceback
 
 logger = logging.getLogger(__name__)
 
-import random
-
-
-# for pre radix scheduler
-def _key_match(key0, key1):
-    i = 0
-    for k0, k1 in zip(key0, key1):
-        if k0 != k1:
-            break
-        i += 1
-    return i
-
-
-def get_match_len(node, key, match_length: int) -> int:
-    if len(key) == 0:
-        return match_length
-
-    if key[0] in node.children.keys():
-        child = node.children[key[0]]
-        prefix_len = _key_match(child.key, key)
-        match_length += prefix_len
-        if prefix_len < len(child.key):
-            return match_length
-        else:
-            return get_match_len(child, key[prefix_len:], match_length)
-    else:
-        return match_length
+class RadixCacheSend:
+    gpu_id: int
+    root_node: TreeNode
+    time: time
 
 
 class LoadBalanceMethod(Enum):
@@ -74,7 +56,7 @@ class LoadBalanceMethod(Enum):
     ROUND_ROBIN = auto()
     SHORTEST_QUEUE = auto()
     RESOURCES_AWARE = auto()
-    PRE_RADIX = auto()
+    CACHE_AWARE = auto()
 
     @classmethod
     def from_str(cls, method: str):
@@ -108,13 +90,14 @@ class DataParallelController:
             LoadBalanceMethod.ROUND_ROBIN: self.round_robin_scheduler,
             LoadBalanceMethod.SHORTEST_QUEUE: self.shortest_queue_scheduler,
             LoadBalanceMethod.RESOURCES_AWARE: self.resources_aware_scheduler,
-            LoadBalanceMethod.PRE_RADIX: self.pre_radix_scheduler,
+            LoadBalanceMethod.CACHE_AWARE: self.cache_aware_scheduler,
         }
         self.dispatching = dispatch_lookup[self.load_balance_method]
 
         # For resources aware
         self.dp_size = server_args.dp_size
         self.controller_info = ControllerInfo(server_args.dp_size)
+        
         self.pre_available_kv_cache = []
         self.main_available_kv_cache = []
 
@@ -124,8 +107,8 @@ class DataParallelController:
         self.pre_num_waiting_req = []
         self.main_num_waiting_req = []
 
-        # For pre_radix
-        self.pre_raidx = server_args.load_balance_method == "pre_radix"
+        # For cache_aware
+        self.cache_aware = server_args.load_balance_method == LoadBalanceMethod.CACHE_AWARE
 
         # Start data parallel workers
         base_gpu_id = 0
@@ -141,15 +124,12 @@ class DataParallelController:
             self.workers.append(send_to)
             base_gpu_id += server_args.tp_size
 
-        if self.pre_raidx:
-            import threading
-
+        if self.cache_aware:
             self.newest_tree_cache = {}
-
             self.recv_tree_cache_lock = threading.Lock()
             self.recv_tree_cache_thread = threading.Thread(
                 target=self.loop_for_recv_tree_cache
-            )
+            ).start()
         else:
             self.newest_tree_cache = None
             self.recv_tree_cache_thread = None
@@ -204,20 +184,18 @@ class DataParallelController:
             self.recv_tree_cache()
 
     def recv_tree_cache(self):
-        while True:
-            recv_radix_cache = self.controller_info.radix_queue.get()
-            if recv_radix_cache:
-                # logger.info('[recv_tree_cache] receive new data')
-                gpu_id = recv_radix_cache.gpu_id
-                if (
-                    gpu_id not in self.newest_tree_cache
-                    or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
-                ):
-                    with self.recv_tree_cache_lock:
-                        if gpu_id in self.newest_tree_cache:
-                            del self.newest_tree_cache[gpu_id]
-                        self.newest_tree_cache[gpu_id] = recv_radix_cache
-                del recv_radix_cache
+        recv_radix_cache = self.controller_info.radix_queue.get_nowait()
+        if recv_radix_cache:
+            gpu_id = recv_radix_cache.gpu_id
+            if (
+                gpu_id not in self.newest_tree_cache
+                or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
+            ):
+                with self.recv_tree_cache_lock:
+                    if gpu_id in self.newest_tree_cache:
+                        del self.newest_tree_cache[gpu_id]
+                    self.newest_tree_cache[gpu_id] = recv_radix_cache
+            del recv_radix_cache
 
     def round_robin_scheduler(self, req):
         self.workers[self.round_robin_counter].send_pyobj(req)
@@ -284,7 +262,7 @@ class DataParallelController:
         gpu_idx = self.allocate_gpu(req)
         self.workers[gpu_idx].send_pyobj(req)
 
-    def pre_radix_scheduler(self, req):
+    def cache_aware_scheduler(self, req):
         prefix_lens = [0] * self.dp_size
 
         with self.recv_tree_cache_lock:
@@ -297,6 +275,7 @@ class DataParallelController:
             if max(prefix_lens) <= 100:
                 self.resources_aware_scheduler(req)
             else:
+                
                 gpu_idx = prefix_lens.index(max(prefix_lens))
                 self.workers[gpu_idx].send_pyobj(req)
 
@@ -337,10 +316,34 @@ def run_data_parallel_controller_process(
     try:
         controller = DataParallelController(server_args, port_args)
         pipe_writer.send("ready")
-        if controller.recv_tree_cache_thread:
-            controller.recv_tree_cache_thread.start()
         controller.event_loop()
     except Exception:
         msg = get_exception_traceback()
         logger.error(msg)
         kill_parent_process()
+
+
+# for cache aware scheduler
+def _key_match(key0, key1):
+    i = 0
+    for k0, k1 in zip(key0, key1):
+        if k0 != k1:
+            break
+        i += 1
+    return i
+
+
+def get_match_len(node, key, match_length: int) -> int:
+    if len(key) == 0:
+        return match_length
+
+    if key[0] in node.children.keys():
+        child = node.children[key[0]]
+        prefix_len = _key_match(child.key, key)
+        match_length += prefix_len
+        if prefix_len < len(child.key):
+            return match_length
+        else:
+            return get_match_len(child, key[prefix_len:], match_length)
+    else:
+        return match_length

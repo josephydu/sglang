@@ -62,8 +62,9 @@ from sglang.srt.managers.schedule_policy import (
 )
 from sglang.srt.managers.tp_worker import TpModelWorker
 from sglang.srt.managers.tp_worker_overlap_thread import TpModelWorkerClient
+from sglang.srt.managers.data_parallel_controller import LoadBalanceMethod
 from sglang.srt.mem_cache.chunk_cache import ChunkCache
-from sglang.srt.mem_cache.radix_cache import RadixCache, RadixCacheSend
+from sglang.srt.mem_cache.radix_cache import RadixCache
 from sglang.srt.metrics.metrics_collector import PrometheusMetricsCollector
 from sglang.srt.metrics.metrics_types import Stats
 from sglang.srt.server_args import PortArgs, ServerArgs
@@ -314,23 +315,8 @@ class Scheduler:
             self.controller_info.available_kv_cache[self.gpu_id].value = (
                 self.token_to_kv_pool.available_size()
             )
-            if self.server_args.load_balance_method == "pre_radix":
-                self.pre_radix = True
-                self.change_cnt_lock = threading.Lock()
-                threading.Thread(target=self.loop_for_send_tree_cache).start()
-        else:
-            self.controller_info = None
-
-        # init controller info
-        if controller_info and self.tp_rank == 0:
-            self.controller_info = controller_info
-            self.gpu_id = gpu_id
-            self.controller_info.available_kv_cache[self.gpu_id].value = (
-                self.token_to_kv_pool.available_size()
-            )
-            if self.server_args.load_balance_method == "pre_radix":
-                self.pre_radix = True
-                self.change_cnt_lock = threading.Lock()
+            if self.server_args.load_balance_method == LoadBalanceMethod.CACHE_AWARE:
+                self.cache_aware = True
                 threading.Thread(target=self.loop_for_send_tree_cache).start()
         else:
             self.controller_info = None
@@ -422,7 +408,7 @@ class Scheduler:
             time.sleep(1)
 
     def send_tree_cache_to_queue(self):
-        if self.pre_radix:
+        if self.cache_aware:
             try:
                 node = deepcopy(self.tree_cache.root_node)
                 send_data = RadixCacheSend(
@@ -430,9 +416,7 @@ class Scheduler:
                 )
                 del node
                 self.controller_info.radix_queue.put(send_data)
-                # logger.info("[send_tree_cache_to_queue] has send new data")
             except Exception as e:
-                # logger.info(f"[send_tree_cache_to_queue]error:{e}")
                 return
 
     def recv_requests(self):
@@ -958,17 +942,16 @@ class Scheduler:
 
         # update controller info
         if self.controller_info:
-            with self.controller_info.lock:
-                self.controller_info.available_kv_cache[self.gpu_id].value = (
-                    self.token_to_kv_pool.available_size()
-                    + self.tree_cache.evictable_size()
-                )
-                self.controller_info.running_reqs[self.gpu_id].value = (
-                    len(self.running_batch.reqs) if self.running_batch else 0
-                )
-                self.controller_info.waiting_reqs[self.gpu_id].value = len(
-                    self.waiting_queue
-                )
+            self.controller_info.available_kv_cache[self.gpu_id].value = (
+                self.token_to_kv_pool.available_size()
+                + self.tree_cache.evictable_size()
+            )
+            self.controller_info.running_reqs[self.gpu_id].value = (
+                len(self.running_batch.reqs) if self.running_batch else 0
+            )
+            self.controller_info.waiting_reqs[self.gpu_id].value = len(
+                self.waiting_queue
+            )
 
     def process_batch_result_prefill(self, batch: ScheduleBatch, result):
 

@@ -366,9 +366,8 @@ class ControllerInfo:
         self.available_kv_cache = []
         self.running_reqs = []
         self.waiting_reqs = []
-        self.lock = multiprocessing.Lock()
 
-        # For pre radix
+        # For cache aware
         self.radix_queue = multiprocessing.Queue()
 
         for i in range(dp_size):
