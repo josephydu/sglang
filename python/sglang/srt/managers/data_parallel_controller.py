@@ -310,6 +310,21 @@ class DataParallelController:
             self.main_num_waiting_req = num_reqs_waiting.copy()
             self.pre_num_waiting_req = num_reqs_waiting.copy()
 
+    def update_memory(self):
+        available_mem = [k.value for k in self.controller_info.available_kv_cache]
+        
+        if not self.pre_available_kv_cache:
+            self.pre_available_kv_cache = available_mem.copy()
+        if not self.main_available_kv_cache:
+            self.main_available_kv_cache = available_mem.copy()
+        if self.pre_available_kv_cache != available_mem:
+            # logger.info(
+            # f"update available because: old{self.pre_available_kv_cache}, new{available_mem}"
+            # )
+            self.pre_available_kv_cache = available_mem.copy()
+            self.main_available_kv_cache = available_mem.copy()
+        
+
     def allocate_gpu(self, req):
         # logger.info(f"[allocate_gpu]{self.main_num_waiting_req}")
         all_waiting = min(self.main_num_waiting_req) > 0
@@ -348,6 +363,7 @@ class DataParallelController:
 
     def pre_radix_scheduler(self, req):
         prefix_lens = [0] * self.dp_size
+        req_lens = [len(req.input_ids)] * self.dp_size
 
         with self.recv_tree_cache_lock:
             for gpu_id, radix_cache in self.newest_tree_cache.items():
@@ -359,7 +375,12 @@ class DataParallelController:
             if max(prefix_lens) <= 100:
                 self.resources_aware_scheduler(req)
             else:
-                gpu_idx = prefix_lens.index(max(prefix_lens))
+                self.update_memory()
+                # find target max
+                occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+                
+                forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(self.main_available_kv_cache, occipuied_lens)]
+                gpu_idx = prefix_lens.index(max(forward_mems))
                 self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
