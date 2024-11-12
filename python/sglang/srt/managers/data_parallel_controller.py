@@ -365,10 +365,10 @@ class DataParallelController:
         prefix_lens = [0] * self.dp_size
         req_lens = [len(req.input_ids)] * self.dp_size
 
-        with self.recv_tree_cache_lock:
-            for gpu_id, radix_cache in self.newest_tree_cache.items():
-                pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
-                prefix_lens[gpu_id] = pre_len
+        # with self.recv_tree_cache_lock:
+        for gpu_id, radix_cache in self.newest_tree_cache.items():
+            pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
+            prefix_lens[gpu_id] = pre_len
 
         # NOTE: 100 is used to reduce the influence of random input
         # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
