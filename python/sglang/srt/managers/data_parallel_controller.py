@@ -379,9 +379,13 @@ class DataParallelController:
                 # find target max
                 occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
                 
-                forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(self.main_available_kv_cache, occipuied_lens)]
-                gpu_idx = forward_mems.index(max(forward_mems))
-                self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - req_lens[gpu_idx]
+                # forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(self.main_available_kv_cache, occipuied_lens)]
+                # gpu_idx = forward_mems.index(max(forward_mems))
+                # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+
+                gpu_idx = prefix_lens.index(max(prefix_lens))
+                self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+                
                 self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
