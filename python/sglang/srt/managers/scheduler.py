@@ -539,6 +539,7 @@ class Scheduler:
             exit(1) if crash_on_warning else None
 
     def get_next_batch_to_run(self):
+        logger.info(f"[get_next_batch_to_run].....")
         # Merge the prefill batch into the running batch
         if (
             self.last_batch
@@ -579,6 +580,7 @@ class Scheduler:
         return self.running_batch
 
     def get_new_batch_prefill(self) -> Optional[ScheduleBatch]:
+        logger.info(f"[get_new_batch_prefill].....")
         # Handle the cases where prefill is not allowed
         if (
             self.batch_is_full or len(self.waiting_queue) == 0
