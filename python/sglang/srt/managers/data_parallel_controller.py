@@ -377,8 +377,6 @@ class DataParallelController:
             # self.resources_aware_scheduler(req)
             occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
             gpu_idx = random.randint(0, self.dp_size)
-            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
-            self.workers[gpu_idx].send_pyobj(req)
         else:
             occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
             # find target max
@@ -389,12 +387,8 @@ class DataParallelController:
             logger.info(f'[forward_mems]{forward_mems}')
             gpu_idx = forward_mems.index(max(forward_mems))
             logger.info(f'[gpu_idx]{gpu_idx}')
-            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
-
-        # gpu_idx = prefix_lens.index(max(prefix_lens))
-        # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
-        
-            self.workers[gpu_idx].send_pyobj(req)
+        self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+        self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
         raise NotImplementedError()
