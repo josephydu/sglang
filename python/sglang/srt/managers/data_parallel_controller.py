@@ -375,20 +375,32 @@ class DataParallelController:
             if max(prefix_lens) <= 100:
                 self.resources_aware_scheduler(req)
             else:
-                self.update_memory()
+                self.update_memory_and_requests()
+                
+                
+            all_waiting = min(self.main_num_waiting_req) > 0
+            no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+            if all_waiting:
+                ratio = [
+                    run / wait
+                    for run, wait in zip(
+                        self.main_num_running_req, self.main_num_waiting_req
+                    )
+                ]
+                max_ratio = max(ratio)
+                indices = [i for i, x in enumerate(ratio) if x == max_ratio]
+                gpu_idx = random.choice(indices)
+            else:
+                filter_result = [
+                    a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
+                ]
                 # find target max
                 occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
                 
-                forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(self.main_available_kv_cache, occipuied_lens)]
-                # logger.info(f'[req_len]{req_lens}')
-                # logger.info(f'[prefix_lens]{prefix_lens}')
-                # logger.info(f'[occipuied_lens]{occipuied_lens}')
-                # logger.info(f'[main_available_kv_cache]{self.main_available_kv_cache}')
-                # logger.info(f'[forward_mems]{forward_mems}')
+                forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(filter_result, occipuied_lens)]
                 gpu_idx = forward_mems.index(max(forward_mems))
-                # logger.info(f'[gpu_idx]{gpu_idx}')
                 self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
-                self.workers[gpu_idx].send_pyobj(req)
+            self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
         raise NotImplementedError()
