@@ -292,10 +292,10 @@ class Scheduler:
 
         while True:
             recv_reqs = self.recv_requests()
-            if recv_reqs:
+            # if recv_reqs:
                 # logger.info(f"[gpu={self.gpu_id}]1")
             self.process_input_requests(recv_reqs)
-            if recv_reqs:
+            # if recv_reqs:
                 # logger.info(f"[gpu={self.gpu_id}]2")
 
             batch = self.get_next_batch_to_run()
