@@ -292,7 +292,7 @@ class Scheduler:
 
         while True:
             recv_reqs = self.recv_requests()
-            if recv_reqs:
+            # if recv_reqs:
                 
                 # logger.info("1")
             self.process_input_requests(recv_reqs)
