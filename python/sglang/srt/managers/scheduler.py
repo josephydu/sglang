@@ -291,16 +291,17 @@ class Scheduler:
         self.last_batch = None
 
         while True:
-            logger.info("1")
             recv_reqs = self.recv_requests()
-            logger.info("2")
+            if recv_reqs:
+                
+                # logger.info("1")
             self.process_input_requests(recv_reqs)
-            logger.info("3")
+            # logger.info("3")
 
             batch = self.get_next_batch_to_run()
-            logger.info("4")
 
             if batch:
+                # logger.info("2")
                 result = self.run_batch(batch)
                 self.process_batch_result(batch, result)
 
@@ -318,7 +319,7 @@ class Scheduler:
                 self.check_memory()
                 self.new_token_ratio = global_config.init_new_token_ratio
 
-            logger.info("5")
+            # logger.info("5")
             self.last_batch = batch
 
     @torch.inference_mode()
