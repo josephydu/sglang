@@ -292,16 +292,17 @@ class Scheduler:
 
         while True:
             recv_reqs = self.recv_requests()
-            # if recv_reqs:
-                
-                # logger.info("1")
+            if recv_reqs and self.gpu_id == 0:
+                logger.info("1")
             self.process_input_requests(recv_reqs)
-            # logger.info("3")
+            if recv_reqs and self.gpu_id == 0:
+                logger.info("2")
 
             batch = self.get_next_batch_to_run()
 
             if batch:
-                # logger.info("2")
+                if batch and self.gpu_id == 0:
+                    logger.info("3")
                 result = self.run_batch(batch)
                 self.process_batch_result(batch, result)
 
