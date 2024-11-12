@@ -291,10 +291,14 @@ class Scheduler:
         self.last_batch = None
 
         while True:
+            logger.info("1")
             recv_reqs = self.recv_requests()
+            logger.info("2")
             self.process_input_requests(recv_reqs)
+            logger.info("3")
 
             batch = self.get_next_batch_to_run()
+            logger.info("4")
 
             if batch:
                 result = self.run_batch(batch)
@@ -314,6 +318,7 @@ class Scheduler:
                 self.check_memory()
                 self.new_token_ratio = global_config.init_new_token_ratio
 
+            logger.info("5")
             self.last_batch = batch
 
     @torch.inference_mode()
@@ -758,7 +763,6 @@ class Scheduler:
     def run_batch(self, batch: ScheduleBatch):
         """Run a batch."""
         if self.is_generation:
-            logger.info("1")
             if batch.forward_mode.is_decode() or batch.extend_num_tokens != 0:
                 model_worker_batch = batch.get_model_worker_batch()
                 logits_output, next_token_ids = self.tp_worker.forward_batch_generation(
@@ -772,11 +776,8 @@ class Scheduler:
                     )
                 else:
                     next_token_ids = torch.full((batch.batch_size(),), 0)
-            logger.info("2")
             batch.output_ids = next_token_ids
-            logger.info("3")
             ret = logits_output, next_token_ids, model_worker_batch.bid
-            logger.info("4")
         else:  # embedding or reward model
             assert batch.extend_num_tokens != 0
             model_worker_batch = batch.get_model_worker_batch()
