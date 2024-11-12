@@ -382,11 +382,11 @@ class DataParallelController:
             no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
             if all_waiting:
                 # method1: just find max match
-                gpu_idx = prefix_lens.index(max(prefix_lens))
+                # gpu_idx = prefix_lens.index(max(prefix_lens))
                 
                 # method2: take waiting into consideration, waitting less, match more is good
-                # ratio = [match / wait for match, wait in zip(prefix_lens, self.main_num_waiting_req)]
-                # gpu_idx = ratio.index(max(ratio))
+                ratio = [match / wait for match, wait in zip(prefix_lens, self.main_num_waiting_req)]
+                gpu_idx = ratio.index(max(ratio))
             else:
                 filter_result = [
                     a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
