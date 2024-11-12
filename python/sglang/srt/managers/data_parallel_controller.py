@@ -380,13 +380,13 @@ class DataParallelController:
                 occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
                 
                 forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(self.main_available_kv_cache, occipuied_lens)]
-                logger.info(f'[req_len]{req_lens}')
-                logger.info(f'[prefix_lens]{prefix_lens}')
-                logger.info(f'[occipuied_lens]{occipuied_lens}')
-                logger.info(f'[main_available_kv_cache]{self.main_available_kv_cache}')
-                logger.info(f'[forward_mems]{forward_mems}')
+                # logger.info(f'[req_len]{req_lens}')
+                # logger.info(f'[prefix_lens]{prefix_lens}')
+                # logger.info(f'[occipuied_lens]{occipuied_lens}')
+                # logger.info(f'[main_available_kv_cache]{self.main_available_kv_cache}')
+                # logger.info(f'[forward_mems]{forward_mems}')
                 gpu_idx = forward_mems.index(max(forward_mems))
-                logger.info(f'[gpu_idx]{gpu_idx}')
+                # logger.info(f'[gpu_idx]{gpu_idx}')
                 self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
                 self.workers[gpu_idx].send_pyobj(req)
 
