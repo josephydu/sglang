@@ -378,25 +378,25 @@ class DataParallelController:
                 self.update_memory_and_requests()
                 
                 
-            all_waiting = min(self.main_num_waiting_req) > 0
-            no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
-            if all_waiting:
-                # method1: just find max match
-                # gpu_idx = prefix_lens.index(max(prefix_lens))
-                
-                # method2: take waiting into consideration, waitting less, match more is good
-                ratio = [match / wait for match, wait in zip(prefix_lens, self.main_num_waiting_req)]
-                gpu_idx = ratio.index(max(ratio))
-            else:
-                filter_result = [
-                    a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
-                ]
-                # find target max
-                occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
-                
-                forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(filter_result, occipuied_lens)]
-                gpu_idx = forward_mems.index(max(forward_mems))
-                self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+                all_waiting = min(self.main_num_waiting_req) > 0
+                no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+                if all_waiting:
+                    # method1: just find max match
+                    gpu_idx = prefix_lens.index(max(prefix_lens))
+                    
+                    # method2: take waiting into consideration, waitting less, match more is good
+                    # ratio = [match / wait for match, wait in zip(prefix_lens, self.main_num_waiting_req)]
+                    # gpu_idx = ratio.index(max(ratio))
+                else:
+                    filter_result = [
+                        a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
+                    ]
+                    # find target max
+                    occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+                    
+                    forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(filter_result, occipuied_lens)]
+                    gpu_idx = forward_mems.index(max(forward_mems))
+                    self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
