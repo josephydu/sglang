@@ -362,37 +362,38 @@ class DataParallelController:
         self.workers[gpu_idx].send_pyobj(req)
 
     def pre_radix_scheduler(self, req):
-        prefix_lens = [0] * self.dp_size
-        req_lens = [len(req.input_ids)] * self.dp_size
+        gpu_idx = random.randint(0,3)
+        # prefix_lens = [0] * self.dp_size
+        # req_lens = [len(req.input_ids)] * self.dp_size
 
-        with self.recv_tree_cache_lock:
-            for gpu_id, radix_cache in self.newest_tree_cache.items():
-                pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
-                prefix_lens[gpu_id] = pre_len
+        # with self.recv_tree_cache_lock:
+        #     for gpu_id, radix_cache in self.newest_tree_cache.items():
+        #         pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
+        #         prefix_lens[gpu_id] = pre_len
 
-        # NOTE: 100 is used to reduce the influence of random input
-        # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
-        if max(prefix_lens) <= 100:
-            self.resources_aware_scheduler(req)
-            # gpu_idx = random.randint(0, self.dp_size)
-            # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
-        else:
-            self.update_memory()
-            # find target max
-            occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
-            logger.info(f'[req_lens]{req_lens}')
-            logger.info(f'[prefix_lens]{prefix_lens}')
-            logger.info(f'[occipuied_lens]{occipuied_lens}')
-            forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(self.main_available_kv_cache, occipuied_lens)]
-            logger.info(f'[forward_mems]{forward_mems}')
-            gpu_idx = forward_mems.index(max(forward_mems))
-            logger.info(f'[gpu_idx]{gpu_idx}')
-            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+        # # NOTE: 100 is used to reduce the influence of random input
+        # # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
+        # if max(prefix_lens) <= 100:
+        #     self.resources_aware_scheduler(req)
+        #     # gpu_idx = random.randint(0, self.dp_size)
+        #     # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+        # else:
+        #     self.update_memory()
+        #     # find target max
+        #     occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+        #     logger.info(f'[req_lens]{req_lens}')
+        #     logger.info(f'[prefix_lens]{prefix_lens}')
+        #     logger.info(f'[occipuied_lens]{occipuied_lens}')
+        #     forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(self.main_available_kv_cache, occipuied_lens)]
+        #     logger.info(f'[forward_mems]{forward_mems}')
+        #     gpu_idx = forward_mems.index(max(forward_mems))
+        #     logger.info(f'[gpu_idx]{gpu_idx}')
+        #     self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
 
         # gpu_idx = prefix_lens.index(max(prefix_lens))
         # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
         
-            self.workers[gpu_idx].send_pyobj(req)
+        self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
         raise NotImplementedError()
