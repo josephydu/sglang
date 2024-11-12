@@ -156,6 +156,8 @@ class DataParallelController:
         else:
             self.newest_tree_cache = None
             self.recv_tree_cache_thread = None
+            
+        self.loop_time = 0
 
     def launch_tensor_parallel_group(
         self,
@@ -204,11 +206,13 @@ class DataParallelController:
     def loop_for_recv_tree_cache(self):
         # self.cnt = 0
         while True:
+            t1 = time.time()
             self.recv_tree_cache()
+            t2 = time.time()
+            self.loop_time += (t2 - t1)
 
     def recv_tree_cache(self):
         while True:
-            # t1 = time.time()
             try:
                 recv_radix_cache = self.controller_info.radix_queue.get_nowait()
             except queue.Empty:
@@ -385,6 +389,7 @@ class DataParallelController:
             logger.info(f'[forward_mems]{forward_mems}')
             gpu_idx = forward_mems.index(max(forward_mems))
             logger.info(f'[gpu_idx]{gpu_idx}')
+            logger.info(f'[loop_time]{self.loop_time}')
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
 
             # gpu_idx = prefix_lens.index(max(prefix_lens))
