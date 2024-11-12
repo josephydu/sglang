@@ -322,7 +322,7 @@ class Scheduler:
                 self.check_memory()
                 self.new_token_ratio = global_config.init_new_token_ratio
 
-                logger.info(f"[gpu={self.gpu_id}]6-2")
+                # logger.info(f"[gpu={self.gpu_id}]6-2")
             self.last_batch = batch
 
     @torch.inference_mode()
