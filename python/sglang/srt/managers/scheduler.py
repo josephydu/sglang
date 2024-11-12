@@ -292,19 +292,23 @@ class Scheduler:
 
         while True:
             recv_reqs = self.recv_requests()
-            # if recv_reqs and self.gpu_id == 0:
-                # logger.info("1")
+            if recv_reqs and self.gpu_id == 0:
+                logger.info("1")
             self.process_input_requests(recv_reqs)
-            # if recv_reqs and self.gpu_id == 0:/
-                # logger.info("2")
+            if recv_reqs and self.gpu_id == 0:
+                logger.info("2")
 
             batch = self.get_next_batch_to_run()
 
             if batch:
-                # if batch and self.gpu_id == 0:
-                    # logger.info("3")
+                if batch and self.gpu_id == 0:
+                    logger.info("3")
                 result = self.run_batch(batch)
+                if batch and self.gpu_id == 0:
+                    logger.info("4")
                 self.process_batch_result(batch, result)
+                if batch and self.gpu_id == 0:
+                    logger.info("5")
 
                 # Decode multiple steps to reduce the overhead
                 if batch.forward_mode.is_decode():
@@ -316,11 +320,14 @@ class Scheduler:
                             break
                         result = self.run_batch(batch)
                         self.process_batch_result(batch, result)
+                if batch and self.gpu_id == 0:
+                    logger.info("6-1")
             else:
                 self.check_memory()
                 self.new_token_ratio = global_config.init_new_token_ratio
 
-            # logger.info("5")
+                if batch and self.gpu_id == 0:
+                    logger.info("6-2")
             self.last_batch = batch
 
     @torch.inference_mode()
