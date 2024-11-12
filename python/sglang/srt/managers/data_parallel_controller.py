@@ -373,7 +373,9 @@ class DataParallelController:
         # NOTE: 100 is used to reduce the influence of random input
         # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
         if max(prefix_lens) <= 100:
-            self.resources_aware_scheduler(req)
+            # self.resources_aware_scheduler(req)
+            gpu_idx = random.randint(0, self.dp_size)
+            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
         else:
             self.update_memory()
             # find target max
@@ -387,10 +389,10 @@ class DataParallelController:
             logger.info(f'[gpu_idx]{gpu_idx}')
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
 
-            # gpu_idx = prefix_lens.index(max(prefix_lens))
-            # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
-            
-            self.workers[gpu_idx].send_pyobj(req)
+        # gpu_idx = prefix_lens.index(max(prefix_lens))
+        # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+        
+        self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
         raise NotImplementedError()
