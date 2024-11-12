@@ -387,7 +387,10 @@ class DataParallelController:
             logger.info(f'[forward_mems]{forward_mems}')
             gpu_idx = forward_mems.index(max(forward_mems))
             logger.info(f'[gpu_idx]{gpu_idx}')
-        self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+        try:
+            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+        except Exception :
+            pass
         self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
