@@ -369,6 +369,7 @@ class DataParallelController:
             for gpu_id, radix_cache in self.newest_tree_cache.items():
                 pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
                 prefix_lens[gpu_id] = pre_len
+        self.update_memory()
 
         # NOTE: 100 is used to reduce the influence of random input
         # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
@@ -378,7 +379,6 @@ class DataParallelController:
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.workers[gpu_idx].send_pyobj(req)
         else:
-            self.update_memory()
             # find target max
             occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
             logger.info(f'[req_lens]{req_lens}')
