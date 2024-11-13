@@ -363,7 +363,7 @@ class DataParallelController:
     def resources_aware_scheduler(self, req):
         self.update_memory_and_requests()
         gpu_idx = self.allocate_gpu(req)
-        logger.info(f'[resources_aware_scheduler][request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
+        # logger.info(f'[resources_aware_scheduler][request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
         self.workers[gpu_idx].send_pyobj(req)
 
     def pre_radix_scheduler(self, req):
@@ -381,9 +381,9 @@ class DataParallelController:
             self.resources_aware_scheduler(req)
         else:
             
-            logger.info(f'[before update]{self.main_available_kv_cache}')
+            # logger.info(f'[before update]{self.main_available_kv_cache}')
             self.update_memory_and_requests()
-            logger.info(f'[after update]{self.main_available_kv_cache}')
+            # logger.info(f'[after update]{self.main_available_kv_cache}')
             all_waiting = min(self.main_num_waiting_req) > 0
             no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
             if all_waiting:
@@ -393,16 +393,16 @@ class DataParallelController:
                 filter_available = [a * b for a, b in zip(no_waiting, self.main_available_kv_cache)]
                 # find target max
                 occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
-                logger.info(f'[req_lens]{req_lens}')
-                logger.info(f'[prefix_lens]{prefix_lens}')
-                logger.info(f'[occipuied_lens]{occipuied_lens}')
+                # logger.info(f'[req_lens]{req_lens}')
+                # logger.info(f'[prefix_lens]{prefix_lens}')
+                # logger.info(f'[occipuied_lens]{occipuied_lens}')
                 forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(filter_available, occipuied_lens)]
-                logger.info(f'[forward_mems]{forward_mems}')
+                # logger.info(f'[forward_mems]{forward_mems}')
                 gpu_idx = forward_mems.index(max(forward_mems))
-                logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
-                logger.info(f'[before minus]{self.main_available_kv_cache}')
+                # logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
+                # logger.info(f'[before minus]{self.main_available_kv_cache}')
                 self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
-                logger.info(f'[after minus]{self.main_available_kv_cache}\n')
+                # logger.info(f'[after minus]{self.main_available_kv_cache}\n')
                 self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):

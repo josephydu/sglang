@@ -591,7 +591,7 @@ class Scheduler:
         if running_bs >= self.max_running_requests:
             self.batch_is_full = True
             return None
-        logger.info(f"[get_new_batch_prefill].....")
+        # logger.info(f"[get_new_batch_prefill].....")
 
         # Get priority queue
         prefix_computed = self.policy.calc_priority(self.waiting_queue)
