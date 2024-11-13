@@ -377,7 +377,7 @@ class DataParallelController:
 
         # self.main_num_waiting_req[gpu_idx] += 1
         self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
-        self.main_evictable_kv_cache[gpu_idx] = self.main_evictable_kv_cache[gpu_idx] + len(req.input_ids)
+        # self.main_evictable_kv_cache[gpu_idx] = self.main_evictable_kv_cache[gpu_idx] + len(req.input_ids)
         return gpu_idx
 
     def resources_aware_scheduler(self, req):
