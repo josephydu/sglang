@@ -214,7 +214,7 @@ class DataParallelController:
     def recv_tree_cache(self):
         while True:
             try:
-                recv_radix_cache = self.controller_info.radix_queue.get_nowait()
+                recv_radix_cache = self.controller_info.radix_queue.get()
             except queue.Empty:
                 continue
             if recv_radix_cache:
@@ -403,12 +403,12 @@ class DataParallelController:
     def event_loop(self):
         while True:
             while True:
-                logger.info("1")
+                # logger.info("1")
                 try:
                     recv_req = self.recv_from_tokenizer.recv_pyobj(zmq.NOBLOCK)
                 except zmq.ZMQError:
                     break
-                logger.info("2")
+                # logger.info("2")
                 if isinstance(
                     recv_req,
                     (
@@ -422,7 +422,7 @@ class DataParallelController:
                     # Send other control messages to all workers
                     for worker in self.workers:
                         worker.queue.put(recv_req)
-                logger.info("3")
+                # logger.info("3")
 
 
 def run_data_parallel_controller_process(
