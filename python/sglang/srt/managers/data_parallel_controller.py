@@ -350,7 +350,7 @@ class DataParallelController:
             # logger.info(f"filter_result{filter_result},gpu_idx={gpu_idx}")
 
         # self.main_num_waiting_req[gpu_idx] += 1
-        self.main_available_kv_cache[gpu_idx] -= len(req.input_ids)
+        self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids) - req.sampling_params.max_new_tokens * 0.5
         return gpu_idx
 
     def resources_aware_scheduler(self, req):
