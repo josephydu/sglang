@@ -412,14 +412,13 @@ class DataParallelController:
                 self.workers[gpu_idx].send_pyobj(req)
             else:
                 # select no waiting queue, if waitting, the available is meaningless, we set it to zero.
-                # filter_available = [a * b for a, b in zip(no_waiting, self.main_available_kv_cache)]
                 # find target max
                 occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
                 logger.info(f'[req_lens]{req_lens}')
                 logger.info(f'[prefix_lens]{prefix_lens}')
                 logger.info(f'[occipuied_lens]{occipuied_lens}')
                 logger.info(f'[main_available_kv_cache]{self.main_available_kv_cache}')
-                forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(self.main_available_kv_cache, occipuied_lens)]
+                forward_mems = [(availiable - occipuied) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
                 logger.info(f'[forward_mems]{forward_mems}')
                 gpu_idx = forward_mems.index(max(forward_mems))
                 logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
