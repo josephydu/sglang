@@ -363,6 +363,7 @@ class DataParallelController:
     def resources_aware_scheduler(self, req):
         self.update_memory_and_requests()
         gpu_idx = self.allocate_gpu(req)
+        logger.info(f'[resources_aware_scheduler][request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
         self.workers[gpu_idx].send_pyobj(req)
 
     def pre_radix_scheduler(self, req):
