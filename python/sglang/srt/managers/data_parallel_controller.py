@@ -350,7 +350,7 @@ class DataParallelController:
             # logger.info(f"filter_result{filter_result},gpu_idx={gpu_idx}")
 
         # self.main_num_waiting_req[gpu_idx] += 1
-        self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids) - req.sampling_params.max_new_tokens * 0.5
+        self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
         return gpu_idx
 
     def resources_aware_scheduler(self, req):
@@ -396,7 +396,7 @@ class DataParallelController:
                 gpu_idx = forward_mems.index(max(forward_mems))
                 logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
                 # logger.info(f'[before minus]{self.main_available_kv_cache}')
-                self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx] - req.sampling_params.max_new_tokens * 0.5
+                self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
                 # logger.info(f'[after minus]{self.main_available_kv_cache}\n')
                 self.workers[gpu_idx].send_pyobj(req)
 
