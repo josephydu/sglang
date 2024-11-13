@@ -382,14 +382,14 @@ class DataParallelController:
             self.update_memory()
             # find target max
             occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
-            logger.info(f'[req_lens]{req_lens}')
-            logger.info(f'[prefix_lens]{prefix_lens}')
-            logger.info(f'[occipuied_lens]{occipuied_lens}')
+            # logger.info(f'[req_lens]{req_lens}')
+            # logger.info(f'[prefix_lens]{prefix_lens}')
+            # logger.info(f'[occipuied_lens]{occipuied_lens}')
             forward_mems = [(availiable - occipuied) for availiable, occipuied in zip(self.main_available_kv_cache, occipuied_lens)]
-            logger.info(f'[forward_mems]{forward_mems}')
+            # logger.info(f'[forward_mems]{forward_mems}')
             gpu_idx = forward_mems.index(max(forward_mems))
-            logger.info(f'[gpu_idx]{gpu_idx}')
-            logger.info(f'[loop_time]{self.loop_time}')
+            # logger.info(f'[gpu_idx]{gpu_idx}')
+            # logger.info(f'[loop_time]{self.loop_time}')
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
 
             # gpu_idx = prefix_lens.index(max(prefix_lens))
@@ -403,12 +403,12 @@ class DataParallelController:
     def event_loop(self):
         while True:
             while True:
+                logger.info("1")
                 try:
                     recv_req = self.recv_from_tokenizer.recv_pyobj(zmq.NOBLOCK)
                 except zmq.ZMQError:
                     break
-
-                # logger.info(f"[event_loop]{type(recv_req)}")
+                logger.info("2")
                 if isinstance(
                     recv_req,
                     (
@@ -422,6 +422,7 @@ class DataParallelController:
                     # Send other control messages to all workers
                     for worker in self.workers:
                         worker.queue.put(recv_req)
+                logger.info("3")
 
 
 def run_data_parallel_controller_process(
