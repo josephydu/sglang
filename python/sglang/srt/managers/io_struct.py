@@ -360,6 +360,7 @@ class ProfileReq(Enum):
 class ControllerInfo:
     def __init__(self, dp_size):
         self.available_kv_cache = []
+        self.evictable_kv_cache = []
         self.running_reqs = []
         self.waiting_reqs = []
         self.lock = multiprocessing.Lock()
@@ -369,5 +370,6 @@ class ControllerInfo:
 
         for i in range(dp_size):
             self.available_kv_cache.append(Value("i", 0))
+            self.evictable_kv_cache.append(Value("i", 0))
             self.running_reqs.append(Value("i", 0))
             self.waiting_reqs.append(Value("i", 0))

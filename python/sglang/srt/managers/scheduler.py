@@ -276,6 +276,10 @@ class Scheduler:
             self.controller_info.available_kv_cache[self.gpu_id].value = (
                 self.token_to_kv_pool.available_size()
             )
+            
+            self.controller_info.evictable_kv_cache[self.gpu_id].value = (
+                self.tree_cache.evictable_size()
+            )
             if self.server_args.load_balance_method == "pre_radix":
                 self.pre_radix = True
                 import threading
@@ -801,10 +805,8 @@ class Scheduler:
         # update controller info
         if self.controller_info:
             with self.controller_info.lock:
-                self.controller_info.available_kv_cache[self.gpu_id].value = (
-                    self.token_to_kv_pool.available_size()
-                    # + self.tree_cache.evictable_size()
-                )
+                self.controller_info.available_kv_cache[self.gpu_id].value = self.token_to_kv_pool.available_size()
+                self.controller_info.evictable_kv_cache[self.gpu_id].value = self.tree_cache.evictable_size()
                 self.controller_info.running_reqs[self.gpu_id].value = (
                     len(self.running_batch.reqs) if self.running_batch else 0
                 )

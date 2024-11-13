@@ -120,6 +120,9 @@ class DataParallelController:
         self.controller_info = ControllerInfo(server_args.dp_size)
         self.pre_available_kv_cache = []
         self.main_available_kv_cache = []
+        
+        self.pre_evictable_kv_cache = []
+        self.main_evictable_kv_cache = []
 
         self.pre_num_running_req = []
         self.main_num_running_req = []
@@ -266,6 +269,7 @@ class DataParallelController:
         self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
 
     def update_memory_and_requests(self):
+        evictable_mem = [k.value for k in self.controller_info.evictable_kv_cache]
         available_mem = [k.value for k in self.controller_info.available_kv_cache]
         num_reqs_running = [k.value for k in self.controller_info.running_reqs]
         num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
@@ -280,6 +284,16 @@ class DataParallelController:
             # )
             self.pre_available_kv_cache = available_mem.copy()
             self.main_available_kv_cache = available_mem.copy()
+
+
+        if not self.pre_evictable_kv_cache:
+            self.pre_evictable_kv_cache = evictable_mem.copy()
+        if not self.main_evictable_kv_cache:
+            self.main_evictable_kv_cache = evictable_mem.copy()
+        if self.pre_evictable_kv_cache != evictable_mem:
+            self.pre_evictable_kv_cache = evictable_mem.copy()
+            self.main_evictable_kv_cache = evictable_mem.copy()
+
 
         if not self.pre_num_running_req:
             self.pre_num_running_req = num_reqs_running.copy()
@@ -308,6 +322,7 @@ class DataParallelController:
             self.pre_num_waiting_req = num_reqs_waiting.copy()
 
     def update_memory(self):
+        evictable_mem = [k.value for k in self.controller_info.evictable_kv_cache]
         available_mem = [k.value for k in self.controller_info.available_kv_cache]
         
         if not self.pre_available_kv_cache:
@@ -321,6 +336,17 @@ class DataParallelController:
             self.pre_available_kv_cache = available_mem.copy()
             self.main_available_kv_cache = available_mem.copy()
         
+        
+        
+
+        if not self.pre_evictable_kv_cache:
+            self.pre_evictable_kv_cache = evictable_mem.copy()
+        if not self.main_evictable_kv_cache:
+            self.main_evictable_kv_cache = evictable_mem.copy()
+        if self.pre_evictable_kv_cache != evictable_mem:
+            self.pre_evictable_kv_cache = evictable_mem.copy()
+            self.main_evictable_kv_cache = evictable_mem.copy()
+
 
     def allocate_gpu(self, req):
         # logger.info(f"[allocate_gpu]{self.main_num_waiting_req}")
@@ -340,7 +366,7 @@ class DataParallelController:
             logger.info(f"[all waiting]{gpu_idx}")
         else:
             filter_result = [
-                a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
+                a * (b + c) for a, b, c in zip(no_waiting, self.main_available_kv_cache, self.main_evictable_kv_cache)
             ]
             max_value = max(filter_result)
             max_indices = [
@@ -351,6 +377,7 @@ class DataParallelController:
 
         # self.main_num_waiting_req[gpu_idx] += 1
         self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
+        self.main_evictable_kv_cache[gpu_idx] = self.main_evictable_kv_cache[gpu_idx] + len(req.input_ids)
         return gpu_idx
 
     def resources_aware_scheduler(self, req):
@@ -397,6 +424,7 @@ class DataParallelController:
                 logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
                 # logger.info(f'[before minus]{self.main_available_kv_cache}')
                 self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+                self.main_evictable_kv_cache[gpu_idx] = self.main_evictable_kv_cache[gpu_idx] + occipuied_lens[gpu_idx]
                 # logger.info(f'[after minus]{self.main_available_kv_cache}\n')
                 self.workers[gpu_idx].send_pyobj(req)
 
