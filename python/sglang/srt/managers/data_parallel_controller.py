@@ -379,7 +379,10 @@ class DataParallelController:
         if max(prefix_lens) <= 100:
             self.resources_aware_scheduler(req)
         else:
+            
+            logger.info(f'[before update]{self.main_available_kv_cache}')
             self.update_memory_and_requests()
+            logger.info(f'[after update]{self.main_available_kv_cache}')
             all_waiting = min(self.main_num_waiting_req) > 0
             no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
             if all_waiting:
@@ -396,7 +399,9 @@ class DataParallelController:
                 logger.info(f'[forward_mems]{forward_mems}')
                 gpu_idx = forward_mems.index(max(forward_mems))
                 logger.info(f'[gpu_idx]{gpu_idx}')
+                logger.info(f'[before minus]{self.main_available_kv_cache}')
                 self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+                logger.info(f'[after minus]{self.main_available_kv_cache}')
                 self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
