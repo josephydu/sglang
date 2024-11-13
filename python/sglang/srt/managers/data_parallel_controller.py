@@ -387,7 +387,9 @@ class DataParallelController:
             all_waiting = min(self.main_num_waiting_req) > 0
             no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
             if all_waiting:
-                self.resources_aware_scheduler(req)
+                gpu_idx = self.allocate_gpu(req)
+                # logger.info(f'[resources_aware_scheduler][request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
+                self.workers[gpu_idx].send_pyobj(req)
             else:
                 # select no waiting queue, if waitting, the available is meaningless, we set it to zero.
                 filter_available = [a * b for a, b in zip(no_waiting, self.main_available_kv_cache)]
