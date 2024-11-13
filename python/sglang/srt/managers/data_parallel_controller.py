@@ -206,34 +206,27 @@ class DataParallelController:
     def loop_for_recv_tree_cache(self):
         # self.cnt = 0
         while True:
-            t1 = time.time()
             self.recv_tree_cache()
-            t2 = time.time()
-            self.loop_time += (t2 - t1)
 
     def recv_tree_cache(self):
-        while True:
-            try:
-                recv_radix_cache = self.controller_info.radix_queue.get()
-            except queue.Empty:
-                continue
-            if recv_radix_cache:
-                # logger.info('[recv_tree_cache] receive new data')
-                gpu_id = recv_radix_cache.gpu_id
-                if (
-                    gpu_id not in self.newest_tree_cache
-                    or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
-                ):
-                    with self.recv_tree_cache_lock:
-                        if gpu_id in self.newest_tree_cache:
-                            del self.newest_tree_cache[gpu_id]
-                        self.newest_tree_cache[gpu_id] = recv_radix_cache
-                del recv_radix_cache
+        recv_radix_cache = self.controller_info.radix_queue.get()
+        if recv_radix_cache:
+            # logger.info('[recv_tree_cache] receive new data')
+            gpu_id = recv_radix_cache.gpu_id
+            if (
+                gpu_id not in self.newest_tree_cache
+                or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
+            ):
+                with self.recv_tree_cache_lock:
+                    if gpu_id in self.newest_tree_cache:
+                        del self.newest_tree_cache[gpu_id]
+                    self.newest_tree_cache[gpu_id] = recv_radix_cache
+            del recv_radix_cache
 
-            # if self.cnt % 100 == 0:
-            #     t2 = time.time()
-            #     logger.info(f"[loop_for_recv_tree_cache]time={t2 - t1:.8f}")
-            #     self.cnt += 1
+        # if self.cnt % 100 == 0:
+        #     t2 = time.time()
+        #     logger.info(f"[loop_for_recv_tree_cache]time={t2 - t1:.8f}")
+        #     self.cnt += 1
 
     # 比较两个worker的指标
     def compare_metrics(self, ins1, ins2):
