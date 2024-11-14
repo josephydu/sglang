@@ -267,50 +267,9 @@ class DataParallelController:
     def round_robin_scheduler(self, req):
         self.workers[self.round_robin_counter].send_pyobj(req)
         self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
-
-    # def update_memory_and_requests(self):
-    #     # fix: 只更新不相同的元素
-    #     evictable_mem = [k.value for k in self.controller_info.evictable_kv_cache]
-    #     available_mem = [k.value for k in self.controller_info.available_kv_cache]
-    #     num_reqs_running = [k.value for k in self.controller_info.running_reqs]
-    #     num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
-
-    #     if not self.pre_available_kv_cache:
-    #         self.pre_available_kv_cache = available_mem.copy()
-    #     if not self.main_available_kv_cache:
-    #         self.main_available_kv_cache = available_mem.copy()
-    #     if self.pre_available_kv_cache != available_mem:
-    #         self.pre_available_kv_cache = available_mem.copy()
-    #         self.main_available_kv_cache = available_mem.copy()
-
-
-    #     if not self.pre_evictable_kv_cache:
-    #         self.pre_evictable_kv_cache = evictable_mem.copy()
-    #     if not self.main_evictable_kv_cache:
-    #         self.main_evictable_kv_cache = evictable_mem.copy()
-    #     if self.pre_evictable_kv_cache != evictable_mem:
-    #         self.pre_evictable_kv_cache = evictable_mem.copy()
-    #         self.main_evictable_kv_cache = evictable_mem.copy()
-
-
-    #     if not self.pre_num_running_req:
-    #         self.pre_num_running_req = num_reqs_running.copy()
-    #     if not self.main_num_running_req:
-    #         self.main_num_running_req = num_reqs_running.copy()
-    #     if self.pre_num_running_req != num_reqs_running:
-    #         self.main_num_running_req = num_reqs_running.copy()
-    #         self.pre_num_running_req = num_reqs_running.copy()
-
-    #     if not self.pre_num_waiting_req:
-    #         self.pre_num_waiting_req = num_reqs_waiting.copy()
-    #     if not self.main_num_waiting_req:
-    #         self.main_num_waiting_req = num_reqs_waiting.copy()
-    #     if self.pre_num_waiting_req != num_reqs_waiting:
-    #         self.main_num_waiting_req = num_reqs_waiting.copy()
-    #         self.pre_num_waiting_req = num_reqs_waiting.copy()
     def update_memory_and_requests(self):
         # 从控制器获取最新的内存和请求状态
-        evictable_mem = [k.value for k in self.controller_info.evictable_kv_cache]
+        # evictable_mem = [k.value for k in self.controller_info.evictable_kv_cache]
         available_mem = [k.value for k in self.controller_info.available_kv_cache]
         num_reqs_running = [k.value for k in self.controller_info.running_reqs]
         num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
@@ -331,9 +290,9 @@ class DataParallelController:
                     self.main_available_kv_cache if hasattr(self, 'main_available_kv_cache') else [],
                     available_mem)
 
-        update_cache(self.pre_evictable_kv_cache if hasattr(self, 'pre_evictable_kv_cache') else [],
-                    self.main_evictable_kv_cache if hasattr(self, 'main_evictable_kv_cache') else [],
-                    evictable_mem)
+        # update_cache(self.pre_evictable_kv_cache if hasattr(self, 'pre_evictable_kv_cache') else [],
+        #             self.main_evictable_kv_cache if hasattr(self, 'main_evictable_kv_cache') else [],
+        #             evictable_mem)
 
         update_cache(self.pre_num_running_req if hasattr(self, 'pre_num_running_req') else [],
                     self.main_num_running_req if hasattr(self, 'main_num_running_req') else [],
@@ -342,32 +301,6 @@ class DataParallelController:
         update_cache(self.pre_num_waiting_req if hasattr(self, 'pre_num_waiting_req') else [],
                     self.main_num_waiting_req if hasattr(self, 'main_num_waiting_req') else [],
                     num_reqs_waiting)
-
-    def update_memory(self):
-        evictable_mem = [k.value for k in self.controller_info.evictable_kv_cache]
-        available_mem = [k.value for k in self.controller_info.available_kv_cache]
-        
-        if not self.pre_available_kv_cache:
-            self.pre_available_kv_cache = available_mem.copy()
-        if not self.main_available_kv_cache:
-            self.main_available_kv_cache = available_mem.copy()
-        if self.pre_available_kv_cache != available_mem:
-            # logger.info(
-            # f"update available because: old{self.pre_available_kv_cache}, new{available_mem}"
-            # )
-            self.pre_available_kv_cache = available_mem.copy()
-            self.main_available_kv_cache = available_mem.copy()
-        
-        
-        
-
-        if not self.pre_evictable_kv_cache:
-            self.pre_evictable_kv_cache = evictable_mem.copy()
-        if not self.main_evictable_kv_cache:
-            self.main_evictable_kv_cache = evictable_mem.copy()
-        if self.pre_evictable_kv_cache != evictable_mem:
-            self.pre_evictable_kv_cache = evictable_mem.copy()
-            self.main_evictable_kv_cache = evictable_mem.copy()
 
 
     def allocate_gpu(self, req):
@@ -441,7 +374,7 @@ class DataParallelController:
                 # logger.info(f'[prefix_lens]{prefix_lens}')
                 # logger.info(f'[occipuied_lens]{occipuied_lens}')
                 # logger.info(f'[main_available_kv_cache]{self.main_available_kv_cache}')
-                forward_mems = [(availiable - occipuied - evitable) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait, evitable in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
+                forward_mems = [(availiable - occipuied) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
                 # forward_mems = [(availiable - occipuied - evitable) for availiable, occipuied, evitable in zip(self.main_available_kv_cache, occipuied_lens, self.main_evictable_kv_cache)]
                 # logger.info(f'[forward_mems]{forward_mems}')
 
