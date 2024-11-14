@@ -363,11 +363,12 @@ class DataParallelController:
                 gpu_idx = self.allocate_gpu(req)
                 # logger.info(f'[resources_aware_scheduler][request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
                 self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
+                self.main_num_waiting_req[gpu_idx] += 1
                 self.workers[gpu_idx].send_pyobj(req)
             else:
                 # select no waiting queue, if waitting, the available is meaningless, we set it to zero.
                 # find target max
-                occipuied_lens = [(req_len - prefix_len + int(req.sampling_params.max_new_tokens * 0.5)) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+                occipuied_lens = [(req_len - prefix_len + int(req.sampling_params.max_new_tokens * 0.3)) for req_len, prefix_len in zip(req_lens, prefix_lens)]
                 # logger.info(f'[req_lens]{req_lens}')
                 # logger.info(f'[prefix_lens]{prefix_lens}')
                 # logger.info(f'[occipuied_lens]{occipuied_lens}')
@@ -375,10 +376,10 @@ class DataParallelController:
                 forward_mems = [(availiable - occipuied) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
                 # logger.info(f'[forward_mems]{forward_mems}')
 
-                if max(forward_mems) < 0:
-                    gpu_idx = self.allocate_gpu(req)
-                else:
-                    gpu_idx = forward_mems.index(max(forward_mems))
+                # if max(forward_mems) < 0:
+                    # gpu_idx = self.allocate_gpu(req)
+                # else:
+                gpu_idx = forward_mems.index(max(forward_mems))
                 # logger.info(f'before{self.main_available_kv_cache[gpu_idx]}')
                 self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx] 
                 # logger.info(f'after{self.main_available_kv_cache[gpu_idx]}')
