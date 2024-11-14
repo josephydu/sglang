@@ -427,7 +427,7 @@ class DataParallelController:
             self.update_memory_and_requests()
             # logger.info(f'[after update]{self.main_available_kv_cache}')
             all_waiting = min(self.main_num_waiting_req) > 0
-            # no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+            no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
             if all_waiting:
                 gpu_idx = self.allocate_gpu(req)
                 # logger.info(f'[resources_aware_scheduler][request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
