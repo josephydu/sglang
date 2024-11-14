@@ -268,58 +268,80 @@ class DataParallelController:
         self.workers[self.round_robin_counter].send_pyobj(req)
         self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
 
+    # def update_memory_and_requests(self):
+    #     # fix: 只更新不相同的元素
+    #     evictable_mem = [k.value for k in self.controller_info.evictable_kv_cache]
+    #     available_mem = [k.value for k in self.controller_info.available_kv_cache]
+    #     num_reqs_running = [k.value for k in self.controller_info.running_reqs]
+    #     num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
+
+    #     if not self.pre_available_kv_cache:
+    #         self.pre_available_kv_cache = available_mem.copy()
+    #     if not self.main_available_kv_cache:
+    #         self.main_available_kv_cache = available_mem.copy()
+    #     if self.pre_available_kv_cache != available_mem:
+    #         self.pre_available_kv_cache = available_mem.copy()
+    #         self.main_available_kv_cache = available_mem.copy()
+
+
+    #     if not self.pre_evictable_kv_cache:
+    #         self.pre_evictable_kv_cache = evictable_mem.copy()
+    #     if not self.main_evictable_kv_cache:
+    #         self.main_evictable_kv_cache = evictable_mem.copy()
+    #     if self.pre_evictable_kv_cache != evictable_mem:
+    #         self.pre_evictable_kv_cache = evictable_mem.copy()
+    #         self.main_evictable_kv_cache = evictable_mem.copy()
+
+
+    #     if not self.pre_num_running_req:
+    #         self.pre_num_running_req = num_reqs_running.copy()
+    #     if not self.main_num_running_req:
+    #         self.main_num_running_req = num_reqs_running.copy()
+    #     if self.pre_num_running_req != num_reqs_running:
+    #         self.main_num_running_req = num_reqs_running.copy()
+    #         self.pre_num_running_req = num_reqs_running.copy()
+
+    #     if not self.pre_num_waiting_req:
+    #         self.pre_num_waiting_req = num_reqs_waiting.copy()
+    #     if not self.main_num_waiting_req:
+    #         self.main_num_waiting_req = num_reqs_waiting.copy()
+    #     if self.pre_num_waiting_req != num_reqs_waiting:
+    #         self.main_num_waiting_req = num_reqs_waiting.copy()
+    #         self.pre_num_waiting_req = num_reqs_waiting.copy()
     def update_memory_and_requests(self):
+        # 从控制器获取最新的内存和请求状态
         evictable_mem = [k.value for k in self.controller_info.evictable_kv_cache]
         available_mem = [k.value for k in self.controller_info.available_kv_cache]
         num_reqs_running = [k.value for k in self.controller_info.running_reqs]
         num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
 
-        if not self.pre_available_kv_cache:
-            self.pre_available_kv_cache = available_mem.copy()
-        if not self.main_available_kv_cache:
-            self.main_available_kv_cache = available_mem.copy()
-        if self.pre_available_kv_cache != available_mem:
-            # logger.info(
-            # f"update available because: old{self.pre_available_kv_cache}, new{available_mem}"
-            # )
-            self.pre_available_kv_cache = available_mem.copy()
-            self.main_available_kv_cache = available_mem.copy()
+        # 初始化或更新缓存
+        def update_cache(pre_cache, main_cache, new_data):
+            if not pre_cache:
+                pre_cache.extend(new_data)
+                main_cache.extend(new_data)
+            else:
+                for i, (pre, new) in enumerate(zip(pre_cache, new_data)):
+                    if pre != new:
+                        pre_cache[i] = new
+                        main_cache[i] = new
 
+        # 更新各种缓存
+        update_cache(self.pre_available_kv_cache if hasattr(self, 'pre_available_kv_cache') else [],
+                    self.main_available_kv_cache if hasattr(self, 'main_available_kv_cache') else [],
+                    available_mem)
 
-        if not self.pre_evictable_kv_cache:
-            self.pre_evictable_kv_cache = evictable_mem.copy()
-        if not self.main_evictable_kv_cache:
-            self.main_evictable_kv_cache = evictable_mem.copy()
-        if self.pre_evictable_kv_cache != evictable_mem:
-            self.pre_evictable_kv_cache = evictable_mem.copy()
-            self.main_evictable_kv_cache = evictable_mem.copy()
+        update_cache(self.pre_evictable_kv_cache if hasattr(self, 'pre_evictable_kv_cache') else [],
+                    self.main_evictable_kv_cache if hasattr(self, 'main_evictable_kv_cache') else [],
+                    evictable_mem)
 
+        update_cache(self.pre_num_running_req if hasattr(self, 'pre_num_running_req') else [],
+                    self.main_num_running_req if hasattr(self, 'main_num_running_req') else [],
+                    num_reqs_running)
 
-        if not self.pre_num_running_req:
-            self.pre_num_running_req = num_reqs_running.copy()
-        if not self.main_num_running_req:
-            self.main_num_running_req = num_reqs_running.copy()
-        if self.pre_num_running_req != num_reqs_running:
-            # logger.info(
-            # f"update running because: old{self.pre_num_running_req}, new{num_reqs_running}"
-            # )
-            self.main_num_running_req = num_reqs_running.copy()
-            self.pre_num_running_req = num_reqs_running.copy()
-
-        # logger.info(
-        # f"[self.main_num_waiting_req]{self.main_num_waiting_req}\t[self.pre_num_waiting_req]{self.pre_num_waiting_req}\t[num_reqs_waiting]{num_reqs_waiting}"
-        # )
-        # logger.info(self.pre_num_waiting_req != num_reqs_waiting)
-        if not self.pre_num_waiting_req:
-            self.pre_num_waiting_req = num_reqs_waiting.copy()
-        if not self.main_num_waiting_req:
-            self.main_num_waiting_req = num_reqs_waiting.copy()
-        if self.pre_num_waiting_req != num_reqs_waiting:
-            # logger.info(
-            # f"update waiting because: old{self.pre_num_waiting_req}, new{num_reqs_waiting}"
-            # )
-            self.main_num_waiting_req = num_reqs_waiting.copy()
-            self.pre_num_waiting_req = num_reqs_waiting.copy()
+        update_cache(self.pre_num_waiting_req if hasattr(self, 'pre_num_waiting_req') else [],
+                    self.main_num_waiting_req if hasattr(self, 'main_num_waiting_req') else [],
+                    num_reqs_waiting)
 
     def update_memory(self):
         evictable_mem = [k.value for k in self.controller_info.evictable_kv_cache]
@@ -425,7 +447,9 @@ class DataParallelController:
                     gpu_idx = self.allocate_gpu(req)
                 else:
                     gpu_idx = forward_mems.index(max(forward_mems))
+                logger.info(f'before{self.main_available_kv_cache[gpu_idx]}')
                 self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+                logger.info(f'after{self.main_available_kv_cache[gpu_idx]}')
                 logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}\n')
                 self.workers[gpu_idx].send_pyobj(req)
 
