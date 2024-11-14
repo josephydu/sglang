@@ -375,7 +375,7 @@ class DataParallelController:
             if max(forward_mems) < 0:
                 max_prefix = max(prefix_lens)
                 max_indices = [
-                    index for index, value in enumerate(max_prefix) if value == max_prefix
+                    index for index, value in enumerate(prefix_lens) if value == max_prefix
                 ]
                 gpu_idx = random.choice(max_indices)
             else:
