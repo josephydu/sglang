@@ -365,7 +365,7 @@ class DataParallelController:
             if all_waiting:
                 self.main_num_waiting_req[gpu_idx] += 1
         else:
-            forward_mems = [(availiable - occipuied - evictbale) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
+            forward_mems = [(availiable - occipuied) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
             gpu_idx = forward_mems.index(max(forward_mems))
             logger.info(f'[before minus]{self.main_available_kv_cache}')
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
