@@ -802,21 +802,6 @@ class Scheduler:
         else:
             self.process_batch_result_prefill(batch, result)
 
-        # update controller info
-        if self.controller_info:
-            logger.info(f'[process_batch_result]update controller info.......')
-            with self.controller_info.lock:
-                logger.info(f'[availale]{self.token_to_kv_pool.available_size() + self.tree_cache.evictable_size()}')
-                logger.info(f'[evitable]{self.tree_cache.evictable_size()}')
-                self.controller_info.available_kv_cache[self.gpu_id].value = (self.token_to_kv_pool.available_size() + self.tree_cache.evictable_size())
-                self.controller_info.evictable_kv_cache[self.gpu_id].value = self.tree_cache.evictable_size()
-                self.controller_info.running_reqs[self.gpu_id].value = (
-                    len(self.running_batch.reqs) if self.running_batch else 0
-                )
-                self.controller_info.waiting_reqs[self.gpu_id].value = len(
-                    self.waiting_queue
-                )
-
     def process_batch_result_prefill(self, batch: ScheduleBatch, result):
         if self.is_generation:
             logits_output, next_token_ids, bid = result
@@ -853,6 +838,19 @@ class Scheduler:
 
                     if req.finished():
                         self.tree_cache.cache_finished_req(req)
+                        
+                        # update controller info
+                        if self.controller_info:
+                            with self.controller_info.lock:
+                                self.controller_info.available_kv_cache[self.gpu_id].value = (self.token_to_kv_pool.available_size() + self.tree_cache.evictable_size())
+                                self.controller_info.evictable_kv_cache[self.gpu_id].value = self.tree_cache.evictable_size()
+                                self.controller_info.running_reqs[self.gpu_id].value = (
+                                    len(self.running_batch.reqs) if self.running_batch else 0
+                                )
+                                self.controller_info.waiting_reqs[self.gpu_id].value = len(
+                                    self.waiting_queue
+                                )
+                        
                     elif not batch.decoding_reqs or req not in batch.decoding_reqs:
                         self.tree_cache.cache_unfinished_req(req)
 
