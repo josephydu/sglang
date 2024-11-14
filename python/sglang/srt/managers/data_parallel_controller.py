@@ -320,6 +320,7 @@ class DataParallelController:
                 index for index, value in enumerate(self.main_num_waiting_req) if value == min_wait
             ]
             gpu_idx = random.choice(min_ids)
+            # gpu_idx = random.choice([i for i in range(self.dp_size)])
         else:
             filter_result = [
                 a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
@@ -360,7 +361,7 @@ class DataParallelController:
         logger.info(f'[after update]{self.main_available_kv_cache}')
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting <= 2 else 0 for waiting in self.main_num_waiting_req]
-        if max(prefix_lens) <= 100 or all_waiting:
+        if max(prefix_lens) <= 100:
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
             
             logger.info(f'[before minus1]{self.main_available_kv_cache}')
