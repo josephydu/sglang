@@ -303,10 +303,8 @@ class DataParallelController:
                     num_reqs_waiting)
 
 
-    def allocate_gpu(self, req):
-        # logger.info(f"[allocate_gpu]{self.main_num_waiting_req}")
-        all_waiting = min(self.main_num_waiting_req) > 0
-        no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+    def allocate_gpu(self, req, all_waiting, no_waiting):
+
 
         if all_waiting:
             ratio = [
@@ -318,7 +316,6 @@ class DataParallelController:
             max_ratio = max(ratio)
             indices = [i for i, x in enumerate(ratio) if x == max_ratio]
             gpu_idx = random.choice(indices)
-            # logger.info(f"[all waiting]{gpu_idx}")
         else:
             filter_result = [
                 a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
@@ -328,15 +325,17 @@ class DataParallelController:
                 index for index, value in enumerate(filter_result) if value == max_value
             ]
             gpu_idx = random.choice(max_indices)
-            # logger.info(f"filter_result{filter_result},gpu_idx={gpu_idx}")
 
         return gpu_idx
 
     def resources_aware_scheduler(self, req):
         self.update_memory_and_requests()
-        gpu_idx = self.allocate_gpu(req)
-        # logger.info(f'[resources_aware_scheduler][request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
+        all_waiting = min(self.main_num_waiting_req) > 0
+        no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+        gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
         self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
+        if all_waiting:
+            self.main_num_waiting_req[gpu_idx] += 1
         self.workers[gpu_idx].send_pyobj(req)
 
     def pre_radix_scheduler(self, req):
@@ -347,44 +346,23 @@ class DataParallelController:
             for gpu_id, radix_cache in self.newest_tree_cache.items():
                 pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
                 prefix_lens[gpu_id] = pre_len
-
         # NOTE: 100 is used to reduce the influence of random input
         # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
-        if max(prefix_lens) <= 100:
-            self.resources_aware_scheduler(req)
-        else:
-            
-            # logger.info(f'[before update]{self.main_available_kv_cache}')
-            self.update_memory_and_requests()
-            # logger.info(f'[after update]{self.main_available_kv_cache}')
-            all_waiting = min(self.main_num_waiting_req) > 0
-            no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+        occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+        self.update_memory_and_requests()
+        all_waiting = min(self.main_num_waiting_req) > 0
+        no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+        if max(prefix_lens) <= 100 or all_waiting:
+            gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
+            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             if all_waiting:
-                gpu_idx = self.allocate_gpu(req)
-                # logger.info(f'[resources_aware_scheduler][request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
-                self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
                 self.main_num_waiting_req[gpu_idx] += 1
-                self.workers[gpu_idx].send_pyobj(req)
-            else:
-                # select no waiting queue, if waitting, the available is meaningless, we set it to zero.
-                # find target max
-                occipuied_lens = [(req_len - prefix_len + int(req.sampling_params.max_new_tokens * 0.3)) for req_len, prefix_len in zip(req_lens, prefix_lens)]
-                # logger.info(f'[req_lens]{req_lens}')
-                # logger.info(f'[prefix_lens]{prefix_lens}')
-                # logger.info(f'[occipuied_lens]{occipuied_lens}')
-                # logger.info(f'[main_available_kv_cache]{self.main_available_kv_cache}')
-                forward_mems = [(availiable - occipuied) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
-                # logger.info(f'[forward_mems]{forward_mems}')
-
-                # if max(forward_mems) < 0:
-                    # gpu_idx = self.allocate_gpu(req)
-                # else:
-                gpu_idx = forward_mems.index(max(forward_mems))
-                # logger.info(f'before{self.main_available_kv_cache[gpu_idx]}')
-                self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx] 
-                # logger.info(f'after{self.main_available_kv_cache[gpu_idx]}')
-                # logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}\n')
-                self.workers[gpu_idx].send_pyobj(req)
+            self.workers[gpu_idx].send_pyobj(req)
+        else:
+            forward_mems = [(availiable - occipuied) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
+            gpu_idx = forward_mems.index(max(forward_mems))
+            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx] 
+            self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
         raise NotImplementedError()
