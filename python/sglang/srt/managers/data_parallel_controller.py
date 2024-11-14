@@ -368,7 +368,9 @@ class DataParallelController:
                 # select no waiting queue, if waitting, the available is meaningless, we set it to zero.
                 # find target max
                 match_ids = [prefix_len if no_wait == 1 else (-1000) for prefix_len, no_wait in zip(prefix_lens, no_waiting)]
-                gpu_idx = prefix_lens.index(max(match_ids))
+                max_match_id = max(match_ids)
+                indices = [i for i, x in enumerate(match_ids) if x == max_match_id]
+                gpu_idx = random.choice(indices)
                 # logger.info(f'[req_lens]{req_lens}')
                 # logger.info(f'[prefix_lens]{prefix_lens}')
                 # logger.info(f'[occipuied_lens]{occipuied_lens}')
