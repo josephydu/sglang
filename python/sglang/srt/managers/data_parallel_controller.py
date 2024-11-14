@@ -360,7 +360,7 @@ class DataParallelController:
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
             
             logger.info(f'[before minus]{self.main_available_kv_cache}')
-            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx] - req.sampling_params.max_new_tokens * 0.5
             logger.info(f'[after minus]{self.main_available_kv_cache}')
             if all_waiting:
                 self.main_num_waiting_req[gpu_idx] += 1
@@ -368,7 +368,7 @@ class DataParallelController:
             forward_mems = [(availiable - occipuied) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
             gpu_idx = forward_mems.index(max(forward_mems))
             logger.info(f'[before minus]{self.main_available_kv_cache}')
-            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx] - req.sampling_params.max_new_tokens * 0.5
             logger.info(f'[after minus]{self.main_available_kv_cache}')
         logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to => [gpu_idx]{gpu_idx}')
         self.workers[gpu_idx].send_pyobj(req)
