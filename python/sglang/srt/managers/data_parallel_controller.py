@@ -427,7 +427,7 @@ class DataParallelController:
             self.update_memory_and_requests()
             # logger.info(f'[after update]{self.main_available_kv_cache}')
             all_waiting = min(self.main_num_waiting_req) > 0
-            no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+            # no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
             if all_waiting:
                 gpu_idx = self.allocate_gpu(req)
                 logger.info(f'[resources_aware_scheduler][request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
@@ -440,7 +440,8 @@ class DataParallelController:
                 logger.info(f'[prefix_lens]{prefix_lens}')
                 logger.info(f'[occipuied_lens]{occipuied_lens}')
                 logger.info(f'[main_available_kv_cache]{self.main_available_kv_cache}')
-                forward_mems = [(availiable - occipuied - evitable) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait, evitable in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
+                # forward_mems = [(availiable - occipuied - evitable) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait, evitable in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
+                forward_mems = [(availiable - occipuied - evitable) for availiable, occipuied, evitable in zip(self.main_available_kv_cache, occipuied_lens, self.main_evictable_kv_cache)]
                 logger.info(f'[forward_mems]{forward_mems}')
 
                 if max(forward_mems) < 0:
