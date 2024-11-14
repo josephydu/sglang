@@ -307,15 +307,19 @@ class DataParallelController:
 
 
         if all_waiting:
-            ratio = [
-                run / wait
-                for run, wait in zip(
-                    self.main_num_running_req, self.main_num_waiting_req
-                )
+            # ratio = [
+            #     run / wait
+            #     for run, wait in zip(
+            #         self.main_num_running_req, self.main_num_waiting_req
+            #     )
+            # ]
+            # max_ratio = max(ratio)
+            # indices = [i for i, x in enumerate(ratio) if x == max_ratio]
+            min_wait = min(self.main_num_waiting_req)
+            min_ids = [
+                index for index, value in enumerate(self.main_num_waiting_req) if value == min_wait
             ]
-            max_ratio = max(ratio)
-            indices = [i for i, x in enumerate(ratio) if x == max_ratio]
-            gpu_idx = random.choice(indices)
+            gpu_idx = random.choice(min_ids)
         else:
             filter_result = [
                 a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
@@ -359,17 +363,17 @@ class DataParallelController:
         if max(prefix_lens) <= 100 or all_waiting:
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
             
-            logger.info(f'[before minus]{self.main_available_kv_cache}')
+            logger.info(f'[before minus1]{self.main_available_kv_cache}')
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx] 
-            logger.info(f'[after minus]{self.main_available_kv_cache}')
+            logger.info(f'[after minus1]{self.main_available_kv_cache}')
             if all_waiting:
                 self.main_num_waiting_req[gpu_idx] += 1
         else:
             forward_mems = [(availiable - occipuied) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
             gpu_idx = forward_mems.index(max(forward_mems))
-            logger.info(f'[before minus]{self.main_available_kv_cache}')
+            logger.info(f'[before minus2]{self.main_available_kv_cache}')
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
-            logger.info(f'[after minus]{self.main_available_kv_cache}')
+            logger.info(f'[after minus2]{self.main_available_kv_cache}')
         logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to => [gpu_idx]{gpu_idx}')
         self.workers[gpu_idx].send_pyobj(req)
 
