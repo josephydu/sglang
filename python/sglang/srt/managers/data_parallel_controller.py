@@ -418,7 +418,7 @@ class DataParallelController:
                 logger.info(f'[prefix_lens]{prefix_lens}')
                 logger.info(f'[occipuied_lens]{occipuied_lens}')
                 logger.info(f'[main_available_kv_cache]{self.main_available_kv_cache}')
-                forward_mems = [(availiable - occipuied) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
+                forward_mems = [(availiable - occipuied - evitable) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait, evitable in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
                 logger.info(f'[forward_mems]{forward_mems}')
 
                 if max(forward_mems) < 0:
