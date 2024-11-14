@@ -269,7 +269,7 @@ class DataParallelController:
         self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
     def update_memory_and_requests(self):
         # 从控制器获取最新的内存和请求状态
-        # evictable_mem = [k.value for k in self.controller_info.evictable_kv_cache]
+        evictable_mem = [k.value for k in self.controller_info.evictable_kv_cache]
         available_mem = [k.value for k in self.controller_info.available_kv_cache]
         num_reqs_running = [k.value for k in self.controller_info.running_reqs]
         num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
@@ -290,9 +290,9 @@ class DataParallelController:
                     self.main_available_kv_cache if hasattr(self, 'main_available_kv_cache') else [],
                     available_mem)
 
-        # update_cache(self.pre_evictable_kv_cache if hasattr(self, 'pre_evictable_kv_cache') else [],
-        #             self.main_evictable_kv_cache if hasattr(self, 'main_evictable_kv_cache') else [],
-        #             evictable_mem)
+        update_cache(self.pre_evictable_kv_cache if hasattr(self, 'pre_evictable_kv_cache') else [],
+                    self.main_evictable_kv_cache if hasattr(self, 'main_evictable_kv_cache') else [],
+                    evictable_mem)
 
         update_cache(self.pre_num_running_req if hasattr(self, 'pre_num_running_req') else [],
                     self.main_num_running_req if hasattr(self, 'main_num_running_req') else [],
@@ -321,7 +321,7 @@ class DataParallelController:
             # logger.info(f"[all waiting]{gpu_idx}")
         else:
             filter_result = [
-                a * (b + c) for a, b, c in zip(no_waiting, self.main_available_kv_cache, self.main_evictable_kv_cache)
+                a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
             ]
             max_value = max(filter_result)
             max_indices = [
@@ -330,14 +330,12 @@ class DataParallelController:
             gpu_idx = random.choice(max_indices)
             # logger.info(f"filter_result{filter_result},gpu_idx={gpu_idx}")
 
-        # self.main_num_waiting_req[gpu_idx] += 1
-        # self.main_evictable_kv_cache[gpu_idx] = self.main_evictable_kv_cache[gpu_idx] + len(req.input_ids)
         return gpu_idx
 
     def resources_aware_scheduler(self, req):
         self.update_memory_and_requests()
         gpu_idx = self.allocate_gpu(req)
-        # logger.info(f'[resources_aware_scheduler][request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
+        logger.info(f'[resources_aware_scheduler][request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
         self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
         self.workers[gpu_idx].send_pyobj(req)
 
@@ -374,8 +372,7 @@ class DataParallelController:
                 # logger.info(f'[prefix_lens]{prefix_lens}')
                 # logger.info(f'[occipuied_lens]{occipuied_lens}')
                 # logger.info(f'[main_available_kv_cache]{self.main_available_kv_cache}')
-                forward_mems = [(availiable - occipuied) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
-                # forward_mems = [(availiable - occipuied - evitable) for availiable, occipuied, evitable in zip(self.main_available_kv_cache, occipuied_lens, self.main_evictable_kv_cache)]
+                forward_mems = [(availiable - occipuied - evictbale) if no_wait == 1 else (-100000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
                 # logger.info(f'[forward_mems]{forward_mems}')
 
                 if max(forward_mems) < 0:
@@ -385,7 +382,7 @@ class DataParallelController:
                 # logger.info(f'before{self.main_available_kv_cache[gpu_idx]}')
                 self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx] - req.sampling_params.max_new_tokens * 0.5
                 # logger.info(f'after{self.main_available_kv_cache[gpu_idx]}')
-                # logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}\n')
+                logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}\n')
                 self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
