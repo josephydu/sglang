@@ -376,7 +376,6 @@ class DataParallelController:
             # logger.info(f"filter_result{filter_result},gpu_idx={gpu_idx}")
 
         # self.main_num_waiting_req[gpu_idx] += 1
-        self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
         # self.main_evictable_kv_cache[gpu_idx] = self.main_evictable_kv_cache[gpu_idx] + len(req.input_ids)
         return gpu_idx
 
@@ -384,6 +383,7 @@ class DataParallelController:
         self.update_memory_and_requests()
         gpu_idx = self.allocate_gpu(req)
         logger.info(f'[resources_aware_scheduler][request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}')
+        self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
         self.workers[gpu_idx].send_pyobj(req)
 
     def pre_radix_scheduler(self, req):
@@ -425,10 +425,7 @@ class DataParallelController:
                     gpu_idx = self.allocate_gpu(req)
                 else:
                     gpu_idx = forward_mems.index(max(forward_mems))
-                    # logger.info(f'[before minus]{self.main_available_kv_cache}')
-                    self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
-                    # self.main_evictable_kv_cache[gpu_idx] = self.main_evictable_kv_cache[gpu_idx] + occipuied_lens[gpu_idx]
-                    # logger.info(f'[after minus]{self.main_available_kv_cache}\n')
+                self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
                 logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to [gpu_idx]{gpu_idx}\n')
                 self.workers[gpu_idx].send_pyobj(req)
 
