@@ -350,7 +350,7 @@ class DataParallelController:
         with self.recv_tree_cache_lock:
             for gpu_id, radix_cache in self.newest_tree_cache.items():
                 pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
-                prefix_lens[gpu_id] = int(pre_len * 1.5)
+                prefix_lens[gpu_id] = int(pre_len * 2.0)
         # NOTE: 100 is used to reduce the influence of random input
         # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
         occipuied_lens = [(req_len - prefix_len + int(req.sampling_params.max_new_tokens * 0.5)) for req_len, prefix_len in zip(req_lens, prefix_lens)]
@@ -361,7 +361,7 @@ class DataParallelController:
         logger.info(f'[after update]{self.main_available_kv_cache}')
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
-        if max(prefix_lens) <= 100 or all_waiting:
+        if max(prefix_lens) <= 200 or all_waiting:
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
             
             logger.info(f'[before minus1]{self.main_available_kv_cache}')
