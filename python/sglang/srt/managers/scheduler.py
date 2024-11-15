@@ -1181,7 +1181,7 @@ def run_scheduler_process(
     tp_rank: int,
     dp_rank: Optional[int],
     pipe_writer,
-    controller_info,
+    controller_info: Optional[ControllerInfo] = None,
 ):
     if dp_rank is None:
         configure_logger(server_args, prefix=f" TP{tp_rank}")
