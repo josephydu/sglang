@@ -372,7 +372,7 @@ class DataParallelController:
         else:
             # forward_mems = [(availiable - occipuied) if no_wait == 1 else (-10000000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
             wait_lens = [wait if wait != 0 else 1 for wait in self.main_num_waiting_req]
-            forward_mems = [int(int((0.5 * match + 0.5 * availiable)) / wait) for availiable, match, wait in zip(self.main_available_kv_cache, prefix_lens, wait_lens)]
+            forward_mems = [int(int((0.8 * match + 0.2 * availiable)) / wait) for availiable, match, wait in zip(self.main_available_kv_cache, prefix_lens, wait_lens)]
             logger.info(f'[forward mems]{forward_mems}')
             if max(forward_mems) < 0:
                 max_prefix = max(prefix_lens)
