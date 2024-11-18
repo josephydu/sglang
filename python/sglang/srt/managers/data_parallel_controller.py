@@ -362,8 +362,9 @@ class DataParallelController:
         # logger.info(f'[after update]{self.main_available_kv_cache}')
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
+        logger.info(f'[occipuied_lens]{occipuied_lens}')
         forward_mems = [(availiable - occipuied) if no_wait == 1 else (-10000000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
-        # logger.info(f'[forward mems]{forward_mems}')
+        logger.info(f'[forward mems]{forward_mems}')
         if max(prefix_lens) <= 100 or all_waiting or max(forward_mems) < 0:
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
             
@@ -373,9 +374,6 @@ class DataParallelController:
             else:
                 self.main_num_running_req[gpu_idx] += 1
         else:
-            # runs = [run if run > 0 else 1 for run in self.main_num_running_req]
-            # pres = [pre if pre > 0 else 0 for pre in prefix_lens]
-            # ratio_values = [(pre / run) * no_wait for run, pre, no_wait in zip(runs, pres, no_waiting)]
             gpu_idx = forward_mems.index(max(forward_mems))
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] += 1
