@@ -374,8 +374,8 @@ class DataParallelController:
                 self.main_num_running_req[gpu_idx] += 1
         else:
             runs = [run if run > 0 else 1 for run in self.main_num_running_req]
-            occipuied = [occ if occ > 0 else 0 for occ in occipuied_lens]
-            ratio_values = [(occ / run) * no_wait for run, occ, no_wait in zip(runs, occipuied, no_waiting)]
+            pres = [pre if pre > 0 else 0 for pre in prefix_lens]
+            ratio_values = [(pre / run) * no_wait for run, pre, no_wait in zip(runs, pres, no_waiting)]
             gpu_idx = ratio_values.index(max(ratio_values))
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] += 1
