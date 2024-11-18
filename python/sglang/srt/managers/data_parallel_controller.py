@@ -367,9 +367,7 @@ class DataParallelController:
         if max(prefix_lens) <= 100 or all_waiting or max(forward_mems) < 0:
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
             
-            logger.info(f'[before minus1]{self.main_available_kv_cache}')
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx] 
-            logger.info(f'[after minus1]{self.main_available_kv_cache}')
             if all_waiting:
                 self.main_num_waiting_req[gpu_idx] += 1
             else:
@@ -377,8 +375,8 @@ class DataParallelController:
         else:
             runs = [run if run > 0 else 1 for run in self.main_num_running_req]
             mems = [mem if mem > 0 else 0 for mem in forward_mems]
-            ratio_values = [(mem / run) for run, mem in zip(runs, mems)]
-            gpu_idx = forward_mems.index(max(ratio_values))
+            ratio_values = [(mem / run) * no_wait for run, mem, no_wait in zip(runs, mems, no_waiting)]
+            gpu_idx = ratio_values.index(max(ratio_values))
             # logger.info(f'[before minus2]{self.main_available_kv_cache}')
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] = self.main_num_running_req[gpu_idx] + 1
