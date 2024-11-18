@@ -370,6 +370,8 @@ class DataParallelController:
             logger.info(f'[after minus1]{self.main_available_kv_cache}')
             if all_waiting:
                 self.main_num_waiting_req[gpu_idx] += 1
+            else:
+                self.main_num_running_req[gpu_idx] += 1
         else:
             forward_mems = [(availiable - occipuied - evictbale) if no_wait == 1 else (-10000000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
             # wait_lens = [wait if wait != 0 else 1 for wait in self.main_num_waiting_req]
@@ -385,6 +387,7 @@ class DataParallelController:
                 gpu_idx = forward_mems.index(max(forward_mems))
             # logger.info(f'[before minus2]{self.main_available_kv_cache}')
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+            self.main_num_running_req[gpu_idx] = self.main_num_running_req[gpu_idx] + 1
             # logger.info(f'[after minus2]{self.main_available_kv_cache}')
         logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to => [gpu_idx]{gpu_idx}')
         self.workers[gpu_idx].send_pyobj(req)
