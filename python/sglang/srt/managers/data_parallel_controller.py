@@ -307,23 +307,24 @@ class DataParallelController:
 
 
         if all_waiting:
-            # ratio = [
-            #     run / wait
-            #     for run, wait in zip(
-            #         self.main_num_running_req, self.main_num_waiting_req
-            #     )
-            # ]
-            # max_ratio = max(ratio)
-            # indices = [i for i, x in enumerate(ratio) if x == max_ratio]
-            min_wait = min(self.main_num_waiting_req)
-            min_ids = [
-                index for index, value in enumerate(self.main_num_waiting_req) if value == min_wait
+            ratio = [
+                run / wait
+                for run, wait in zip(
+                    self.main_num_running_req, self.main_num_waiting_req
+                )
             ]
-            gpu_idx = random.choice(min_ids)
+            max_ratio = max(ratio)
+            indices = [i for i, x in enumerate(ratio) if x == max_ratio]
+            gpu_idx = random.choice(indices)
+            # min_wait = min(self.main_num_waiting_req)
+            # min_ids = [
+                # index for index, value in enumerate(self.main_num_waiting_req) if value == min_wait
+            # ]
+            # gpu_idx = random.choice(min_ids)
             # gpu_idx = random.choice([i for i in range(self.dp_size)])
         else:
             filter_result = [
-                a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
+                a * b for a, b in zip(no_waiting, self.main_num_running_req)
             ]
             max_value = max(filter_result)
             max_indices = [
