@@ -371,7 +371,7 @@ class DataParallelController:
             threshold = min_run + 3
 
             # 使用列表推导式和zip来同时遍历索引和对应的值
-            min_run_indices = [idx for idx, value in enumerate(self.main_available_kv_cache) if value <= threshold]
+            min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
 
             # 找到匹配长度最长的GPU节点
             max_len = max(prefix_lens[idx] for idx in min_run_indices)
