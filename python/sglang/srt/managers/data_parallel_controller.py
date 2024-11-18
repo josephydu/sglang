@@ -365,7 +365,7 @@ class DataParallelController:
             else:
                 self.main_num_running_req[gpu_idx] += 1
         else:
-            forward_mems = [(availiable - occipuied) if no_wait == 1 else (-10000000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
+            forward_mems = [(availiable - occipuied) if no_wait == 1 else (-10000000) for availiable, occipuied, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
             gpu_idx = forward_mems.index(max(forward_mems))
             # pre_ids = [index for index, value in enumerate(prefix_lens) if value == max(prefix_lens)]
             # gpu_idx = random.choice(pre_ids)
