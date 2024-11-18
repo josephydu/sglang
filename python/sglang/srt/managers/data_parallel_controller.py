@@ -319,7 +319,7 @@ class DataParallelController:
             # filter_result = [
                 # a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
             # ]
-            max_value = max(self.main_num_running_req)
+            max_value = min(self.main_num_running_req)
             max_indices = [
                 index for index, value in enumerate(self.main_num_running_req) if value == max_value
             ]
