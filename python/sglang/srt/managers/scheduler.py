@@ -923,9 +923,9 @@ class Scheduler:
                 self.tree_cache.cache_finished_req(req)
                 if self.controller_info:
                     with self.controller_info.lock:
-                        logger.info(f'[req done]=====================')
-                        logger.info(f'[available]{(self.token_to_kv_pool.available_size() + self.tree_cache.evictable_size())}')
-                        logger.info(f'[req done]=====================')
+                        # logger.info(f'[req done]=====================')
+                        # logger.info(f'[available]{(self.token_to_kv_pool.available_size() + self.tree_cache.evictable_size())}')
+                        # logger.info(f'[req done]=====================')
                         self.controller_info.available_kv_cache[self.gpu_id].value = (self.token_to_kv_pool.available_size() + self.tree_cache.evictable_size())
                         self.controller_info.evictable_kv_cache[self.gpu_id].value = self.tree_cache.evictable_size()
                         self.controller_info.running_reqs[self.gpu_id].value = (

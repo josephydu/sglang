@@ -351,9 +351,9 @@ class DataParallelController:
         occipuied_lens = [(req_len - prefix_len + int(req.sampling_params.max_new_tokens * 0.5)) for req_len, prefix_len in zip(req_lens, prefix_lens)]
         # logger.info(f'[occipuied_lens]{occipuied_lens}')
         
-        logger.info(f'[before update]{self.main_num_running_req}')
+        # logger.info(f'[before update]{self.main_num_running_req}')
         self.update_memory_and_requests()
-        logger.info(f'[after update]{self.main_num_running_req}')
+        # logger.info(f'[after update]{self.main_num_running_req}')
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
         if max(prefix_lens) <= 100 or all_waiting:
