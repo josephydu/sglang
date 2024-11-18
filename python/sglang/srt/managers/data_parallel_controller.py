@@ -355,21 +355,21 @@ class DataParallelController:
         # NOTE: 100 is used to reduce the influence of random input
         # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
         occipuied_lens = [(req_len - prefix_len + int(req.sampling_params.max_new_tokens * 0.5)) for req_len, prefix_len in zip(req_lens, prefix_lens)]
-        logger.info(f'[occipuied_lens]{occipuied_lens}')
+        # logger.info(f'[occipuied_lens]{occipuied_lens}')
         
-        logger.info(f'[before update]{self.main_available_kv_cache}')
+        # logger.info(f'[before update]{self.main_available_kv_cache}')
         self.update_memory_and_requests()
-        logger.info(f'[after update]{self.main_available_kv_cache}')
+        # logger.info(f'[after update]{self.main_available_kv_cache}')
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
         forward_mems = [(availiable - occipuied) if no_wait == 1 else (-10000000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
-        logger.info(f'[forward mems]{forward_mems}')
+        # logger.info(f'[forward mems]{forward_mems}')
         if max(prefix_lens) <= 100 or all_waiting or max(forward_mems) < 0:
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
             
-            logger.info(f'[before minus1]{self.main_available_kv_cache}')
+            # logger.info(f'[before minus1]{self.main_available_kv_cache}')
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx] 
-            logger.info(f'[after minus1]{self.main_available_kv_cache}')
+            # logger.info(f'[after minus1]{self.main_available_kv_cache}')
             if all_waiting:
                 self.main_num_waiting_req[gpu_idx] += 1
             else:
