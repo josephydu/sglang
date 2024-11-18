@@ -348,7 +348,7 @@ class DataParallelController:
                 prefix_lens[gpu_id] = int(pre_len)
         # NOTE: 100 is used to reduce the influence of random input
         # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
-        occipuied_lens = [(req_len - prefix_len + int(req.sampling_params.max_new_tokens * 0.5)) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+        occipuied_lens = [(req_len - prefix_len + int(req.sampling_params.max_new_tokens * 0.8)) for req_len, prefix_len in zip(req_lens, prefix_lens)]
         # logger.info(f'[occipuied_lens]{occipuied_lens}')
         
         # logger.info(f'[before update]{self.main_num_running_req}')
@@ -367,10 +367,13 @@ class DataParallelController:
             else:
                 self.main_num_running_req[gpu_idx] += 1
         else:
-            # forward_mems = [(availiable - occipuied) if no_wait == 1 else (-10000000) for availiable, occipuied, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
-            # gpu_idx = forward_mems.index(max(forward_mems))
-            pre_ids = [index for index, value in enumerate(prefix_lens) if value == max(prefix_lens)]
-            gpu_idx = random.choice(pre_ids)
+            max_mem_idx = self.main_available_kv_cache.index(max(self.main_available_kv_cache))
+            min_occipuy_idx = occipuied_lens.index(min(occipuied_lens))
+            
+            forward_mems = [(availiable - occipuied) if no_wait == 1 else (-10000000) for availiable, occipuied, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
+            gpu_idx = forward_mems.index(max(forward_mems))
+            # pre_ids = [index for index, value in enumerate(prefix_lens) if value == max(prefix_lens)]
+            # gpu_idx = random.choice(pre_ids)
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] += 1
         # logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to => [gpu_idx]{gpu_idx}')
