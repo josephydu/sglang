@@ -304,8 +304,6 @@ class DataParallelController:
 
 
     def allocate_gpu(self, req, all_waiting, no_waiting):
-
-
         if all_waiting:
             ratio = [
                 run / wait
@@ -316,12 +314,6 @@ class DataParallelController:
             max_ratio = max(ratio)
             indices = [i for i, x in enumerate(ratio) if x == max_ratio]
             gpu_idx = random.choice(indices)
-            # min_wait = min(self.main_num_waiting_req)
-            # min_ids = [
-                # index for index, value in enumerate(self.main_num_waiting_req) if value == min_wait
-            # ]
-            # gpu_idx = random.choice(min_ids)
-            # gpu_idx = random.choice([i for i in range(self.dp_size)])
         else:
             filter_result = [
                 a * b for a, b in zip(no_waiting, self.main_num_running_req)
@@ -331,6 +323,7 @@ class DataParallelController:
                 index for index, value in enumerate(filter_result) if value == max_value
             ]
             gpu_idx = random.choice(max_indices)
+            logger.info(f'[allocate_gpu filter_result]{filter_result}')
 
         return gpu_idx
 
