@@ -362,7 +362,9 @@ class DataParallelController:
         logger.info(f'[after update]{self.main_available_kv_cache}')
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
-        if max(prefix_lens) <= 100 or all_waiting:
+        forward_mems = [(availiable - occipuied) if no_wait == 1 else (-10000000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
+        logger.info(f'[forward mems]{forward_mems}')
+        if max(prefix_lens) <= 100 or all_waiting or max(forward_mems) < 0:
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
             
             logger.info(f'[before minus1]{self.main_available_kv_cache}')
@@ -373,18 +375,10 @@ class DataParallelController:
             else:
                 self.main_num_running_req[gpu_idx] += 1
         else:
-            forward_mems = [(availiable - occipuied) if no_wait == 1 else (-10000000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
-            # wait_lens = [wait if wait != 0 else 1 for wait in self.main_num_waiting_req]
-            # forward_mems = [int(int((0.3 * match + 0.7 * availiable)) / wait) for availiable, match, wait in zip(self.main_available_kv_cache, prefix_lens, wait_lens)]
-            logger.info(f'[forward mems]{forward_mems}')
-            if max(forward_mems) < 0:
-                max_prefix = max(prefix_lens)
-                max_indices = [
-                    index for index, value in enumerate(prefix_lens) if value == max_prefix
-                ]
-                gpu_idx = random.choice(max_indices)
-            else:
-                gpu_idx = forward_mems.index(max(forward_mems))
+            runs = [run if run > 0 else 1 for run in self.main_num_running_req]
+            mems = [mem if mem > 0 else 0 for mem in forward_mems]
+            ratio_values = [(mem / run) for run, mem in zip(runs, mems)]
+            gpu_idx = forward_mems.index(max(ratio_values))
             # logger.info(f'[before minus2]{self.main_available_kv_cache}')
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] = self.main_num_running_req[gpu_idx] + 1
