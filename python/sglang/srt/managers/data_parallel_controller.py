@@ -378,11 +378,10 @@ class DataParallelController:
             runs = [run if run > 0 else 1 for run in self.main_num_running_req]
             mems = [mem if mem > 0 else 0 for mem in forward_mems]
             ratio_values = [(mem / run) for run, mem in zip(runs, mems)]
+            logger.info(f'[ratio_values]{ratio_values}')
             gpu_idx = forward_mems.index(max(ratio_values))
-            # logger.info(f'[before minus2]{self.main_available_kv_cache}')
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] = self.main_num_running_req[gpu_idx] + 1
-            # logger.info(f'[after minus2]{self.main_available_kv_cache}')
         logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to => [gpu_idx]{gpu_idx}')
         self.workers[gpu_idx].send_pyobj(req)
 
