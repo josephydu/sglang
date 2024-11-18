@@ -367,7 +367,6 @@ class DataParallelController:
             else:
                 self.main_num_running_req[gpu_idx] += 1
         else:
-            gpu_idx = random.choice(gpus_candicate)
             min_run = min(self.main_num_running_req)
             threshold = min_run + 3
 
