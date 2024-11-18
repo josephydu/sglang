@@ -305,13 +305,14 @@ class DataParallelController:
 
     def allocate_gpu(self, req, all_waiting, no_waiting):
         if all_waiting:
-            ratio = [
-                run / wait
-                for run, wait in zip(
-                    self.main_num_running_req, self.main_num_waiting_req
-                )
-            ]
-            max_ratio = max(ratio)
+            # ratio = [
+            #     run / wait
+            #     for run, wait in zip(
+            #         self.main_num_running_req, self.main_num_waiting_req
+            #     )
+            # ]
+            ratio = self.main_num_waiting_req
+            max_ratio = min(ratio)
             indices = [i for i, x in enumerate(ratio) if x == max_ratio]
             gpu_idx = random.choice(indices)
         else:
