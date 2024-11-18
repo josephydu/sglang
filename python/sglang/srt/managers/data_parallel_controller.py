@@ -326,7 +326,7 @@ class DataParallelController:
             filter_result = [
                 a * b for a, b in zip(no_waiting, self.main_num_running_req)
             ]
-            max_value = max(filter_result)
+            max_value = min(filter_result)
             max_indices = [
                 index for index, value in enumerate(filter_result) if value == max_value
             ]
