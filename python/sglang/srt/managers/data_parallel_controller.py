@@ -290,9 +290,9 @@ class DataParallelController:
                     self.main_available_kv_cache if hasattr(self, 'main_available_kv_cache') else [],
                     available_mem)
 
-        update_cache(self.pre_evictable_kv_cache if hasattr(self, 'pre_evictable_kv_cache') else [],
-                    self.main_evictable_kv_cache if hasattr(self, 'main_evictable_kv_cache') else [],
-                    evictable_mem)
+        # update_cache(self.pre_evictable_kv_cache if hasattr(self, 'pre_evictable_kv_cache') else [],
+        #             self.main_evictable_kv_cache if hasattr(self, 'main_evictable_kv_cache') else [],
+        #             evictable_mem)
 
         update_cache(self.pre_num_running_req if hasattr(self, 'pre_num_running_req') else [],
                     self.main_num_running_req if hasattr(self, 'main_num_running_req') else [],
@@ -305,26 +305,26 @@ class DataParallelController:
 
     def allocate_gpu(self, req, all_waiting, no_waiting):
         if all_waiting:
-            # ratio = [
-            #     run / wait
-            #     for run, wait in zip(
-            #         self.main_num_running_req, self.main_num_waiting_req
-            #     )
-            # ]
-            ratio = self.main_num_waiting_req
+            ratio = [
+                run / wait
+                for run, wait in zip(
+                    self.main_num_running_req, self.main_num_waiting_req
+                )
+            ]
+            # ratio = self.main_num_waiting_req
             max_ratio = min(ratio)
             indices = [i for i, x in enumerate(ratio) if x == max_ratio]
             gpu_idx = random.choice(indices)
         else:
-            filter_result = [
-                a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
-            ]
-            max_value = max(filter_result)
+            # filter_result = [
+                # a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
+            # ]
+            max_value = max(self.main_num_running_req)
             max_indices = [
-                index for index, value in enumerate(filter_result) if value == max_value
+                index for index, value in enumerate(self.main_num_running_req) if value == max_value
             ]
             gpu_idx = random.choice(max_indices)
-            logger.info(f'[allocate_gpu filter_result]{filter_result}')
+            # logger.info(f'[allocate_gpu filter_result]{filter_result}')
 
         return gpu_idx
 
@@ -365,10 +365,10 @@ class DataParallelController:
             else:
                 self.main_num_running_req[gpu_idx] += 1
         else:
-            # forward_mems = [(availiable - occipuied) if no_wait == 1 else (-10000000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
-            # gpu_idx = forward_mems.index(max(forward_mems))
-            pre_ids = [index for index, value in enumerate(prefix_lens) if value == max(prefix_lens)]
-            gpu_idx = random.choice(pre_ids)
+            forward_mems = [(availiable - occipuied) if no_wait == 1 else (-10000000) for availiable, occipuied, no_wait, evictbale in zip(self.main_available_kv_cache, occipuied_lens, no_waiting, self.main_evictable_kv_cache)]
+            gpu_idx = forward_mems.index(max(forward_mems))
+            # pre_ids = [index for index, value in enumerate(prefix_lens) if value == max(prefix_lens)]
+            # gpu_idx = random.choice(pre_ids)
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] += 1
         logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to => [gpu_idx]{gpu_idx}')
