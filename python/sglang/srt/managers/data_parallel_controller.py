@@ -360,7 +360,7 @@ class DataParallelController:
         all_waiting = min(self.main_num_waiting_req) > 0
         # no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
         
-        if max(prefix_lens) <= 2000 or all_waiting:
+        if max(prefix_lens) <= 2000 or all_waiting or max(self.main_available_kv_cache) < 0:
             self.resources_aware_scheduler(req)
         else:
             # min_run = min(self.main_num_running_req)
@@ -375,13 +375,11 @@ class DataParallelController:
             # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
             # self.main_num_running_req[gpu_idx] += 1
             # self.workers[gpu_idx].send_pyobj(req)
-            logger.info(f'[self.main_available_kv_cache]{self.main_available_kv_cache}')
             largest_indices = heapq.nlargest(4, range(len(self.main_available_kv_cache)), key=self.main_available_kv_cache.__getitem__)
-            logger.info(f'[largest_indices]{largest_indices}')
             max_len = max(prefix_lens[idx] for idx in largest_indices)
             gpus_candicate = [idx for idx in largest_indices if prefix_lens[idx] == max_len]
             gpu_idx = random.choice(gpus_candicate)
-            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - req_lens[gpu_idx]
+            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
 
