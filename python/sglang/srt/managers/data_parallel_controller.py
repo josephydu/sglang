@@ -360,7 +360,7 @@ class DataParallelController:
         all_waiting = min(self.main_num_waiting_req) > 0
         # no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
         
-        if max(prefix_lens) <= 2000 or all_waiting or max(self.main_available_kv_cache) < 0:
+        if max(prefix_lens) <= 50000 or all_waiting or max(self.main_available_kv_cache) < 0:
             self.resources_aware_scheduler(req)
         else:
             # min_run = min(self.main_num_running_req)
