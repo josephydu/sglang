@@ -374,7 +374,7 @@ class DataParallelController:
             max_mem = max(self.main_available_kv_cache)
             threshold = max_mem - len(req.input_ids)
 
-            max_mem_ids = [idx for idx, value in enumerate(self.main_available_kv_cache) if value <= threshold]
+            max_mem_ids = [idx for idx, value in enumerate(self.main_available_kv_cache) if value >= threshold]
             max_len = max(prefix_lens[idx] for idx in max_mem_ids)
             gpus_candicate = [idx for idx in max_mem_ids if prefix_lens[idx] == max_len]
 
