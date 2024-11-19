@@ -336,11 +336,13 @@ class DataParallelController:
         self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
         if all_waiting:
             self.main_num_waiting_req[gpu_idx] += 1
+        else:
+            self.main_num_running_req[gpu_idx] += 1
         self.workers[gpu_idx].send_pyobj(req)
 
     def pre_radix_scheduler(self, req):
         prefix_lens = [0] * self.dp_size
-        req_lens = [len(req.input_ids)] * self.dp_size
+        # req_lens = [len(req.input_ids)] * self.dp_size
 
         with self.recv_tree_cache_lock:
             for gpu_id, radix_cache in self.newest_tree_cache.items():
@@ -348,41 +350,30 @@ class DataParallelController:
                 prefix_lens[gpu_id] = int(pre_len)
         # NOTE: 100 is used to reduce the influence of random input
         # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
-        occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+        # occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
         # logger.info(f'[occipuied_lens]{occipuied_lens}')
         
         # logger.info(f'[before update]{self.main_num_running_req}')
         self.update_memory_and_requests()
         # logger.info(f'[after update]{self.main_num_running_req}')
         all_waiting = min(self.main_num_waiting_req) > 0
-        no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
+        # no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
         
-        logger.info(f'[max_prefix_lens]{max(prefix_lens)}')
         if max(prefix_lens) <= 2000 or all_waiting:
-            gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
-            
-            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx] 
-            if all_waiting:
-                self.main_num_waiting_req[gpu_idx] += 1
-            else:
-                self.main_num_running_req[gpu_idx] += 1
+            self.resources_aware_scheduler(req)
         else:
             min_run = min(self.main_num_running_req)
-            threshold = min_run + 3
+            threshold = min_run + 10
 
-            # 使用列表推导式和zip来同时遍历索引和对应的值
             min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
 
-            # 找到匹配长度最长的GPU节点
             max_len = max(prefix_lens[idx] for idx in min_run_indices)
             gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
 
-            # 随机选择一个GPU节点
             gpu_idx = random.choice(gpus_candicate)
-            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
             self.main_num_running_req[gpu_idx] += 1
-        # logger.info(f'[request_id]{sum(req.input_ids[:1000])} go to => [gpu_idx]{gpu_idx}')
-        self.workers[gpu_idx].send_pyobj(req)
+            self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
         raise NotImplementedError()
