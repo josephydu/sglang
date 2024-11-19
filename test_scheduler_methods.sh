@@ -13,7 +13,7 @@ echo "====================== $(date) ======================" >> "$LOG_FILE"
 # 定义不同的设置
 declare -A settings
 # settings["resources_aware"]="dp8 resources_aware"
-settings["resources_aware"]="dp8 pre_radix"
+settings["pre_radix"]="dp8 pre_radix"
 settings["round_robin"]="dp8 round_robin"
 
 for random_output_len in 128 256 512 1024 2048 4096; do
