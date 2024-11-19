@@ -19,6 +19,7 @@ import logging
 import multiprocessing as mp
 import multiprocessing.connection
 from enum import Enum, auto
+import heapq
 
 import zmq
 
@@ -342,7 +343,7 @@ class DataParallelController:
 
     def pre_radix_scheduler(self, req):
         prefix_lens = [0] * self.dp_size
-        # req_lens = [len(req.input_ids)] * self.dp_size
+        req_lens = [len(req.input_ids)] * self.dp_size
 
         with self.recv_tree_cache_lock:
             for gpu_id, radix_cache in self.newest_tree_cache.items():
@@ -350,7 +351,7 @@ class DataParallelController:
                 prefix_lens[gpu_id] = int(pre_len)
         # NOTE: 100 is used to reduce the influence of random input
         # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
-        # occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+        occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
         # logger.info(f'[occipuied_lens]{occipuied_lens}')
         
         # logger.info(f'[before update]{self.main_num_running_req}')
@@ -362,16 +363,23 @@ class DataParallelController:
         if max(prefix_lens) <= 2000 or all_waiting:
             self.resources_aware_scheduler(req)
         else:
-            min_run = min(self.main_num_running_req)
-            threshold = min_run + 10
+            # min_run = min(self.main_num_running_req)
+            # threshold = min_run + 5
 
-            min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
+            # min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
 
-            max_len = max(prefix_lens[idx] for idx in min_run_indices)
-            gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
+            # max_len = max(prefix_lens[idx] for idx in min_run_indices)
+            # gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
 
+            # gpu_idx = random.choice(gpus_candicate)
+            # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
+            # self.main_num_running_req[gpu_idx] += 1
+            # self.workers[gpu_idx].send_pyobj(req)
+            largest_indices = heapq.nlargest(4, range(len(self.main_available_kv_cache)), key=self.main_available_kv_cache.__getitem__)
+            max_len = max(prefix_lens[idx] for idx in largest_indices)
+            gpus_candicate = [idx for idx in largest_indices if prefix_lens[idx] == max_len]
             gpu_idx = random.choice(gpus_candicate)
-            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
+            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
 
