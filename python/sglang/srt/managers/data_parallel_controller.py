@@ -398,7 +398,7 @@ class DataParallelController:
             #==================method4 
             max_value = max(prefix_lens)
             max_indices = [
-                index for index, value in enumerate(self.prefix_lens) if value == max_value
+                index for index, value in enumerate(prefix_lens) if value == max_value
             ]
             gpu_idx = random.choice(max_indices)
             
