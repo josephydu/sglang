@@ -398,23 +398,23 @@ class DataParallelController:
             #===============284.957s
         
             
-            #==================method4 
-            # max_value = max(prefix_lens)
-            # max_indices = [
-            #     index for index, value in enumerate(prefix_lens) if value == max_value
-            # ]
-            # gpu_idx = random.choice(max_indices)
-            #===================method4 bad
+            # ==================method4 
+            max_value = max(prefix_lens)
+            max_indices = [
+                index for index, value in enumerate(prefix_lens) if value == max_value
+            ]
+            gpu_idx = random.choice(max_indices)
+            # ===================284.575s
             
             
             #===================method5
-            pre_lens = [pre if no_wait == 1 else 0 for pre, no_wait in zip(prefix_lens, no_waiting)]
-            max_value = max(pre_lens)
-            max_indices = [
-                index for index, value in enumerate(pre_lens) if value == max_value
-            ]
-            gpu_idx = random.choice(max_indices)
-            # #==================
+            # pre_lens = [pre if no_wait == 1 else 0 for pre, no_wait in zip(prefix_lens, no_waiting)]
+            # max_value = max(pre_lens)
+            # max_indices = [
+            #     index for index, value in enumerate(pre_lens) if value == max_value
+            # ]
+            # gpu_idx = random.choice(max_indices)
+            # #==================286.788 999.702
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
