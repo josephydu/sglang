@@ -280,6 +280,9 @@ class Scheduler:
             self.controller_info.evictable_kv_cache[self.gpu_id].value = (
                 self.tree_cache.evictable_size()
             )
+            
+            self.node_last_access_time = self.tree_cache.root_node.last_access_time
+            self.condition = threading.Condition()
             if self.server_args.load_balance_method == "pre_radix":
                 self.pre_radix = True
                 import threading
@@ -357,8 +360,10 @@ class Scheduler:
 
     def loop_for_send_tree_cache(self):
         while True:
-            self.send_tree_cache_to_queue()
-            time.sleep(1)
+            with self.condition:
+                self.condition.wait_for(lambda: self.node_last_access_time != self.tree_cache.root_node.last_access_time)
+                self.send_tree_cache_to_queue()
+                self.node_last_access_time = self.tree_cache.root_node.last_access_time
 
     def send_tree_cache_to_queue(self):
         if self.pre_radix:
