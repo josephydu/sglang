@@ -373,6 +373,15 @@ class DataParallelController:
                 self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
         else:
+            gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
+            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
+            if all_waiting:
+                self.main_num_waiting_req[gpu_idx] += 1
+            else:
+                self.main_num_running_req[gpu_idx] += 1
+            self.workers[gpu_idx].send_pyobj(req)
+            
+            
             #================method1
             # min_run = min(self.main_num_running_req)
             # threshold = min_run + 3
@@ -405,16 +414,16 @@ class DataParallelController:
             
             
             #===================method5
-            pre_lens = [pre if no_wait == 1 else 0 for pre, no_wait in zip(prefix_lens, no_waiting)]
-            max_value = max(pre_lens)
-            max_indices = [
-                index for index, value in enumerate(pre_lens) if value == max_value
-            ]
-            gpu_idx = random.choice(max_indices)
-            #==================
-            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
-            self.main_num_running_req[gpu_idx] += 1
-            self.workers[gpu_idx].send_pyobj(req)
+            # pre_lens = [pre if no_wait == 1 else 0 for pre, no_wait in zip(prefix_lens, no_waiting)]
+            # max_value = max(pre_lens)
+            # max_indices = [
+            #     index for index, value in enumerate(pre_lens) if value == max_value
+            # ]
+            # gpu_idx = random.choice(max_indices)
+            # #==================
+            # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+            # self.main_num_running_req[gpu_idx] += 1
+            # self.workers[gpu_idx].send_pyobj(req)
         self.resources_aware_scheduler(req)
 
     def shortest_queue_scheduler(self, input_requests):
