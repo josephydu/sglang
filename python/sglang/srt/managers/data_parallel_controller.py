@@ -342,27 +342,29 @@ class DataParallelController:
         self.workers[gpu_idx].send_pyobj(req)
 
     def pre_radix_scheduler(self, req):
-        prefix_lens = [0] * self.dp_size
-        req_lens = [len(req.input_ids)] * self.dp_size
+        # prefix_lens = [0] * self.dp_size
+        # req_lens = [len(req.input_ids)] * self.dp_size
 
-        with self.recv_tree_cache_lock:
-            for gpu_id, radix_cache in self.newest_tree_cache.items():
-                pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
-                prefix_lens[gpu_id] = int(pre_len)
+        # with self.recv_tree_cache_lock:
+            # for gpu_id, radix_cache in self.newest_tree_cache.items():
+                # pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
+                # prefix_lens[gpu_id] = int(pre_len)
+
         # NOTE: 100 is used to reduce the influence of random input
         # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
-        occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+        # occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
         # logger.info(f'[occipuied_lens]{occipuied_lens}')
         
         # logger.info(f'[before update]{self.main_num_running_req}')
-        self.update_memory_and_requests()
+        # self.update_memory_and_requests()
         # logger.info(f'[after update]{self.main_num_running_req}')
-        all_waiting = min(self.main_num_waiting_req) > 0
+        # all_waiting = min(self.main_num_waiting_req) > 0
         # no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
         
-        if max(prefix_lens) <= 2000 or all_waiting or max(self.main_available_kv_cache) < 0:
-            self.resources_aware_scheduler(req)
-        else:
+        # cache_hit_rate = [prefix_len / req_len for prefix_len, req_len in zip(prefix_lens, req_lens)]
+        # if max(prefix_lens) <= 2000 or all_waiting or max(self.main_available_kv_cache) < 0 or max(cache_hit_rate) < 0.6:
+            # self.resources_aware_scheduler(req)
+        # else:
             # min_run = min(self.main_num_running_req)
             # threshold = min_run + 5
 
@@ -382,7 +384,7 @@ class DataParallelController:
             # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - req_lens[gpu_idx]
             # self.main_num_running_req[gpu_idx] += 1
             # self.workers[gpu_idx].send_pyobj(req)
-            self.resources_aware_scheduler(req)
+        self.resources_aware_scheduler(req)
 
     def shortest_queue_scheduler(self, input_requests):
         raise NotImplementedError()
