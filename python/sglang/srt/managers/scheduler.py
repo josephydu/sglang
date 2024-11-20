@@ -25,6 +25,8 @@ from collections import deque
 from copy import deepcopy
 from types import SimpleNamespace
 from typing import List, Optional, Union
+import threading
+
 
 import torch
 import zmq
@@ -285,8 +287,6 @@ class Scheduler:
             self.condition = threading.Condition()
             if self.server_args.load_balance_method == "pre_radix":
                 self.pre_radix = True
-                import threading
-
                 self.change_cnt_lock = threading.Lock()
                 threading.Thread(target=self.loop_for_send_tree_cache).start()
         else:
