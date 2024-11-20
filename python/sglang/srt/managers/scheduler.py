@@ -358,7 +358,7 @@ class Scheduler:
     def loop_for_send_tree_cache(self):
         while True:
             self.send_tree_cache_to_queue()
-            time.sleep(0.2)
+            time.sleep(10)
 
     def send_tree_cache_to_queue(self):
         if self.pre_radix:
