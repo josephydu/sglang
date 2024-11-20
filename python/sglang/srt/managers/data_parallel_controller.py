@@ -358,7 +358,7 @@ class DataParallelController:
         # logger.info(f'[occipuied_lens]{occipuied_lens}')
         
         # logger.info(f'[before update]{self.main_num_running_req}')
-        self.update_memory_and_requests()
+        # self.update_memory_and_requests()
         # logger.info(f'[after update]{self.main_num_running_req}')
         all_waiting = min(self.main_num_waiting_req) > 0
         # no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
