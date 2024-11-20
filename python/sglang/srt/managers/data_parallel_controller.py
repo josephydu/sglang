@@ -382,11 +382,18 @@ class DataParallelController:
             # gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
 
             # gpu_idx = random.choice(gpus_candicate)
+            # =====================bad method1  400s+
             
             #=================method2
-            forward_mems = [(mem - occ) if no_wait == 1 else (-1e10) for mem, occ, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
-            gpu_idx = forward_mems.index(max(forward_mems))
+            # forward_mems = [(mem - occ) if no_wait == 1 else (-1e10) for mem, occ, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
+            # gpu_idx = forward_mems.index(max(forward_mems))
 
+            #===============bad method2 400s+
+            
+            
+            #===================method3
+            gpu_idx = prefix_lens.index(max(prefix_lens))  
+            #==================
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
