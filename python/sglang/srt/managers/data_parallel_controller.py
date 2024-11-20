@@ -375,17 +375,17 @@ class DataParallelController:
         else:
             
             #================method1    
-            min_run = min(self.main_num_running_req)
-            threshold = min_run + 3
-            min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
-            max_len = max(prefix_lens[idx] for idx in min_run_indices)
-            gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
-            gpu_idx = random.choice(gpus_candicate)
-            # =====================282.774s 1034.912
+            # min_run = min(self.main_num_running_req)
+            # threshold = min_run + 3
+            # min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
+            # max_len = max(prefix_lens[idx] for idx in min_run_indices)
+            # gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
+            # gpu_idx = random.choice(gpus_candicate)
+            # =====================282.774s 492.920 1034.912
             
             #=================method2
-            # forward_mems = [(mem - occ) if no_wait == 1 else (-1e10) for mem, occ, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
-            # gpu_idx = forward_mems.index(max(forward_mems))
+            forward_mems = [(mem - occ) if no_wait == 1 else (-1e10) for mem, occ, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
+            gpu_idx = forward_mems.index(max(forward_mems))
 
             #===============284.957s 1029.341
         
