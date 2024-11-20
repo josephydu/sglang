@@ -373,24 +373,24 @@ class DataParallelController:
                 self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
         else:
-            gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
-            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
-            if all_waiting:
-                self.main_num_waiting_req[gpu_idx] += 1
-            else:
-                self.main_num_running_req[gpu_idx] += 1
-            self.workers[gpu_idx].send_pyobj(req)
+            # gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
+            # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
+            # if all_waiting:
+            #     self.main_num_waiting_req[gpu_idx] += 1
+            # else:
+            #     self.main_num_running_req[gpu_idx] += 1
+            # self.workers[gpu_idx].send_pyobj(req)
             
             
             #================method1
-            # min_run = min(self.main_num_running_req)
-            # threshold = min_run + 3
+            min_run = min(self.main_num_running_req)
+            threshold = min_run + 3
 
-            # min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
-            # max_len = max(prefix_lens[idx] for idx in min_run_indices)
-            # gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
+            min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
+            max_len = max(prefix_lens[idx] for idx in min_run_indices)
+            gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
 
-            # gpu_idx = random.choice(gpus_candicate)
+            gpu_idx = random.choice(gpus_candicate)
             # =====================bad method1  400s+
             
             #=================method2
@@ -424,7 +424,6 @@ class DataParallelController:
             # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             # self.main_num_running_req[gpu_idx] += 1
             # self.workers[gpu_idx].send_pyobj(req)
-        self.resources_aware_scheduler(req)
 
     def shortest_queue_scheduler(self, input_requests):
         raise NotImplementedError()
