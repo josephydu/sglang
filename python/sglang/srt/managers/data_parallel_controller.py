@@ -345,10 +345,10 @@ class DataParallelController:
         prefix_lens = [0] * self.dp_size
         req_lens = [len(req.input_ids)] * self.dp_size
 
-        # with self.recv_tree_cache_lock:
-        #     for gpu_id, radix_cache in self.newest_tree_cache.items():
-        #         pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
-        #         prefix_lens[gpu_id] = int(pre_len)
+        with self.recv_tree_cache_lock:
+            for gpu_id, radix_cache in self.newest_tree_cache.items():
+                pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
+                prefix_lens[gpu_id] = int(pre_len)
 
         # NOTE: 100 is used to reduce the influence of random input
         # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
@@ -360,10 +360,10 @@ class DataParallelController:
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
         
-        occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+        occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]/
         # cache_hit_rate = [prefix_len / req_len for prefix_len, req_len in zip(prefix_lens, req_lens)]
-        if True:
-        # if max(prefix_lens) <= 2000 or all_waiting or max(self.main_available_kv_cache) < 0 or max(cache_hit_rate) < 0.6:
+        # if True:
+        if max(prefix_lens) <= 2000 or all_waiting or max(self.main_available_kv_cache) < 0:
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
@@ -373,16 +373,14 @@ class DataParallelController:
                 self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
         else:
-            #==============method 0
-            gpu_idx = cache_hit_rate.index(max(cache_hit_rate))
             
             #================method1    
-            # min_run = min(self.main_num_running_req)
-            # threshold = min_run + 3
-            # min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
-            # max_len = max(prefix_lens[idx] for idx in min_run_indices)
-            # gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
-            # gpu_idx = random.choice(gpus_candicate)
+            min_run = min(self.main_num_running_req)
+            threshold = min_run + 3
+            min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
+            max_len = max(prefix_lens[idx] for idx in min_run_indices)
+            gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
+            gpu_idx = random.choice(gpus_candicate)
             # =====================282.774s 1034.912
             
             #=================method2
