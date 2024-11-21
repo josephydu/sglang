@@ -361,9 +361,10 @@ class DataParallelController:
         no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
         
         occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
-        # cache_hit_rate = [prefix_len / req_len for prefix_len, req_len in zip(prefix_lens, req_lens)]
+        cache_hit_rate = [prefix_len / req_len for prefix_len, req_len in zip(prefix_lens, req_lens)]
+        logger.info(f'[cache_hit_rate]{cache_hit_rate}')
         # if True:
-        if max(prefix_lens) <= 100 or all_waiting:
+        if max(prefix_lens) <= 100 or all_waiting or max(cache_hit_rate < 0.6):
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             # self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
@@ -373,7 +374,7 @@ class DataParallelController:
                 self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
         else:
-            logger.info(f'[prefix_lens]{prefix_lens}')
+            # logger.info(f'[prefix_lens]{prefix_lens}')
             #================method1    
             # can_run = [run + wait for run, wait in zip(self.main_num_running_req, self.main_num_waiting_req)]
             # min_run = min(self.main_num_running_req)
@@ -392,21 +393,21 @@ class DataParallelController:
         
             
             # ==================method4 
-            # max_value = max(prefix_lens)
-            # max_indices = [
-            #     index for index, value in enumerate(prefix_lens) if value == max_value
-            # ]
-            # gpu_idx = random.choice(max_indices)
+            max_value = max(prefix_lens)
+            max_indices = [
+                index for index, value in enumerate(prefix_lens) if value == max_value
+            ]
+            gpu_idx = random.choice(max_indices)
             # ===================257
             
             
             #===================method5
-            pre_lens = [pre if no_wait == 1 else 0 for pre, no_wait in zip(prefix_lens, no_waiting)]
-            max_value = max(pre_lens)
-            max_indices = [
-                index for index, value in enumerate(pre_lens) if value == max_value
-            ]
-            gpu_idx = random.choice(max_indices)
+            # pre_lens = [pre if no_wait == 1 else 0 for pre, no_wait in zip(prefix_lens, no_waiting)]
+            # max_value = max(pre_lens)
+            # max_indices = [
+            #     index for index, value in enumerate(pre_lens) if value == max_value
+            # ]
+            # gpu_idx = random.choice(max_indices)
             # #==================248.347 
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] += 1
