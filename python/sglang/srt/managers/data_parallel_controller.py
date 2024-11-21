@@ -376,12 +376,12 @@ class DataParallelController:
             logger.info(f'[prefix_lens]{prefix_lens}')
             #================method1    
             # can_run = [run + wait for run, wait in zip(self.main_num_running_req, self.main_num_waiting_req)]
-            min_run = min(self.main_num_running_req)
-            threshold = min_run + 8
-            min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
-            max_len = max(prefix_lens[idx] for idx in min_run_indices)
-            gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
-            gpu_idx = random.choice(gpus_candicate)
+            # min_run = min(self.main_num_running_req)
+            # threshold = min_run + 8
+            # min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
+            # max_len = max(prefix_lens[idx] for idx in min_run_indices)
+            # gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
+            # gpu_idx = random.choice(gpus_candicate)
             # =====================282.774s 492.920 1034.912
             
             #=================method2
@@ -401,12 +401,12 @@ class DataParallelController:
             
             
             #===================method5
-            # pre_lens = [pre if no_wait == 1 else 0 for pre, no_wait in zip(prefix_lens, no_waiting)]
-            # max_value = max(pre_lens)
-            # max_indices = [
-            #     index for index, value in enumerate(pre_lens) if value == max_value
-            # ]
-            # gpu_idx = random.choice(max_indices)
+            pre_lens = [pre if no_wait == 1 else 0 for pre, no_wait in zip(prefix_lens, no_waiting)]
+            max_value = max(pre_lens)
+            max_indices = [
+                index for index, value in enumerate(pre_lens) if value == max_value
+            ]
+            gpu_idx = random.choice(max_indices)
             # #==================248.347 
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] += 1
