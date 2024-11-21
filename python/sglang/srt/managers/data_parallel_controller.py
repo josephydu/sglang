@@ -363,7 +363,7 @@ class DataParallelController:
         occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
         # cache_hit_rate = [prefix_len / req_len for prefix_len, req_len in zip(prefix_lens, req_lens)]
         # if True:
-        logger.info(f'{prefix_lens}')
+        logger.info(f'[prefix_lens]{prefix_lens}')
         if max(prefix_lens) <= 100 or all_waiting:
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
