@@ -381,7 +381,7 @@ class DataParallelController:
             threshold = min_run + 8
             min_run_indices = [idx for idx, value in enumerate(can_run) if value <= threshold]
             
-            forward_mems = [(mem - occ) for mem, occ in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
+            forward_mems = [(mem - occ) for mem, occ in zip(self.main_available_kv_cache, occipuied_lens)]
             
             max_len = max(forward_mems[idx] for idx in min_run_indices)
             gpus_candicate = [idx for idx in min_run_indices if forward_mems[idx] == max_len]
