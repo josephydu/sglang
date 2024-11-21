@@ -27,7 +27,7 @@ for random_input_len in 32 128 256 512 1024 2048 4096; do
             # 启动服务并将其放到后台，重定向输出到日志文件
             /workspace/bin/micromamba run -n sglang python3 -m sglang.launch_server \
                 --model-path Llama-3.1-8B-Instruct \
-                --host 127.0.0.1 --port 8080 --mem-fraction-static 0.7 \
+                --host 127.0.0.1 --port 30000 --mem-fraction-static 0.7 \
                 --dp-size 8 \
                 --load-balance-method $method >> "$LOG_FILE" 2>&1 &
 
