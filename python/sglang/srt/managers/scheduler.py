@@ -366,18 +366,18 @@ class Scheduler:
                 # self.node_last_access_time = self.tree_cache.root_node.last_access_time
 
     def send_tree_cache_to_queue(self):
-        if self.pre_radix:
-            try:
-                node = deepcopy(self.tree_cache.root_node)
-                send_data = RadixCacheSend(
-                    gpu_id=self.gpu_id, root_node=node, time=time.time()
-                )
-                del node
-                self.controller_info.radix_queue.put(send_data)
-                # logger.info("[send_tree_cache_to_queue] has send new data")
-            except Exception as e:
-                # logger.info(f"[send_tree_cache_to_queue]error:{e}")
-                return
+        # if self.pre_radix:
+        try:
+            node = deepcopy(self.tree_cache.root_node)
+            send_data = RadixCacheSend(
+                gpu_id=self.gpu_id, root_node=node, time=time.time()
+            )
+            del node
+            self.controller_info.radix_queue.put(send_data)
+            # logger.info("[send_tree_cache_to_queue] has send new data")
+        except Exception as e:
+            # logger.info(f"[send_tree_cache_to_queue]error:{e}")
+            return
 
     def recv_requests(self):
         if self.tp_rank == 0:
