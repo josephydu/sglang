@@ -373,11 +373,11 @@ class DataParallelController:
                 self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
         else:
-            
+            can_run = [run + wait for run, wait in zip(self.main_num_running_req, self.main_num_waiting_req)]
             #================method1    
-            min_run = min(self.main_num_running_req)
+            min_run = min(can_run)
             threshold = min_run + 8
-            min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
+            min_run_indices = [idx for idx, value in enumerate(can_run) if value <= threshold]
             max_len = max(prefix_lens[idx] for idx in min_run_indices)
             gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
             gpu_idx = random.choice(gpus_candicate)
