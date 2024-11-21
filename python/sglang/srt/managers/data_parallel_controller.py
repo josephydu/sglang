@@ -385,7 +385,7 @@ class DataParallelController:
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
         
-        occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+        occipuied_lens = [(req_len - prefix_len + req.sampling_params.max_new_tokens) for req_len, prefix_len in zip(req_lens, prefix_lens)]
         # cache_hit_rate = [prefix_len / req_len for prefix_len, req_len in zip(prefix_lens, req_lens)]
         # logger.info(f'[cache_hit_rate]{cache_hit_rate}')
         # if True:
@@ -412,21 +412,21 @@ class DataParallelController:
             # =====================282.774s 492.920 1034.912
             
             #=================method2
-            # forward_mems = [(mem - occ) if no_wait == 1 else -1000000 for mem, occ, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
-            # max_value = max(forward_mems)
-            # max_indices = [
-            #     index for index, value in enumerate(forward_mems) if value == max_value
-            # ]
-            # gpu_idx = random.choice(max_indices)
+            forward_mems = [(mem - occ) if no_wait == 1 else -1000000 for mem, occ, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
+            max_value = max(forward_mems)
+            max_indices = [
+                index for index, value in enumerate(forward_mems) if value == max_value
+            ]
+            gpu_idx = random.choice(max_indices)
             # #===============277s
         
             
             # ==================method4 
-            max_value = max(prefix_lens)
-            max_indices = [
-                index for index, value in enumerate(prefix_lens) if value == max_value
-            ]
-            gpu_idx = random.choice(max_indices)
+            # max_value = max(prefix_lens)
+            # max_indices = [
+            #     index for index, value in enumerate(prefix_lens) if value == max_value
+            # ]
+            # gpu_idx = random.choice(max_indices)
             # ===================257
             
             
