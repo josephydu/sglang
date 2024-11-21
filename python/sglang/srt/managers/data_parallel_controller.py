@@ -401,13 +401,13 @@ class DataParallelController:
         else:
             # logger.info(f'[prefix_lens]{prefix_lens}')
             #================method1    
-            # can_run = [run + wait for run, wait in zip(self.main_num_running_req, self.main_num_waiting_req)]
-            # min_run = min(self.main_num_running_req)
-            # threshold = min_run + 10
-            # min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
-            # max_len = max(prefix_lens[idx] for idx in min_run_indices)
-            # gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
-            # gpu_idx = random.choice(gpus_candicate)
+            # can_run = [run + wait for run,/ wait in zip(self.main_num_running_req, self.main_num_waiting_req)]
+            min_run = min(self.main_num_running_req)
+            threshold = min_run + 5
+            min_run_indices = [idx for idx, value in enumerate(self.main_num_running_req) if value <= threshold]
+            max_len = max(prefix_lens[idx] for idx in min_run_indices)
+            gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
+            gpu_idx = random.choice(gpus_candicate)
             # =====================282.774s 492.920 1034.912
             
             #=================method2
@@ -421,11 +421,11 @@ class DataParallelController:
         
             
             # ==================method4 
-            max_value = max(prefix_lens)
-            max_indices = [
-                index for index, value in enumerate(prefix_lens) if value == max_value
-            ]
-            gpu_idx = random.choice(max_indices)
+            # max_value = max(prefix_lens)
+            # max_indices = [
+            #     index for index, value in enumerate(prefix_lens) if value == max_value
+            # ]
+            # gpu_idx = random.choice(max_indices)
             # ===================257
             
             
