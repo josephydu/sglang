@@ -363,7 +363,6 @@ class DataParallelController:
         occipuied_lens = [(req_len - prefix_len) for req_len, prefix_len in zip(req_lens, prefix_lens)]
         # cache_hit_rate = [prefix_len / req_len for prefix_len, req_len in zip(prefix_lens, req_lens)]
         # if True:
-        logger.info(f'[prefix_lens]{prefix_lens}')
         if max(prefix_lens) <= 100 or all_waiting:
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
@@ -374,6 +373,7 @@ class DataParallelController:
                 self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
         else:
+            logger.info(f'[prefix_lens]{prefix_lens}')
             #================method1    
             can_run = [run + wait for run, wait in zip(self.main_num_running_req, self.main_num_waiting_req)]
             min_run = min(can_run)
