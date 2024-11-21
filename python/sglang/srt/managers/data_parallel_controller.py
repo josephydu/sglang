@@ -438,7 +438,7 @@ class DataParallelController:
             # gpu_idx = random.choice(max_indices)
             # #==================248.347 
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
-            # logger.info(f'[running]{self.main_num_running_req}')
+            logger.info(f'[running]{self.main_num_running_req}')
             self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
 
