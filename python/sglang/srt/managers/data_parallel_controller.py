@@ -385,19 +385,19 @@ class DataParallelController:
             # =====================282.774s 492.920 1034.912
             
             #=================method2
-            # forward_mems = [(mem - occ) if no_wait == 1 else (-1e10) for mem, occ, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
-            # gpu_idx = forward_mems.index(max(forward_mems))
+            forward_mems = [(mem - occ) if no_wait == 1 else (-1e10) for mem, occ, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
+            gpu_idx = forward_mems.index(max(forward_mems))
 
             #===============284.957s 490.535  1029.341
         
             
             # ==================method4 
-            max_value = max(prefix_lens)
-            max_indices = [
-                index for index, value in enumerate(prefix_lens) if value == max_value
-            ]
-            gpu_idx = random.choice(max_indices)
-            # ===================284.575s  1048.373s
+            # max_value = max(prefix_lens)
+            # max_indices = [
+            #     index for index, value in enumerate(prefix_lens) if value == max_value
+            # ]
+            # gpu_idx = random.choice(max_indices)
+            # ===================
             
             
             #===================method5
@@ -407,7 +407,7 @@ class DataParallelController:
             #     index for index, value in enumerate(pre_lens) if value == max_value
             # ]
             # gpu_idx = random.choice(max_indices)
-            # #==================248.347 999.702
+            # #==================248.347 
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
