@@ -386,21 +386,21 @@ class DataParallelController:
             # =====================282.774s 492.920 1034.912
             
             #=================method2
-            forward_mems = [(mem - occ) if no_wait == 1 else -1000000 for mem, occ, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
-            max_value = max(forward_mems)
-            max_indices = [
-                index for index, value in enumerate(forward_mems) if value == max_value
-            ]
-            gpu_idx = random.choice(max_indices)
-            #===============277s
+            # forward_mems = [(mem - occ) if no_wait == 1 else -1000000 for mem, occ, no_wait in zip(self.main_available_kv_cache, occipuied_lens, no_waiting)]
+            # max_value = max(forward_mems)
+            # max_indices = [
+            #     index for index, value in enumerate(forward_mems) if value == max_value
+            # ]
+            # gpu_idx = random.choice(max_indices)
+            # #===============277s
         
             
             # ==================method4 
-            # max_value = max(prefix_lens)
-            # max_indices = [
-            #     index for index, value in enumerate(prefix_lens) if value == max_value
-            # ]
-            # gpu_idx = random.choice(max_indices)
+            max_value = max(prefix_lens)
+            max_indices = [
+                index for index, value in enumerate(prefix_lens) if value == max_value
+            ]
+            gpu_idx = random.choice(max_indices)
             # ===================257
             
             
