@@ -328,6 +328,31 @@ class DataParallelController:
             # logger.info(f'[allocate_gpu filter_result]{filter_result}')
 
         return gpu_idx
+    
+    def allocate_gpu_pre_radix(self, req, all_waiting, no_waiting):
+        if all_waiting:
+            ratio = [
+                run / wait
+                for run, wait in zip(
+                    self.main_num_running_req, self.main_num_waiting_req
+                )
+            ]
+            # ratio = self.main_num_waiting_req
+            max_ratio = min(ratio)
+            indices = [i for i, x in enumerate(ratio) if x == max_ratio]
+            gpu_idx = random.choice(indices)
+        else:
+            # filter_result = [
+                # a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
+            # ]
+            max_value = min(self.main_num_running_req)
+            max_indices = [
+                index for index, value in enumerate(self.main_num_running_req) if value == max_value
+            ]
+            gpu_idx = random.choice(max_indices)
+            # logger.info(f'[allocate_gpu filter_result]{filter_result}')
+
+        return gpu_idx
 
     def resources_aware_scheduler(self, req):
         self.update_memory_and_requests()
@@ -413,7 +438,7 @@ class DataParallelController:
             # gpu_idx = random.choice(max_indices)
             # #==================248.347 
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
-            logger.info(f'[running]{self.main_num_running_req}')
+            # logger.info(f'[running]{self.main_num_running_req}')
             self.main_num_running_req[gpu_idx] += 1
             self.workers[gpu_idx].send_pyobj(req)
 
