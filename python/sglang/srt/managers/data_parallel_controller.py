@@ -376,7 +376,7 @@ class DataParallelController:
             can_run = [run + wait for run, wait in zip(self.main_num_running_req, self.main_num_waiting_req)]
             #================method1    
             min_run = min(can_run)
-            threshold = min_run + 20
+            threshold = min_run + 3
             min_run_indices = [idx for idx, value in enumerate(can_run) if value <= threshold]
             max_len = max(prefix_lens[idx] for idx in min_run_indices)
             gpus_candicate = [idx for idx in min_run_indices if prefix_lens[idx] == max_len]
