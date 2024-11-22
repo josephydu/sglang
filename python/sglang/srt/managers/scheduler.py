@@ -646,7 +646,7 @@ class Scheduler:
 
     def handle_embedding_request(
         self,
-        recv_req: Union[TokenizedEmbeddingReqInput, TokenizedRewardReqInput],
+        recv_req: TokenizedEmbeddingReqInput,
     ):
         req = Req(
             recv_req.rid,
