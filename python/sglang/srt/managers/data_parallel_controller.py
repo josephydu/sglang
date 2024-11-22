@@ -22,6 +22,7 @@ import time
 import logging
 import multiprocessing as mp
 from enum import Enum, auto
+from collections import defaultdict
 
 import zmq
 
@@ -44,10 +45,12 @@ from sglang.utils import get_exception_traceback
 
 logger = logging.getLogger(__name__)
 
-class RadixCacheSend:
-    gpu_id: int
-    root_node: TreeNode
-    time: time
+class TreeNodeSend:
+    def __init__(self) -> None:
+        self.children = defaultdict(TreeNodeSend)
+        self.parent = None
+        self.key = None
+        self.gpu_id = None
 
 
 class LoadBalanceMethod(Enum):
@@ -184,100 +187,120 @@ class DataParallelController:
             self.recv_tree_cache()
 
     def recv_tree_cache(self):
-        recv_radix_cache = self.controller_info.radix_queue.get_nowait()
+        recv_radix_cache = self.controller_info.radix_queue.get()
         if recv_radix_cache:
             gpu_id = recv_radix_cache.gpu_id
-            if (
-                gpu_id not in self.newest_tree_cache
-                or recv_radix_cache.time > self.newest_tree_cache[gpu_id].time
-            ):
-                with self.recv_tree_cache_lock:
-                    if gpu_id in self.newest_tree_cache:
-                        del self.newest_tree_cache[gpu_id]
-                    self.newest_tree_cache[gpu_id] = recv_radix_cache
+            with self.recv_tree_cache_lock:
+                self.newest_tree_cache[gpu_id] = recv_radix_cache
             del recv_radix_cache
 
     def round_robin_scheduler(self, req):
         self.workers[self.round_robin_counter].send_pyobj(req)
         self.round_robin_counter = (self.round_robin_counter + 1) % len(self.workers)
 
-    def update_memory_and_requests(self):
+    # get newest gpu info from nodes before scheduler request
+    def update_memory_and_requests_info(self):
+        # pre_xx is used to check whether nodes have updated their relevant information
+        # main_xx is used in scheduler methods so that the infomation we used is the newest
+        
         available_mem = [k.value for k in self.controller_info.available_kv_cache]
         num_reqs_running = [k.value for k in self.controller_info.running_reqs]
         num_reqs_waiting = [k.value for k in self.controller_info.waiting_reqs]
 
-        if not self.pre_available_kv_cache:
-            self.pre_available_kv_cache = available_mem.copy()
-        if not self.main_available_kv_cache:
-            self.main_available_kv_cache = available_mem.copy()
-        if self.pre_available_kv_cache != available_mem:
-            self.pre_available_kv_cache = available_mem
-            self.main_available_kv_cache = available_mem.copy()
+        def update_cache(pre_cache, main_cache, new_data):
+            if not pre_cache:
+                pre_cache.extend(new_data)
+                main_cache.extend(new_data)
+            else:
+                for i, (pre, new) in enumerate(zip(pre_cache, new_data)):
+                    if pre != new:
+                        pre_cache[i] = new
+                        main_cache[i] = new
 
-        if not self.pre_num_running_req:
-            self.pre_num_running_req = num_reqs_running.copy()
-        if not self.main_num_running_req:
-            self.main_num_running_req = num_reqs_running.copy()
-        if self.pre_num_running_req != num_reqs_running:
-            self.main_num_running_req = num_reqs_running
-            self.pre_num_running_req = num_reqs_running.copy()
+        update_cache(self.pre_available_kv_cache if hasattr(self, 'pre_available_kv_cache') else [],
+                    self.main_available_kv_cache if hasattr(self, 'main_available_kv_cache') else [],
+                    available_mem)
 
-        if not self.pre_num_waiting_req:
-            self.pre_num_waiting_req = num_reqs_waiting.copy()
-        if not self.main_num_waiting_req:
-            self.main_num_waiting_req = num_reqs_waiting.copy()
-        if self.pre_num_waiting_req != num_reqs_waiting:
-            self.main_num_waiting_req = num_reqs_waiting
-            self.pre_num_waiting_req = num_reqs_waiting.copy()
+        update_cache(self.pre_num_running_req if hasattr(self, 'pre_num_running_req') else [],
+                    self.main_num_running_req if hasattr(self, 'main_num_running_req') else [],
+                    num_reqs_running)
 
-    def allocate_gpu(self, req):
-        all_waiting = min(self.main_num_waiting_req) > 0
-        no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+        update_cache(self.pre_num_waiting_req if hasattr(self, 'pre_num_waiting_req') else [],
+                    self.main_num_waiting_req if hasattr(self, 'main_num_waiting_req') else [],
+                    num_reqs_waiting)
 
+    # get specific gpu_idx by gpu info
+    def allocate_gpu(self, all_waiting, no_waiting):
         if all_waiting:
-            ratio = [
-                run / wait
-                for run, wait in zip(
-                    self.main_num_running_req, self.main_num_waiting_req
-                )
-            ]
-            max_ratio = max(ratio)
-            indices = [i for i, x in enumerate(ratio) if x == max_ratio]
+            # if all nodes are waiting, we select the gpu from the node with the smallest number of nodes
+            min_num_waitng = min(self.main_num_waiting_req)
+            # if there are multi nodes that meet the criteria, we random choose them.
+            indices = [i for i, x in enumerate(self.main_num_waiting_req) if x == min_num_waitng]
             gpu_idx = random.choice(indices)
         else:
-            filter_result = [
-                a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
-            ]
-            max_value = max(filter_result)
+            # else we select the gpu from no wait nodes with the most gpu memory
+            # firstly, remove the waiting queue. 
+            mems = [mem if no_wait == 1 else 0 for mem, no_wait in zip(self.main_available_kv_cache, no_waiting)]
+            max_value = max(mems)
             max_indices = [
-                index for index, value in enumerate(filter_result) if value == max_value
+                index for index, value in enumerate(mems) if value == max_value
             ]
             gpu_idx = random.choice(max_indices)
-
-        self.main_available_kv_cache[gpu_idx] -= len(req.input_ids)
+        
         return gpu_idx
-
     def resources_aware_scheduler(self, req):
         self.update_memory_and_requests()
-        gpu_idx = self.allocate_gpu(req)
+        all_waiting = min(self.main_num_waiting_req) > 0
+        no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
+        gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
+        
+        
+        self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
+        if all_waiting:
+            self.main_num_waiting_req[gpu_idx] += 1
+        else:
+            self.main_num_running_req[gpu_idx] += 1
         self.workers[gpu_idx].send_pyobj(req)
 
     def cache_aware_scheduler(self, req):
-        prefix_lens = [0] * self.dp_size
+        match_lens = [0] * self.dp_size
+        req_lens = [len(req.input_ids)] * self.dp_size
 
         with self.recv_tree_cache_lock:
             for gpu_id, radix_cache in self.newest_tree_cache.items():
-                pre_len = get_match_len(radix_cache.root_node, req.input_ids, 0)
-                prefix_lens[gpu_id] = pre_len
+                pre_len = get_match_len(radix_cache, req.input_ids, 0)
+                match_lens[gpu_id] = int(pre_len)
 
-            # NOTE: 100 is used to reduce the influence of random input
-            # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
-            if max(prefix_lens) <= 100:
-                self.resources_aware_scheduler(req)
+        # NOTE: 100 is used to reduce the influence of random input
+        # e.g. If the match nums is [1, 2, 0, 0, 0, 0], we think the scheduer method should be resources aware
+        self.update_memory_and_requests_info()
+        all_waiting = min(self.main_num_waiting_req) > 0
+        no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
+        
+        # occipuied_lens means that the number of tokens this request will occupy
+        occipuied_lens = [(req_len - prefix_len + req.sampling_params.max_new_tokens * 0.5) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+        
+        if max(match_lens) <= 100 or all_waiting:
+            # this is the logic of resources_aware
+            gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
+            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+            if all_waiting:
+                self.main_num_waiting_req[gpu_idx] += 1
             else:
-                
-                gpu_idx = prefix_lens.index(max(prefix_lens))
-                self.workers[gpu_idx].send_pyobj(req)
+                self.main_num_running_req[gpu_idx] += 1
+            self.workers[gpu_idx].send_pyobj(req)
+        else:
+            # We get the matching length of the no waiting nodes, then we get the max match nodes
+            pre_lens = [pre if no_wait == 1 else 0 for pre, no_wait in zip(match_lens, no_waiting)]
+            max_value = max(pre_lens)
+            max_indices = [
+                index for index, value in enumerate(pre_lens) if value == max_value
+            ]
+            gpu_idx = random.choice(max_indices)
+            
+            self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
+            self.main_num_running_req[gpu_idx] += 1
+            self.workers[gpu_idx].send_pyobj(req)
 
     def shortest_queue_scheduler(self, input_requests):
         raise NotImplementedError()
