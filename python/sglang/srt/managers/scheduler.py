@@ -16,9 +16,7 @@ limitations under the License.
 """A scheduler that manages a tensor parallel GPU worker."""
 
 import json
-import dataclasses
 import logging
-import multiprocessing
 import os
 import time
 import warnings
@@ -26,8 +24,7 @@ from collections import deque
 from concurrent import futures
 from types import SimpleNamespace
 from typing import List, Optional, Union
-import threading
-
+from collections import defaultdict
 
 import torch
 import zmq
@@ -93,7 +90,12 @@ logger = logging.getLogger(__name__)
 # Test retract decode
 test_retract = os.getenv("SGLANG_TEST_RETRACT", "false") == "true"
 
-
+class TreeNodeSend:
+    def __init__(self) -> None:
+        self.children = defaultdict(TreeNodeSend)
+        self.parent = None
+        self.key = None
+        self.gpu_id = None
 class Scheduler:
     """A scheduler that manages a tensor parallel GPU worker."""
 

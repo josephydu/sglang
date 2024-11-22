@@ -23,7 +23,6 @@ import logging
 import multiprocessing as mp
 import threading
 from enum import Enum, auto
-from collections import defaultdict
 
 import zmq
 
@@ -33,7 +32,6 @@ from sglang.srt.managers.io_struct import (
     TokenizedGenerateReqInput,
 )
 from sglang.srt.managers.scheduler import run_scheduler_process
-from sglang.srt.mem_cache.radix_cache import TreeNode
 from sglang.srt.server_args import PortArgs, ServerArgs
 from sglang.srt.utils import (
     bind_port,
@@ -46,13 +44,6 @@ from sglang.srt.utils import (
 from sglang.utils import get_exception_traceback
 
 logger = logging.getLogger(__name__)
-
-class TreeNodeSend:
-    def __init__(self) -> None:
-        self.children = defaultdict(TreeNodeSend)
-        self.parent = None
-        self.key = None
-        self.gpu_id = None
 
 
 class LoadBalanceMethod(Enum):
