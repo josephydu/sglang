@@ -90,6 +90,7 @@ class DataParallelController:
         resources_aware = server_args.load_balance_method == LoadBalanceMethod.RESOURCES_AWARE
         cache_aware = server_args.load_balance_method == LoadBalanceMethod.CACHE_AWARE
         logger.info(f'{server_args.load_balance_method}')
+        logger.info(f'{LoadBalanceMethod.CACHE_AWARE}')
         logger.info(f'{cache_aware}')
         if resources_aware or cache_aware:
             self.dp_size = server_args.dp_size
