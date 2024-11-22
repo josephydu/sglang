@@ -17,12 +17,12 @@ limitations under the License.
 
 import random
 import threading
-import time
 
 import logging
 import multiprocessing as mp
 import threading
 from enum import Enum, auto
+from typing import Optional
 
 import zmq
 
@@ -181,7 +181,7 @@ class DataParallelController:
         port_args: PortArgs,
         base_gpu_id: int,
         dp_rank: int,
-        controller_info: ControllerInfo,
+        controller_info: Optional[ControllerInfo] = None,
     ):
         # Launch tensor parallel scheduler processes
         scheduler_procs = []
