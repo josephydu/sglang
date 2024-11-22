@@ -292,7 +292,7 @@ class DataParallelController:
         no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
         
         # occipuied_lens means that the number of tokens this request will occupy
-        occipuied_lens = [(req_len - prefix_len + req.sampling_params.max_new_tokens * 0.5) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+        occipuied_lens = [(req_len - prefix_len + req.sampling_params.max_new_tokens * 0.5) for req_len, prefix_len in zip(req_lens, match_lens)]
         
         if max(match_lens) <= 100 or all_waiting:
             # this is the logic of resources_aware
