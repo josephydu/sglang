@@ -37,9 +37,15 @@ if TYPE_CHECKING:
 @dataclass
 class RadixCacheSend:
     gpu_id: int
-    root_node: TreeNode
+    root_node: TreeNodeSend
     time: time
 
+class TreeNodeSend:
+    def __init__(self) -> None:
+        self.children = defaultdict(TreeNodeSend)
+        self.parent = None
+        self.key = None
+        self.gpu_id = None
 
 class TreeNode:
     def __init__(self):

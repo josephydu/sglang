@@ -66,7 +66,7 @@ from sglang.srt.managers.schedule_policy import (
 from sglang.srt.managers.tp_worker import TpModelWorker
 from sglang.srt.managers.tp_worker_overlap_thread import TpModelWorkerClient
 from sglang.srt.mem_cache.chunk_cache import ChunkCache
-from sglang.srt.mem_cache.radix_cache import RadixCache, RadixCacheSend
+from sglang.srt.mem_cache.radix_cache import RadixCache, RadixCacheSend, TreeNodeSend
 from sglang.srt.server_args import PortArgs, ServerArgs
 from sglang.srt.utils import (
     broadcast_pyobj,
@@ -365,18 +365,30 @@ class Scheduler:
         self.send_tree_cache_to_queue()
                 # self.node_last_access_time = self.tree_cache.root_node.last_access_time
 
+    def rebuild_tree_node(self, tree_node):
+        if tree_node is None:
+            return None
+
+        tree_node_send = TreeNodeSend()
+        tree_node_send.key = tree_node.key
+
+        for key, child in tree_node.children.items():
+            child_send = self.rebuild_tree_node(child)
+            child_send.parent = tree_node_send
+            tree_node_send.children[key] = child_send
+
+        return tree_node_send
+
     def send_tree_cache_to_queue(self):
         # if self.pre_radix:
         try:
-            node = deepcopy(self.tree_cache.root_node)
-            send_data = RadixCacheSend(
-                gpu_id=self.gpu_id, root_node=node, time=time.time()
-            )
-            del node
-            self.controller_info.radix_queue.put(send_data)
-            # logger.info("[send_tree_cache_to_queue] has send new data")
+            if self.tree_cache.root_node is None:
+                return
+            send_tree_node = self.rebuild_tree_node(self.tree_cache.root_node)
+            if send_tree_node:
+                send_tree_node.gpu_id = self.gpu_id
+            self.controller_info.radix_queue.put(send_tree_node)
         except Exception as e:
-            # logger.info(f"[send_tree_cache_to_queue]error:{e}")
             return
 
     def recv_requests(self):
