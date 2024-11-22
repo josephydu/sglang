@@ -254,7 +254,7 @@ class DataParallelController:
         self.update_memory_and_requests()
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
-        gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
+        gpu_idx = self.allocate_gpu(all_waiting, no_waiting)
         self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
         if all_waiting:
             self.main_num_waiting_req[gpu_idx] += 1
@@ -266,7 +266,7 @@ class DataParallelController:
         self.update_memory_and_requests()
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
-        gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
+        gpu_idx = self.allocate_gpu(all_waiting, no_waiting)
         
         
         self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
@@ -297,7 +297,7 @@ class DataParallelController:
         logger.info(f'[match_lens]{match_lens}')
         if max(match_lens) <= 100 or all_waiting:
             # this is the logic of resources_aware
-            gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
+            gpu_idx = self.allocate_gpu(all_waiting, no_waiting)
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             if all_waiting:
                 self.main_num_waiting_req[gpu_idx] += 1
