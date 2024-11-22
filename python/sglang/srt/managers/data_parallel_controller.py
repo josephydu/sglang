@@ -417,21 +417,21 @@ class DataParallelController:
         
             
             # ==================method4 
-            max_value = max(prefix_lens)
-            max_indices = [
-                index for index, value in enumerate(prefix_lens) if value == max_value
-            ]
-            gpu_idx = random.choice(max_indices)
+            # max_value = max(prefix_lens)
+            # max_indices = [
+            #     index for index, value in enumerate(prefix_lens) if value == max_value
+            # ]
+            # gpu_idx = random.choice(max_indices)
             # ===================257
             
             
             #===================method5
-            # pre_lens = [pre if no_wait == 1 else 0 for pre, no_wait in zip(prefix_lens, no_waiting)]
-            # max_value = max(pre_lens)
-            # max_indices = [
-            #     index for index, value in enumerate(pre_lens) if value == max_value
-            # ]
-            # gpu_idx = random.choice(max_indices)
+            pre_lens = [pre if no_wait == 1 else 0 for pre, no_wait in zip(prefix_lens, no_waiting)]
+            max_value = max(pre_lens)
+            max_indices = [
+                index for index, value in enumerate(pre_lens) if value == max_value
+            ]
+            gpu_idx = random.choice(max_indices)
             # #==================248.347 
             self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - occipuied_lens[gpu_idx]
             # logger.info(f'[running]{self.main_num_running_req}')
