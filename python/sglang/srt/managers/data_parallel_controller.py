@@ -294,6 +294,7 @@ class DataParallelController:
         # occipuied_lens means that the number of tokens this request will occupy
         occipuied_lens = [(req_len - prefix_len + req.sampling_params.max_new_tokens * 0.5) for req_len, prefix_len in zip(req_lens, match_lens)]
         
+        logger.info(f'[match_lens]{match_lens}')
         if max(match_lens) <= 100 or all_waiting:
             # this is the logic of resources_aware
             gpu_idx = self.allocate_gpu(req, all_waiting, no_waiting)
