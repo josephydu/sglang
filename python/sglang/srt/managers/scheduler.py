@@ -347,11 +347,6 @@ class Scheduler:
             self.controller_info.available_kv_cache[self.gpu_id].value = (
                 self.token_to_kv_pool.available_size()
             )
-            
-            self.controller_info.evictable_kv_cache[self.gpu_id].value = (
-                self.tree_cache.evictable_size()
-            )
-
 
     def watchdog_thread(self):
         self.watchdog_last_forward_ct = 0
