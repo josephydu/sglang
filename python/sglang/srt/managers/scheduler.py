@@ -50,7 +50,6 @@ from sglang.srt.managers.io_struct import (
     ProfileReq,
     TokenizedEmbeddingReqInput,
     TokenizedGenerateReqInput,
-    TokenizedRewardReqInput,
     UpdateWeightReqInput,
     UpdateWeightReqOutput,
 )
