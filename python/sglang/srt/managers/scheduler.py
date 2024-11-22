@@ -351,6 +351,8 @@ class Scheduler:
             )
             
             self.cache_aware = cache_aware
+        else:
+            self.controller_info = None
 
     def watchdog_thread(self):
         self.watchdog_last_forward_ct = 0

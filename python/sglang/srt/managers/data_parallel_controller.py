@@ -253,19 +253,7 @@ class DataParallelController:
         raise NotImplementedError()
 
     def resources_aware_scheduler(self, req):
-        self.update_memory_and_requests()
-        all_waiting = min(self.main_num_waiting_req) > 0
-        no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
-        gpu_idx = self.allocate_gpu(all_waiting, no_waiting)
-        self.main_available_kv_cache[gpu_idx] = self.main_available_kv_cache[gpu_idx] - len(req.input_ids)
-        if all_waiting:
-            self.main_num_waiting_req[gpu_idx] += 1
-        else:
-            self.main_num_running_req[gpu_idx] += 1
-        self.workers[gpu_idx].send_pyobj(req)
-
-    def resources_aware_scheduler(self, req):
-        self.update_memory_and_requests()
+        self.update_memory_and_requests_info()
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting == 0 else 0 for waiting in self.main_num_waiting_req]
         gpu_idx = self.allocate_gpu(all_waiting, no_waiting)
