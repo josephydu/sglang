@@ -313,7 +313,7 @@ class DataParallelController:
                 )
             ]
             # ratio = self.main_num_waiting_req
-            max_ratio = min(ratio)
+            max_ratio = max(ratio)
             indices = [i for i, x in enumerate(ratio) if x == max_ratio]
             gpu_idx = random.choice(indices)
         else:
