@@ -86,16 +86,12 @@ class DataParallelController:
         }
         self.dispatching = dispatch_lookup[self.load_balance_method]
 
-        # Start data parallel workers
-        base_gpu_id = 0
-        self.workers = [None] * server_args.dp_size
-
-        threads = []
-        sockets = []
-        
-        self.resources_aware = server_args.load_balance_method == LoadBalanceMethod.RESOURCES_AWARE
-        self.cache_aware = server_args.load_balance_method == LoadBalanceMethod.CACHE_AWARE
-        if self.resources_aware or self.cache_aware:
+        # for aware scheduler methods.
+        resources_aware = server_args.load_balance_method == LoadBalanceMethod.RESOURCES_AWARE
+        cache_aware = server_args.load_balance_method == LoadBalanceMethod.CACHE_AWARE
+        logger.info(f'{self.resources_aware}')
+        logger.info(f'{self.cache_aware}')
+        if resources_aware or cache_aware:
             self.dp_size = server_args.dp_size
             self.controller_info = ControllerInfo(server_args.dp_size)
             
@@ -107,10 +103,11 @@ class DataParallelController:
 
             self.pre_num_waiting_req = []
             self.main_num_waiting_req = []
+            
         else:
             self.controller_info = None
             
-        if self.cache_aware:
+        if cache_aware:
             self.newest_tree_cache = {}
             self.recv_tree_cache_lock = threading.Lock()
             self.recv_tree_cache_thread = threading.Thread(
@@ -119,6 +116,14 @@ class DataParallelController:
         else:
             self.newest_tree_cache = None
             self.recv_tree_cache_thread = None
+
+
+        # Start data parallel workers
+        base_gpu_id = 0
+        self.workers = [None] * server_args.dp_size
+
+        threads = []
+        sockets = []
             
         for dp_rank in range(server_args.dp_size):
             tmp_port_args = PortArgs.init_new(server_args)
