@@ -106,12 +106,14 @@ class DataParallelController:
             self.controller_info = None
             
         if cache_aware:
+            self.cache_aware = True
             self.newest_tree_cache = {}
             self.recv_tree_cache_lock = threading.Lock()
             self.recv_tree_cache_thread = threading.Thread(
                 target=self.loop_for_recv_tree_cache
             ).start()
         else:
+            self.cache_aware = False
             self.newest_tree_cache = None
             self.recv_tree_cache_thread = None
 
@@ -180,6 +182,7 @@ class DataParallelController:
         while True:
             recv_radix_cache = self.controller_info.radix_queue.get()
             if recv_radix_cache:
+                logger.info(f'get{recv_radix_cache}')
                 gpu_id = recv_radix_cache.gpu_id
                 with self.recv_tree_cache_lock:
                     self.newest_tree_cache[gpu_id] = recv_radix_cache
@@ -206,7 +209,7 @@ class DataParallelController:
             gpu_id = server_args.base_gpu_id + base_gpu_id + tp_rank % tp_size_per_node
             proc = mp.Process(
                 target=run_scheduler_process,
-                args=(server_args, port_args, gpu_id, tp_rank, dp_rank, writer, self.controller_info),
+                args=(server_args, port_args, gpu_id, tp_rank, dp_rank, writer, self.controller_info, self.cache_aware),
             )
             proc.start()
             scheduler_procs.append(proc)

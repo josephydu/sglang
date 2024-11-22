@@ -48,7 +48,8 @@ from sglang.srt.managers.io_struct import (
     TokenizedGenerateReqInput,
     UpdateWeightReqInput,
     UpdateWeightReqOutput,
-    ControllerInfo
+    ControllerInfo,
+    TreeNodeSend
 )
 from sglang.srt.managers.schedule_batch import (
     FINISH_ABORT,
@@ -99,6 +100,7 @@ class Scheduler:
         tp_rank: int,
         dp_rank: Optional[int],
         controller_info: Optional[ControllerInfo] = None,
+        cache_aware: Optional[bool] = False,
     ):
         # Parse args
         self.server_args = server_args
@@ -347,6 +349,8 @@ class Scheduler:
             self.controller_info.available_kv_cache[self.gpu_id].value = (
                 self.token_to_kv_pool.available_size()
             )
+            
+            self.cache_aware = cache_aware
 
     def watchdog_thread(self):
         self.watchdog_last_forward_ct = 0
@@ -976,6 +980,10 @@ class Scheduler:
                 self.controller_info.waiting_reqs[self.gpu_id].value = len(
                     self.waiting_queue
                 )
+                
+                # update radix cache
+                if self.cache_aware:
+                    self.send_tree_cache_when_prefill()
         elif batch.forward_mode.is_dummy_first():
             batch.next_batch_sampling_info.update_regex_vocab_mask()
             torch.cuda.current_stream().synchronize()
@@ -1429,6 +1437,7 @@ def run_scheduler_process(
     dp_rank: Optional[int],
     pipe_writer,
     controller_info: Optional[ControllerInfo] = None,
+    cache_aware: Optional[bool] = False,
     
 ):
     # [For Router] if env var "DP_RANK" exist, set dp_rank to the value of the env var
@@ -1443,7 +1452,7 @@ def run_scheduler_process(
     suppress_other_loggers()
 
     try:
-        scheduler = Scheduler(server_args, port_args, gpu_id, tp_rank, dp_rank, controller_info)
+        scheduler = Scheduler(server_args, port_args, gpu_id, tp_rank, dp_rank, controller_info, cache_aware)
         pipe_writer.send("ready")
         if scheduler.enable_overlap:
             scheduler.event_loop_overlap()
@@ -1453,3 +1462,18 @@ def run_scheduler_process(
         msg = get_exception_traceback()
         logger.error(msg)
         kill_parent_process()
+
+
+def rebuild_tree_node(tree_node):
+    if tree_node is None:
+        return None
+
+    tree_node_send = TreeNodeSend()
+    tree_node_send.key = tree_node.key
+
+    for key, child in tree_node.children.items():
+        child_send = rebuild_tree_node(child)
+        child_send.parent = tree_node_send
+        tree_node_send.children[key] = child_send
+
+    return tree_node_send
