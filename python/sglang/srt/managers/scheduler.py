@@ -373,7 +373,7 @@ class Scheduler:
         try:
             if self.tree_cache.root_node is None:
                 return
-            send_tree_node = self.rebuild_tree_node(self.tree_cache.root_node)
+            send_tree_node = rebuild_tree_node(self.tree_cache.root_node)
             if send_tree_node:
                 send_tree_node.gpu_id = self.gpu_id
             self.controller_info.radix_queue.put(send_tree_node)
