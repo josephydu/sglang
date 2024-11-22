@@ -48,6 +48,7 @@ from sglang.srt.managers.io_struct import (
     TokenizedGenerateReqInput,
     UpdateWeightReqInput,
     UpdateWeightReqOutput,
+    ControllerInfo
 )
 from sglang.srt.managers.schedule_batch import (
     FINISH_ABORT,
@@ -97,6 +98,7 @@ class Scheduler:
         gpu_id: int,
         tp_rank: int,
         dp_rank: Optional[int],
+        controller_info: Optional[ControllerInfo] = None,
     ):
         # Parse args
         self.server_args = server_args
@@ -337,6 +339,19 @@ class Scheduler:
                     # TODO: Add lora name/path in the future,
                 },
             )
+            
+        # Init controller info
+        if controller_info and self.tp_rank == 0:
+            self.controller_info = controller_info
+            self.gpu_id = gpu_id
+            self.controller_info.available_kv_cache[self.gpu_id].value = (
+                self.token_to_kv_pool.available_size()
+            )
+            
+            self.controller_info.evictable_kv_cache[self.gpu_id].value = (
+                self.tree_cache.evictable_size()
+            )
+
 
     def watchdog_thread(self):
         self.watchdog_last_forward_ct = 0
@@ -354,6 +369,17 @@ class Scheduler:
             time.sleep(self.watchdog_timeout / 2)
 
         kill_parent_process()
+
+    def send_tree_cache_when_prefill(self):
+        try:
+            if self.tree_cache.root_node is None:
+                return
+            send_tree_node = self.rebuild_tree_node(self.tree_cache.root_node)
+            if send_tree_node:
+                send_tree_node.gpu_id = self.gpu_id
+            self.controller_info.radix_queue.put(send_tree_node)
+        except Exception as e:
+            return
 
     @torch.no_grad()
     def event_loop_normal(self):
@@ -946,6 +972,15 @@ class Scheduler:
                 self.running_batch = None
         elif batch.forward_mode.is_extend():
             self.process_batch_result_prefill(batch, result)
+            # when prefill done, we update controller info.
+            if self.controller_info:
+                self.controller_info.available_kv_cache[self.gpu_id].value = (self.token_to_kv_pool.available_size() + self.tree_cache.evictable_size())
+                self.controller_info.running_reqs[self.gpu_id].value = (
+                    len(self.running_batch.reqs) if self.running_batch else 0
+                )
+                self.controller_info.waiting_reqs[self.gpu_id].value = len(
+                    self.waiting_queue
+                )
         elif batch.forward_mode.is_dummy_first():
             batch.next_batch_sampling_info.update_regex_vocab_mask()
             torch.cuda.current_stream().synchronize()
@@ -1068,6 +1103,16 @@ class Scheduler:
 
             if req.finished():
                 self.tree_cache.cache_finished_req(req)
+                
+                # when decode done, we update controller info
+                if self.controller_info:
+                    self.controller_info.available_kv_cache[self.gpu_id].value = (self.token_to_kv_pool.available_size() + self.tree_cache.evictable_size())
+                    self.controller_info.running_reqs[self.gpu_id].value = (
+                        len(self.running_batch.reqs) if self.running_batch else 0
+                    )
+                    self.controller_info.waiting_reqs[self.gpu_id].value = len(
+                        self.waiting_queue
+                    )
 
             if req.return_logprob:
                 req.output_token_logprobs.append(
@@ -1388,6 +1433,8 @@ def run_scheduler_process(
     tp_rank: int,
     dp_rank: Optional[int],
     pipe_writer,
+    controller_info: Optional[ControllerInfo] = None,
+    
 ):
     # [For Router] if env var "DP_RANK" exist, set dp_rank to the value of the env var
     if dp_rank is None:
@@ -1401,7 +1448,7 @@ def run_scheduler_process(
     suppress_other_loggers()
 
     try:
-        scheduler = Scheduler(server_args, port_args, gpu_id, tp_rank, dp_rank)
+        scheduler = Scheduler(server_args, port_args, gpu_id, tp_rank, dp_rank, controller_info)
         pipe_writer.send("ready")
         if scheduler.enable_overlap:
             scheduler.event_loop_overlap()

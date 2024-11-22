@@ -22,6 +22,8 @@ import uuid
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Union
+import multiprocessing
+from multiprocessing import Value
 
 from sglang.srt.managers.schedule_batch import BaseFinishReason
 from sglang.srt.sampling.sampling_params import SamplingParams
@@ -384,3 +386,19 @@ class CloseSessionReqInput:
 @dataclass
 class OpenSessionReqOutput:
     session_id: str
+
+
+
+class ControllerInfo:
+    def __init__(self, dp_size):
+        self.available_kv_cache = []
+        self.running_reqs = []
+        self.waiting_reqs = []
+
+        # For cache aware
+        self.radix_queue = multiprocessing.Queue()
+
+        for i in range(dp_size):
+            self.available_kv_cache.append(Value("i", 0))
+            self.running_reqs.append(Value("i", 0))
+            self.waiting_reqs.append(Value("i", 0))

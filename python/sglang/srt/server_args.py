@@ -490,6 +490,8 @@ class ServerArgs:
             choices=[
                 "round_robin",
                 "shortest_queue",
+                "resources_aware",
+                "cache_aware"
             ],
         )
 
