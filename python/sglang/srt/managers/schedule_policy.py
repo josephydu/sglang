@@ -17,7 +17,6 @@ limitations under the License.
 
 import os
 import random
-import time
 from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum, auto
@@ -303,11 +302,14 @@ class PrefillAdder:
             if (
                 self.rem_chunk_tokens is None
                 or input_tokens <= self.rem_chunk_tokens
-                or (req.return_logprob and req.normalized_prompt_logprob is None)
+                or (
+                    req.return_logprob
+                    and req.normalized_prompt_logprob is None
+                    and req.logprob_start_len != len(req.origin_input_ids) - 1
+                )
             ):
                 # Non-chunked prefill
                 self.can_run_list.append(req)
-                req.queued_time = time.time()
                 self.tree_cache.inc_lock_ref(req.last_node)
                 self._prefill_one_req(
                     prefix_len,
@@ -326,7 +328,6 @@ class PrefillAdder:
                 req.extend_input_len = trunc_len
                 req.fill_ids = req.fill_ids[: len(req.prefix_indices) + trunc_len]
                 self.can_run_list.append(req)
-                req.queued_time = time.time()
                 self.new_inflight_req = req
                 self.tree_cache.inc_lock_ref(req.last_node)
                 self._prefill_one_req(prefix_len, trunc_len, 0)

@@ -36,6 +36,8 @@ from enum import IntEnum, auto
 from typing import TYPE_CHECKING, List, Optional
 
 import torch
+import triton
+import triton.language as tl
 
 from sglang.srt.layers.rotary_embedding import MRotaryEmbedding
 
@@ -50,12 +52,18 @@ if TYPE_CHECKING:
 class ForwardMode(IntEnum):
     # Prefill a new sequence. This is deprecated now. "EXTEND" covers this case.
     PREFILL = auto()
-    # Extend a sequence. The KV cache of the first part of the sequence is already computed (e.g., system prompt).
+    # Extend a sequence. The KV cache of the beginning part of the sequence is already computed (e.g., system prompt).
     EXTEND = auto()
     # Decode one token.
     DECODE = auto()
-    # Contains both EXTEND and DECODE.
+    # Contains both EXTEND and DECODE when doing chunked prefill.
     MIXED = auto()
+    # No sequence to forward. For data parallel attention, some workers wil be IDLE if no sequence are allocated.
+    IDLE = auto()
+
+    # A dummy first batch to start the pipeline for overlap scheduler.
+    # It is now used for triggering the sampling_info_done event for the first prefill batch.
+    DUMMY_FIRST = auto()
 
     def is_prefill(self):
         return self == ForwardMode.PREFILL
@@ -68,6 +76,12 @@ class ForwardMode(IntEnum):
 
     def is_mixed(self):
         return self == ForwardMode.MIXED
+
+    def is_idle(self):
+        return self == ForwardMode.IDLE
+
+    def is_dummy_first(self):
+        return self == ForwardMode.DUMMY_FIRST
 
 
 @dataclass
@@ -102,6 +116,7 @@ class ForwardBatch:
     extend_seq_lens: Optional[torch.Tensor] = None
     extend_prefix_lens: Optional[torch.Tensor] = None
     extend_start_loc: Optional[torch.Tensor] = None
+    extend_prefix_lens_cpu: Optional[List[int]] = None
     extend_seq_lens_cpu: Optional[List[int]] = None
     extend_logprob_start_lens_cpu: Optional[List[int]] = None
 
@@ -128,6 +143,11 @@ class ForwardBatch:
     # For Qwen2-VL
     mrope_positions: torch.Tensor = None
 
+    # For DP attention
+    global_num_tokens: Optional[List[int]] = None
+    gathered_buffer: Optional[torch.Tensor] = None
+    can_run_dp_cuda_graph: bool = False
+
     def compute_mrope_positions(
         self, model_runner: ModelRunner, batch: ModelWorkerBatch
     ):
@@ -136,8 +156,13 @@ class ForwardBatch:
         mrope_positions_list = [None] * self.seq_lens.shape[0]
         if self.forward_mode.is_decode():
             for i, _ in enumerate(mrope_positions_list):
+                mrope_position_delta = (
+                    0
+                    if batch.image_inputs[i] is None
+                    else batch.image_inputs[i].mrope_position_delta
+                )
                 mrope_positions_list[i] = MRotaryEmbedding.get_next_input_positions(
-                    batch.mrope_positions_delta[i][0],
+                    mrope_position_delta,
                     int(self.seq_lens[i]) - 1,
                     int(self.seq_lens[i]),
                 )
@@ -159,7 +184,6 @@ class ForwardBatch:
                             )
                         ]
                     ] * 3
-                    mrope_position_delta = 0
                 else:
                     # TODO: current qwen2-vl do not support radix cache since mrope position calculation
                     mrope_positions, mrope_position_delta = (
@@ -173,8 +197,8 @@ class ForwardBatch:
                             context_len=0,
                         )
                     )
+                    batch.image_inputs[i].mrope_position_delta = mrope_position_delta
                 mrope_positions_list[i] = mrope_positions
-                batch.mrope_positions_delta[i].append(mrope_position_delta)
 
         self.mrope_positions = torch.concat(
             [torch.tensor(pos, device=device) for pos in mrope_positions_list],
@@ -205,31 +229,36 @@ class ForwardBatch:
             seq_lens_sum=batch.seq_lens_sum,
             return_logprob=batch.return_logprob,
             top_logprobs_nums=batch.top_logprobs_nums,
+            global_num_tokens=batch.global_num_tokens,
+            can_run_dp_cuda_graph=batch.can_run_dp_cuda_graph,
             lora_paths=batch.lora_paths,
             sampling_info=batch.sampling_info,
         )
 
+        if ret.global_num_tokens is not None:
+            max_len = max(ret.global_num_tokens)
+            ret.gathered_buffer = torch.zeros(
+                (max_len * model_runner.tp_size, model_runner.model_config.hidden_size),
+                dtype=model_runner.dtype,
+                device=device,
+            )
+
+        if ret.forward_mode.is_idle():
+            return ret
+
         # Init position information
         if not ret.forward_mode.is_decode():
-            ret.positions = torch.concat(
-                [
-                    torch.arange(prefix_len, prefix_len + extend_len, device=device)
-                    for prefix_len, extend_len in zip(
-                        batch.extend_prefix_lens, batch.extend_seq_lens
-                    )
-                ],
-                axis=0,
-            )
-            ret.extend_num_tokens = batch.extend_num_tokens
             ret.extend_seq_lens = torch.tensor(
                 batch.extend_seq_lens, dtype=torch.int32
             ).to(device, non_blocking=True)
-
             ret.extend_prefix_lens = torch.tensor(
                 batch.extend_prefix_lens, dtype=torch.int32
             ).to(device, non_blocking=True)
-            ret.extend_start_loc = torch.zeros_like(ret.extend_seq_lens)
-            ret.extend_start_loc[1:] = torch.cumsum(ret.extend_seq_lens[:-1], dim=0)
+            ret.extend_num_tokens = batch.extend_num_tokens
+            ret.positions, ret.extend_start_loc = compute_position_triton(
+                ret.extend_prefix_lens, ret.extend_seq_lens, ret.extend_num_tokens
+            )
+            ret.extend_prefix_lens_cpu = batch.extend_prefix_lens
             ret.extend_seq_lens_cpu = batch.extend_seq_lens
             ret.extend_logprob_start_lens_cpu = batch.extend_logprob_start_lens
 
@@ -246,3 +275,72 @@ class ForwardBatch:
             model_runner.lora_manager.prepare_lora_batch(ret)
 
         return ret
+
+
+def compute_position_triton(
+    extend_prefix_lens: torch.Tensor, extend_seq_lens: torch.Tensor, extend_seq_lens_sum
+):
+    """Compute positions. It is a fused version of `compute_position_torch`."""
+    batch_size = extend_seq_lens.shape[0]
+    positions = torch.empty(
+        extend_seq_lens_sum, dtype=torch.int64, device=extend_seq_lens.device
+    )
+    extend_start_loc = torch.empty(
+        batch_size, dtype=torch.int32, device=extend_seq_lens.device
+    )
+
+    # Launch kernel
+    compute_position_kernel[(batch_size,)](
+        positions,
+        extend_start_loc,
+        extend_prefix_lens,
+        extend_seq_lens,
+    )
+
+    return positions, extend_start_loc
+
+
+@triton.jit
+def compute_position_kernel(
+    positions,
+    extend_start_loc,
+    extend_prefix_lens,
+    extend_seq_lens,
+):
+    BLOCK_SIZE: tl.constexpr = 512
+    pid = tl.program_id(0)
+
+    prefix_len = tl.load(extend_prefix_lens + pid)
+    seq_len = tl.load(extend_seq_lens + pid)
+
+    # TODO: optimize this?
+    cumsum_start = 0
+    for i in range(pid):
+        cumsum_start += tl.load(extend_seq_lens + i)
+
+    num_loop = tl.cdiv(seq_len, BLOCK_SIZE)
+    for i in range(num_loop):
+        offset = tl.arange(0, BLOCK_SIZE) + i * BLOCK_SIZE
+        tl.store(
+            positions + cumsum_start + offset,
+            prefix_len + offset,
+            mask=offset < seq_len,
+        )
+    tl.store(extend_start_loc + pid, cumsum_start)
+
+
+def compute_position_torch(
+    extend_prefix_lens: torch.Tensor, extend_seq_lens: torch.Tensor
+):
+    positions = torch.concat(
+        [
+            torch.arange(
+                prefix_len, prefix_len + extend_len, device=extend_prefix_lens.device
+            )
+            for prefix_len, extend_len in zip(extend_prefix_lens, extend_seq_lens)
+        ],
+        axis=0,
+    )
+    extend_start_loc = torch.zeros_like(extend_seq_lens)
+    extend_start_loc[1:] = torch.cumsum(extend_seq_lens[:-1], dim=0)
+    return positions.to(torch.int64), extend_start_loc

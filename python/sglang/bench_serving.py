@@ -15,6 +15,7 @@ import argparse
 import asyncio
 import json
 import os
+import pickle
 import random
 import resource
 import sys
@@ -421,6 +422,37 @@ def get_tokenizer(
     )
 
 
+def get_dataset(args, tokenizer):
+    if args.dataset_name == "sharegpt":
+        input_requests = sample_sharegpt_requests(
+            dataset_path=args.dataset_path,
+            num_requests=args.num_prompts,
+            tokenizer=tokenizer,
+            fixed_output_len=args.sharegpt_output_len,
+        )
+    elif args.dataset_name == "random":
+        input_requests = sample_random_requests(
+            input_len=args.random_input_len,
+            output_len=args.random_output_len,
+            num_prompts=args.num_prompts,
+            range_ratio=args.random_range_ratio,
+            tokenizer=tokenizer,
+            dataset_path=args.dataset_path,
+        )
+    elif args.dataset_name == "generated-shared-prefix":
+        input_requests = sample_generated_shared_prefix_requests(
+            num_groups=args.gen_num_groups,
+            prompts_per_group=args.gen_prompts_per_group,
+            system_prompt_len=args.gen_system_prompt_len,
+            question_len=args.gen_question_len,
+            output_len=args.gen_output_len,
+            tokenizer=tokenizer,
+        )
+    else:
+        raise ValueError(f"Unknown dataset: {args.dataset_name}")
+    return input_requests
+
+
 ASYNC_REQUEST_FUNCS = {
     "sglang": async_request_sglang_generate,
     "sglang-native": async_request_sglang_generate,
@@ -443,6 +475,8 @@ class BenchmarkMetrics:
     input_throughput: float
     output_throughput: float
     output_throughput_retokenized: float
+    total_throughput: float
+    total_throughput_retokenized: float
     mean_ttft_ms: float
     median_ttft_ms: float
     std_ttft_ms: float
@@ -590,17 +624,24 @@ def sample_random_requests(
             (data["conversations"][0]["value"], data["conversations"][1]["value"])
             for data in dataset
         ]
-
         # Shuffle the dataset.
         random.shuffle(dataset)
 
         # Filter out sequences that are too long or too short
         input_requests: List[Tuple[str, int, int]] = []
-        for i in range(num_prompts):
+        for data in dataset:
+            i = len(input_requests)
+            if i == num_prompts:
+                break
+
             # Tokenize the prompts and completions.
-            prompt = dataset[i][0]
+            prompt = data[0]
             prompt_token_ids = tokenizer.encode(prompt)
             prompt_len = len(prompt_token_ids)
+
+            # Skip empty prompt
+            if prompt_len == 0:
+                continue
 
             if prompt_len > input_lens[i]:
                 input_ids = prompt_token_ids[: input_lens[i]]
@@ -624,6 +665,79 @@ def sample_random_requests(
 
     print(f"#Input tokens: {np.sum(input_lens)}")
     print(f"#Output tokens: {np.sum(output_lens)}")
+    return input_requests
+
+
+def gen_prompt(tokenizer, token_num):
+    """Generate a random prompt of specified token length using tokenizer vocabulary."""
+    all_available_tokens = list(tokenizer.get_vocab().values())
+    selected_tokens = random.choices(all_available_tokens, k=token_num)
+    return tokenizer.decode(selected_tokens)
+
+
+def sample_generated_shared_prefix_requests(
+    num_groups: int,
+    prompts_per_group: int,
+    system_prompt_len: int,
+    question_len: int,
+    output_len: int,
+    tokenizer: PreTrainedTokenizerBase,
+) -> List[Tuple[str, int, int]]:
+    if args.generated_input_path and os.path.exists(args.generated_input_path):
+        print(f"\nloading generated input data from {args.generated_input_path}")
+        with open(args.generated_input_path, "rb") as f:
+            return pickle.load(f)
+
+    """Generate benchmark requests with shared system prompts using random tokens."""
+    # Generate system prompts for each group
+    system_prompts = []
+    for _ in range(num_groups):
+        system_prompt = gen_prompt(tokenizer, system_prompt_len)
+        system_prompts.append(system_prompt)
+
+    # Generate questions
+    questions = []
+    for _ in range(num_groups * prompts_per_group):
+        question = gen_prompt(tokenizer, question_len)
+        questions.append(question)
+
+    # Shuffle questions
+    random.shuffle(questions)
+
+    # Combine system prompts with questions
+    input_requests = []
+    total_input_tokens = 0
+    total_output_tokens = 0
+
+    for group_idx in range(num_groups):
+        system_prompt = system_prompts[group_idx]
+        for prompt_idx in range(prompts_per_group):
+            question = questions[group_idx * prompts_per_group + prompt_idx]
+            full_prompt = f"{system_prompt}\n\n{question}"
+            prompt_len = len(tokenizer.encode(full_prompt))
+
+            input_requests.append((full_prompt, prompt_len, output_len))
+            total_input_tokens += prompt_len
+            total_output_tokens += output_len
+
+    print(f"\nGenerated shared prefix dataset statistics:")
+    print(f"Number of groups: {num_groups}")
+    print(f"Prompts per group: {prompts_per_group}")
+    print(f"Total prompts: {len(input_requests)}")
+    print(f"Total input tokens: {total_input_tokens}")
+    print(f"Total output tokens: {total_output_tokens}")
+    print(
+        f"Average system prompt length: {sum(len(tokenizer.encode(sp)) for sp in system_prompts) / len(system_prompts):.1f} tokens"
+    )
+    print(
+        f"Average question length: {sum(len(tokenizer.encode(q)) for q in questions) / len(questions):.1f} tokens\n"
+    )
+    if args.generated_input_save_path:
+        print(f"Saving generated input data to {args.generated_input_save_path}")
+        os.makedirs(os.path.dirname(args.generated_input_save_path), exist_ok=True)
+        with open(args.generated_input_save_path, "wb") as f:
+            pickle.dump(input_requests, f)
+
     return input_requests
 
 
@@ -696,6 +810,9 @@ def calculate_metrics(
         input_throughput=total_input / dur_s,
         output_throughput=sum(output_lens) / dur_s,
         output_throughput_retokenized=sum(retokenized_output_lens) / dur_s,
+        total_throughput=(total_input + sum(output_lens)) / dur_s,
+        total_throughput_retokenized=(total_input + sum(retokenized_output_lens))
+        / dur_s,
         mean_ttft_ms=np.mean(ttfts or 0)
         * 1000,  # ttfts is empty if streaming is not supported by backend
         median_ttft_ms=np.median(ttfts or 0) * 1000,
@@ -811,6 +928,11 @@ async def benchmark(
     print(
         "{:<40} {:<10.2f}".format(
             "Output token throughput (tok/s):", metrics.output_throughput
+        )
+    )
+    print(
+        "{:<40} {:<10.2f}".format(
+            "Total token throughput (tok/s):", metrics.total_throughput
         )
     )
     print("{s:{c}^{n}}".format(s="End-to-End Latency", n=50, c="-"))
@@ -1030,26 +1152,7 @@ def run_benchmark(args_: argparse.Namespace):
 
     tokenizer = get_tokenizer(tokenizer_id)
 
-    if args.dataset_name == "sharegpt":
-        assert args.random_input_len is None and args.random_output_len is None
-        input_requests = sample_sharegpt_requests(
-            dataset_path=args.dataset_path,
-            num_requests=args.num_prompts,
-            tokenizer=tokenizer,
-            fixed_output_len=args.sharegpt_output_len,
-        )
-    elif args.dataset_name == "random":
-        assert args.random_input_len is not None and args.random_output_len is not None
-        input_requests = sample_random_requests(
-            input_len=args.random_input_len,
-            output_len=args.random_output_len,
-            num_prompts=args.num_prompts,
-            range_ratio=args.random_range_ratio,
-            tokenizer=tokenizer,
-            dataset_path=args.dataset_path,
-        )
-    else:
-        raise ValueError(f"Unknown dataset: {args.dataset_name}")
+    input_requests = get_dataset(args, tokenizer)
 
     if not args.multi:
         return asyncio.run(
@@ -1121,7 +1224,7 @@ if __name__ == "__main__":
         "--dataset-name",
         type=str,
         default="sharegpt",
-        choices=["sharegpt", "random"],
+        choices=["sharegpt", "random", "generated-shared-prefix"],
         help="Name of the dataset to benchmark on.",
     )
     parser.add_argument(
@@ -1152,10 +1255,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--random-input-len",
         type=int,
+        default=1024,
         help="Number of input tokens per request, used only for random dataset.",
     )
     parser.add_argument(
         "--random-output-len",
+        default=1024,
         type=int,
         help="Number of output tokens per request, used only for random dataset.",
     )
@@ -1208,5 +1313,48 @@ if __name__ == "__main__":
         help="Append given JSON object to the request payload. You can use this to specify"
         "additional generate params like sampling params.",
     )
+
+    group = parser.add_argument_group("generated-shared-prefix dataset arguments")
+    group.add_argument(
+        "--gen-num-groups",
+        type=int,
+        default=64,
+        help="Number of system prompt groups for generated-shared-prefix dataset",
+    )
+    group.add_argument(
+        "--gen-prompts-per-group",
+        type=int,
+        default=16,
+        help="Number of prompts per system prompt group for generated-shared-prefix dataset",
+    )
+    group.add_argument(
+        "--gen-system-prompt-len",
+        type=int,
+        default=2048,
+        help="Target length in tokens for system prompts in generated-shared-prefix dataset",
+    )
+    group.add_argument(
+        "--gen-question-len",
+        type=int,
+        default=128,
+        help="Target length in tokens for questions in generated-shared-prefix dataset",
+    )
+    group.add_argument(
+        "--gen-output-len",
+        type=int,
+        default=256,
+        help="Target length in tokens for outputs in generated-shared-prefix dataset",
+    )
+    parser.add_argument(
+        "--generated-input-save-path",
+        type=str,
+        help="Path to save generated input data",
+    )
+    parser.add_argument(
+        "--generated-input-path",
+        type=str,
+        help="Path to load previously generated input data",
+    )
+
     args = parser.parse_args()
     run_benchmark(args)
