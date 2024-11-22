@@ -82,7 +82,6 @@ from sglang.srt.utils import (
     suppress_other_loggers,
 )
 
-from sglang.srt.managers.data_parallel_controller import TreeNodeSend
 from sglang.utils import get_exception_traceback
 
 logger = logging.getLogger(__name__)
