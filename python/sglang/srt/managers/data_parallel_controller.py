@@ -342,15 +342,11 @@ class DataParallelController:
             indices = [i for i, x in enumerate(ratio) if x == max_ratio]
             gpu_idx = random.choice(indices)
         else:
-            # filter_result = [
-                # a * b for a, b in zip(no_waiting, self.main_available_kv_cache)
-            # ]
-            max_value = min(self.main_num_running_req)
+            max_value = max(self.main_available_kv_cache)
             max_indices = [
-                index for index, value in enumerate(self.main_num_running_req) if value == max_value
+                index for index, value in enumerate(self.main_available_kv_cache) if value == max_value
             ]
             gpu_idx = random.choice(max_indices)
-            # logger.info(f'[allocate_gpu filter_result]{filter_result}')
 
         return gpu_idx
 
@@ -385,7 +381,7 @@ class DataParallelController:
         all_waiting = min(self.main_num_waiting_req) > 0
         no_waiting = [1 if waiting <= 0 else 0 for waiting in self.main_num_waiting_req]
         
-        occipuied_lens = [(req_len - prefix_len + req.sampling_params.max_new_tokens * 0.2) for req_len, prefix_len in zip(req_lens, prefix_lens)]
+        occipuied_lens = [(req_len - prefix_len + req.sampling_params.max_new_tokens * 0.8) for req_len, prefix_len in zip(req_lens, prefix_lens)]
         # cache_hit_rate = [prefix_len / req_len for prefix_len, req_len in zip(prefix_lens, req_lens)]
         # logger.info(f'[cache_hit_rate]{cache_hit_rate}')
         # if True:
