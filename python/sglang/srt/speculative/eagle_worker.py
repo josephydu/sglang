@@ -166,7 +166,7 @@ class EAGLEWorker(TpModelWorker):
         spec_info.prev_mode = forward_batch.forward_mode
 
     # Don't support prefix share now.
-    def finish_request(self, reqs: Union[Req, List[Req]]):
+    def finish_request(self, reqs: Union[Req, List[Req]], batch: ScheduleBatch):
         if not isinstance(reqs, List):
             reqs = [reqs]
         for req in reqs:
@@ -183,3 +183,5 @@ class EAGLEWorker(TpModelWorker):
             ][:req_len]
             self.model_runner.token_to_kv_pool.free(kv_indices)
             self.model_runner.req_to_token_pool.free(req.req_pool_idx)
+        # Delete req from sample output
+        batch.spec_info.retract_request(batch)

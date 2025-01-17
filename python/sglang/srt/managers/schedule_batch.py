@@ -1089,6 +1089,7 @@ class ScheduleBatch:
         self.has_grammar = any(req.grammar for req in self.reqs)
 
         self.sampling_info.filter_batch(keep_indices, new_indices)
+        self.spec_info.filter_batch(keep_indices)
 
     def merge_batch(self, other: "ScheduleBatch"):
         # Penalizer orchestrator must be merged before Batch.reqs is merged. This is because
