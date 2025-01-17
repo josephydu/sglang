@@ -166,7 +166,7 @@ class EAGLEWorker(TpModelWorker):
         spec_info.prev_mode = forward_batch.forward_mode
 
     # Don't support prefix share now.
-    def finish_request(self, reqs: Union[Req, List[Req]], batch: ScheduleBatch):
+    def finish_request(self, reqs: Union[Req, List[Req]]):
         if not isinstance(reqs, List):
             reqs = [reqs]
         for req in reqs:
