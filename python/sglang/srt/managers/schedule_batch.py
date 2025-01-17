@@ -926,7 +926,7 @@ class ScheduleBatch:
             req.reset_for_retract()
 
         self.filter_batch(keep_indices=sorted_indices)
-
+        self.spec_info.retract_reqs(keep_indices=sorted_indices)
         # Reqs in batch are filtered
         total_decoded_tokens = sum(len(r.output_ids) for r in self.reqs)
         total_max_new_tokens = sum(r.sampling_params.max_new_tokens for r in self.reqs)
