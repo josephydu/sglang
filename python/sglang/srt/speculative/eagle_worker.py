@@ -183,3 +183,4 @@ class EAGLEWorker(TpModelWorker):
             ][:req_len]
             self.model_runner.token_to_kv_pool.free(kv_indices)
             self.model_runner.req_to_token_pool.free(req.req_pool_idx)
+            
