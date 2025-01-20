@@ -16,7 +16,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
     int bid = blockIdx.x;
     int tid = threadIdx.x;
 
-    printf("tid == %d\\n", tid);
+    printf("tid == %d,draft_token_num=%d\\n", tid,draft_token_num);
     if (tid >= draft_token_num) {
         return;
     }
