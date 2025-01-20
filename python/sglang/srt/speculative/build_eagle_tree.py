@@ -41,6 +41,11 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
 
     int cur_position = tid - 1;
     while (true) {
+        if (cur_position == 64) {
+            printf("hahahahha");
+            selected_index[bid][cur_position];
+        }
+
         depends_order[position] = cur_position + 1;
         position += 1;
 
@@ -53,7 +58,6 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
 
         int token_idx = parent_list[bid][parent_tb_idx];
         for (cur_position = 0; cur_position < draft_token_num; cur_position++) {
-            printf("cur position = %d, selected_index[bid][cur_position] = %d\\n", cur_position,selected_index[bid][cur_position] );
             if (selected_index[bid][cur_position] == token_idx) {
                 break;
             }
