@@ -92,6 +92,13 @@ def build_tree_kernel(parent_list, top_score_index, seq_lens, topk, depth, draft
     )
     positions = torch.empty((bs * draft_token,), device=device, dtype=torch.long)
 
+    print("parent_list shape:", parent_list.shape)
+    print("top_score_index shape:", top_score_index.shape)
+    print("seq_lens shape:", seq_lens.shape)
+    print("tree_mask shape:", tree_mask.shape)
+    print("positions shape:", positions.shape)
+    print("retrive_index shape:", retrive_index.shape)
+
     kernels.build_tree(
         parent_list,
         top_score_index,
@@ -106,8 +113,6 @@ def build_tree_kernel(parent_list, top_score_index, seq_lens, topk, depth, draft
         block=(64, 1, 1),
     )
     index = retrive_index.sum(dim=-1) != -depth - 2
-    print(f"index.shape = {index.shape}")
-    print(f"retrive_index.shape = {retrive_index.shape}")
     cum_len = torch.cumsum(torch.sum(index, dim=-1), dim=-1)
     retrive_cum_len = torch.zeros(
         (cum_len.numel() + 1,), dtype=torch.int32, device="cuda"
