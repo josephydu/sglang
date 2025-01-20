@@ -12,6 +12,8 @@ kernels = cutex.SourceModule(
 //cuda
 __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected_index, Tensor<int, 1> verified_seq_len,
         Tensor<bool, 1> tree_mask, Tensor<long, 1> positions, Tensor<long, 3> retrive_index, int topk, int depth, int draft_token_num) {
+
+    printf("shape %d, %d\\n", selected_index.size(0), selected_index.size(1));
     int bid = blockIdx.x;
     int tid = threadIdx.x;
 
@@ -41,37 +43,24 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
 
     int cur_position = tid - 1;
     while (true) {
-        if (cur_position == 65) {
-            printf("hahahahha655\\n");
-            selected_index[bid][cur_position];
-        }
 
-        if (cur_position == 64) {
-            printf("hahahahha64\\n");
-            selected_index[bid][cur_position];
-        }
-
-        if (cur_position ==63) {
-            printf("hahahahha63\\n");
-            selected_index[bid][cur_position];
-        }
 
         depends_order[position] = cur_position + 1;
-        // position += 1;
+        position += 1;
 
-        // tree_mask[token_tree_idx + cur_position] = true;
+        tree_mask[token_tree_idx + cur_position] = true;
 
-        // int parent_tb_idx = selected_index[bid][cur_position] / topk;
-        // if (parent_tb_idx == 0) {
-        //     break;
-        // }
+        int parent_tb_idx = selected_index[bid][cur_position] / topk;
+        if (parent_tb_idx == 0) {
+            break;
+        }
 
-        // int token_idx = parent_list[bid][parent_tb_idx];
-        // for (cur_position = 0; cur_position < draft_token_num; cur_position++) {
-        //     if (selected_index[bid][cur_position] == token_idx) {
-        //         break;
-        //     }
-        // }
+        int token_idx = parent_list[bid][parent_tb_idx];
+        for (cur_position = 0; cur_position < draft_token_num; cur_position++) {
+            if (selected_index[bid][cur_position] == token_idx) {
+                break;
+            }
+        }
     }
 
     positions[bid * draft_token_num + tid] = position + seq_len;
