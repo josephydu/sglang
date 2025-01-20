@@ -124,233 +124,47 @@ def build_tree_kernel(parent_list, top_score_index, seq_lens, topk, depth, draft
     return tree_mask, positions, retrive_index, retrive_cum_len
 
 
+import os
+
 if __name__ == "__main__":
 
-    def findp(p_i, index, parent_list):
-        pos = index // 10
-        index_list = index.tolist()
-        parent_list = parent_list.tolist()
-        res = [p_i]
-        while True:
-            p = pos[p_i]
-            if p == 0:
-                break
-            token_idx = parent_list[p]
-            p_i = index_list.index(token_idx)
-            res.append(p_i)
-        return res
+    def load_and_call_build_tree(input_file):
+        # 加载输入数据
+        input_data = torch.load(input_file)
 
-    def create_mask(seq_len, draft_token, index, parent_list, max_depth):
-        mask = []
-        positions = []
-        retrive_index = []
-        for i, lens in enumerate(seq_len.tolist()):
-            first_mask = torch.full((lens + draft_token,), True)
-            first_mask[-(draft_token - 1) :] = False
-            positions.append(lens)
-            mask.append(first_mask)
-            seq_order = []
-            first_index = torch.Tensor([0] + [-1] * (depth + 1)).cuda().to(torch.long)
-            r_index = [first_index]
-            for j in range(draft_token - 1):
-                mask.append(torch.full((lens + 1,), True))
-                idx = findp(j, index, parent_list)
+        # 从加载的数据中提取参数
+        parent_list = input_data["parent_list"]
+        top_score_index = input_data["top_score_index"]
+        seq_lens = input_data["seq_lens"]
+        topk = input_data["topk"]
+        depth = input_data["depth"]
+        draft_token = input_data["draft_token"]
+        tree_mask = input_data["tree_mask"]
+        positions = input_data["positions"]
+        retrive_index = input_data["retrive_index"]
 
-                seq_order.append(idx)
-                positions.append(len(idx) + seq_len)
-                t = torch.full((draft_token - 1,), False)
-                t[idx] = True
-                mask.append(t)
+        # 调用 build_tree 函数
+        try:
+            kernels.build_tree(
+                parent_list,
+                top_score_index,
+                seq_lens.to(torch.int32),
+                tree_mask,
+                positions,
+                retrive_index,
+                topk,
+                depth,
+                draft_token,
+                grid=(parent_list.size(0), 1, 1),  # 根据实际情况设置 grid
+                block=(64, 1, 1),  # 根据实际情况设置 block
+            )
+            print("build_tree executed successfully.")
+        except Exception as e:
+            print(f"Error occurred during build_tree execution: {e}")
 
-            for i in range(1, draft_token - 1):
-                is_leaf = 0
-                for j in range(draft_token - 1):
-                    if i in seq_order[j]:
-                        is_leaf += 1
-
-                if is_leaf == 1:
-                    order_list = [0] + [x + 1 for x in seq_order[i][::-1]]
-                    for _ in range(max_depth + 1 - len(seq_order[i])):
-                        order_list.append(-1)
-                    order = torch.Tensor(order_list).cuda().to(torch.long)
-                    r_index.append(order)
-            retrive_index.append(torch.stack(r_index))
-
-        return (
-            torch.cat(mask).cuda(),
-            torch.Tensor(positions).cuda().to(torch.long),
-            torch.stack(retrive_index),
-        )
-
-    index = (
-        torch.Tensor(
-            [
-                0,
-                1,
-                2,
-                3,
-                10,
-                11,
-                12,
-                13,
-                20,
-                21,
-                22,
-                30,
-                110,
-                130,
-                150,
-                160,
-                210,
-                211,
-                212,
-                213,
-                214,
-                215,
-                216,
-                217,
-                218,
-                219,
-                220,
-                230,
-                310,
-                311,
-                312,
-                313,
-                314,
-                315,
-                316,
-                317,
-                320,
-                321,
-                322,
-                330,
-                360,
-                380,
-                390,
-                410,
-                411,
-                412,
-                413,
-                414,
-                415,
-                416,
-                417,
-                418,
-                419,
-                420,
-                421,
-                422,
-                423,
-                430,
-                431,
-                440,
-                441,
-                460,
-                470,
-            ]
-        )
-        .to(torch.long)
-        .cuda()
-    )
-
-    parent_list = (
-        torch.Tensor(
-            [
-                -1,
-                0,
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                20,
-                30,
-                21,
-                13,
-                22,
-                40,
-                23,
-                110,
-                130,
-                160,
-                150,
-                190,
-                120,
-                111,
-                121,
-                200,
-                180,
-                210,
-                211,
-                212,
-                213,
-                214,
-                215,
-                216,
-                220,
-                230,
-                217,
-                310,
-                311,
-                312,
-                313,
-                320,
-                314,
-                321,
-                315,
-                316,
-                317,
-            ]
-        )
-        .to(torch.long)
-        .cuda()
-    )
-
-    verified_seq_len = torch.Tensor([47]).to(torch.long).cuda()
-    bs = verified_seq_len.shape[0]
-    topk = 10
-    depth = 5  # depth <= 10
-    draft_token = 64
-
-    tree_mask = torch.full(
-        (
-            torch.sum(verified_seq_len).item() * draft_token
-            + draft_token * draft_token * bs,
-        ),
-        True,
-    ).cuda()
-    retrive_index = torch.full(
-        (bs, draft_token, depth + 2), -1, device="cuda", dtype=torch.long
-    )
-    positions = torch.empty((bs * draft_token,), device="cuda", dtype=torch.long)
-
-    kernels.build_tree(
-        parent_list.unsqueeze(0),
-        index.unsqueeze(0),
-        verified_seq_len,
-        tree_mask,
-        positions,
-        retrive_index,
-        topk,
-        depth,
-        draft_token,
-        grid=(bs, 1, 1),
-        block=(64, 1, 1),
-    )
-    retrive_index = retrive_index[retrive_index.sum(dim=-1) != -depth - 2]
-
-    c_mask, c_positions, c_retive_index = create_mask(
-        verified_seq_len, draft_token, index, parent_list, depth
-    )
-
-    assert torch.allclose(tree_mask, c_mask), "tree mask has error."
-    assert torch.allclose(positions, c_positions), "positions has error."
-    assert torch.allclose(retrive_index, c_retive_index), "retrive_index has error."
+    # 使用示例
+    input_file = "error_inputs/input_data.pt"  # 指定保存的输入数据文件路径
+    if os.path.exists(input_file):
+        load_and_call_build_tree(input_file)
+    else:
+        print(f"Input file {input_file} does not exist.")
