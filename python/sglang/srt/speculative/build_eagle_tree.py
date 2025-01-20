@@ -28,7 +28,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
 
     // Ensure token_tree_idx is within bounds
     if (token_tree_idx >= tree_mask.size()) {
-        printf("ERROR: Block %d, Thread %d: token_tree_idx out of bounds! token_tree_idx = %d, tree_mask size = %d\n",
+        printf("ERROR: Block %d, Thread %d: token_tree_idx out of bounds! token_tree_idx = %d, tree_mask size = %d\\n",
                bid, tid, token_tree_idx, tree_mask.size());
         return;
     }
@@ -50,7 +50,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
     while (true) {
         // Check if selected_index is out of bounds
         if (cur_position >= selected_index.size(1)) {
-            printf("ERROR: Block %d, Thread %d: selected_index out of bounds! cur_position = %d, selected_index size = %d\n",
+            printf("ERROR: Block %d, Thread %d: selected_index out of bounds! cur_position = %d, selected_index size = %d\\n",
                    bid, tid, cur_position, selected_index.size(1));
             return;
         }
@@ -60,7 +60,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
 
         // Check if tree_mask is out of bounds
         if (token_tree_idx + cur_position >= tree_mask.size()) {
-            printf("ERROR: Block %d, Thread %d: tree_mask out of bounds! token_tree_idx = %d, cur_position = %d, tree_mask size = %d\n",
+            printf("ERROR: Block %d, Thread %d: tree_mask out of bounds! token_tree_idx = %d, cur_position = %d, tree_mask size = %d\\n",
                    bid, tid, token_tree_idx, cur_position, tree_mask.size());
             return;
         }
@@ -80,7 +80,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
 
         // Check if cur_position is out of bounds
         if (cur_position >= draft_token_num) {
-            printf("ERROR: Block %d, Thread %d: cur_position out of bounds! cur_position = %d, draft_token_num = %d\n",
+            printf("ERROR: Block %d, Thread %d: cur_position out of bounds! cur_position = %d, draft_token_num = %d\\n",
                    bid, tid, cur_position, draft_token_num);
             return;
         }
