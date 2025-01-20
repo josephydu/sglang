@@ -40,15 +40,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
     int depends_order[10];
 
     int cur_position = tid - 1;
-    printf("select Index = %d, %d\\n", selected_index.size(0), selected_index.size(1));
     while (true) {
-        // Check if selected_index is out of bounds
-        if (cur_position >= selected_index.size(1)) {
-            printf("ERROR: Block %d, Thread %d: selected_index out of bounds! cur_position = %d, selected_index size = %d\\n",
-                   bid, tid, cur_position, selected_index.size(1));
-            return;
-        }
-
         depends_order[position] = cur_position + 1;
         position += 1;
 
@@ -60,17 +52,11 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
         }
 
         int token_idx = parent_list[bid][parent_tb_idx];
+        printf("selected_index.size = %d,%d\n\n", selected_index.size(0), selected_index.size(1));
         for (cur_position = 0; cur_position < draft_token_num; cur_position++) {
             if (selected_index[bid][cur_position] == token_idx) {
                 break;
             }
-        }
-
-        // Check if cur_position is out of bounds
-        if (cur_position >= draft_token_num) {
-            printf("ERROR: Block %d, Thread %d: cur_position out of bounds! cur_position = %d, draft_token_num = %d\\n",
-                   bid, tid, cur_position, draft_token_num);
-            return;
         }
     }
 
