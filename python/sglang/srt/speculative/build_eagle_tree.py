@@ -106,6 +106,8 @@ def build_tree_kernel(parent_list, top_score_index, seq_lens, topk, depth, draft
         block=(64, 1, 1),
     )
     index = retrive_index.sum(dim=-1) != -depth - 2
+    print(f"index.shape = {index.shape}")
+    print(f"retrive_index.shape = {retrive_index.shape}")
     cum_len = torch.cumsum(torch.sum(index, dim=-1), dim=-1)
     retrive_cum_len = torch.zeros(
         (cum_len.numel() + 1,), dtype=torch.int32, device="cuda"
