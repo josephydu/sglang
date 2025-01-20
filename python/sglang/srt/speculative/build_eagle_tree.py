@@ -26,13 +26,6 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
     int seq_len = verified_seq_len[bid];
     int token_tree_idx = seq_tree_idx + (seq_len + draft_token_num) * tid + seq_len + 1;
 
-    // Ensure token_tree_idx is within bounds
-    if (token_tree_idx >= tree_mask.size()) {
-        printf("ERROR: Block %d, Thread %d: token_tree_idx out of bounds! token_tree_idx = %d, tree_mask size = %d\\n",
-               bid, tid, token_tree_idx, tree_mask.size());
-        return;
-    }
-
     for (int i = 0; i < draft_token_num - 1; i++) {
         tree_mask[token_tree_idx + i] = false;
     }
@@ -58,12 +51,6 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
         depends_order[position] = cur_position + 1;
         position += 1;
 
-        // Check if tree_mask is out of bounds
-        if (token_tree_idx + cur_position >= tree_mask.size()) {
-            printf("ERROR: Block %d, Thread %d: tree_mask out of bounds! token_tree_idx = %d, cur_position = %d, tree_mask size = %d\\n",
-                   bid, tid, token_tree_idx, cur_position, tree_mask.size());
-            return;
-        }
         tree_mask[token_tree_idx + cur_position] = true;
 
         int parent_tb_idx = selected_index[bid][cur_position] / topk;
@@ -131,19 +118,43 @@ def build_tree_kernel(parent_list, top_score_index, seq_lens, topk, depth, draft
     print("retrive_index shape:", retrive_index.shape)
     print("====================================")
 
-    kernels.build_tree(
-        parent_list,
-        top_score_index,
-        seq_lens.to(torch.int32),
-        tree_mask,
-        positions,
-        retrive_index,
-        topk,
-        depth,
-        draft_token,
-        grid=(bs, 1, 1),
-        block=(64, 1, 1),
-    )
+    # 创建保存目录
+    save_dir = "error_inputs"
+    os.makedirs(save_dir, exist_ok=True)
+
+    # 保存输入数据到文件
+    input_data = {
+        "parent_list": parent_list.clone(),  # 使用 clone() 确保保存的是原始数据
+        "top_score_index": top_score_index.clone(),
+        "seq_lens": seq_lens.clone(),
+        "topk": topk,
+        "depth": depth,
+        "draft_token": draft_token,
+        "tree_mask": tree_mask.clone(),  # 也可以选择保存 tree_mask
+        "positions": positions.clone(),  # 也可以选择保存 positions
+        "retrive_index": retrive_index.clone(),  # 也可以选择保存 retrive_index
+    }
+
+    input_file = os.path.join(save_dir, "input_data.pt")
+    torch.save(input_data, input_file)
+
+    try:
+        kernels.build_tree(
+            parent_list,
+            top_score_index,
+            seq_lens.to(torch.int32),
+            tree_mask,
+            positions,
+            retrive_index,
+            topk,
+            depth,
+            draft_token,
+            grid=(bs, 1, 1),
+            block=(64, 1, 1),
+        )
+    except Exception as e:
+        print(f"Error occurred: {e}. Input data saved to {input_file}.")
+        raise  # 重新抛出异常以便后续处理
     index = retrive_index.sum(dim=-1) != -depth - 2
     cum_len = torch.cumsum(torch.sum(index, dim=-1), dim=-1)
     retrive_cum_len = torch.zeros(
