@@ -52,7 +52,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
         }
 
         int token_idx = parent_list[bid][parent_tb_idx];
-        printf("selected_index.size = %d,%d\n\n", selected_index.size(0), selected_index.size(1));
+        printf("selected_index.size = %d,%d\\n", selected_index.size(0), selected_index.size(1));
         for (cur_position = 0; cur_position < draft_token_num; cur_position++) {
             if (selected_index[bid][cur_position] == token_idx) {
                 break;
