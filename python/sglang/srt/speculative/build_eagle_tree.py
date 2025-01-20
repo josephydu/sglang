@@ -16,10 +16,10 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
         int tid = threadIdx.x;
 
         // Debug: Print block and thread IDs
-        printf("Block %d, Thread %d: Starting execution.\n", bid, tid);
+        printf("Block %d, Thread %d: Starting execution.\\n", bid, tid);
 
         if (tid >= draft_token_num){
-            printf("Block %d, Thread %d: Exiting (tid >= draft_token_num).\n", bid, tid);
+            printf("Block %d, Thread %d: Exiting (tid >= draft_token_num).\\n", bid, tid);
             return;
         }
 
@@ -31,12 +31,12 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
         int token_tree_idx = seq_tree_idx + (seq_len + draft_token_num) * tid + seq_len + 1;
 
         // Debug: Print indices
-        printf("Block %d, Thread %d: seq_tree_idx = %d, seq_len = %d, token_tree_idx = %d\n",
+        printf("Block %d, Thread %d: seq_tree_idx = %d, seq_len = %d, token_tree_idx = %d\\n",
                bid, tid, seq_tree_idx, seq_len, token_tree_idx);
 
         // Ensure token_tree_idx is within bounds
         if (token_tree_idx >= tree_mask.size()) {
-            printf("ERROR: Block %d, Thread %d: token_tree_idx out of bounds! token_tree_idx = %d, tree_mask size = %d\n",
+            printf("ERROR: Block %d, Thread %d: token_tree_idx out of bounds! token_tree_idx = %d, tree_mask size = %d\\n",
                    bid, tid, token_tree_idx, tree_mask.size());
             return;
         }
@@ -46,13 +46,13 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
         }
 
         // Debug: Print tree_mask update
-        printf("Block %d, Thread %d: Updated tree_mask at token_tree_idx = %d\n", bid, tid, token_tree_idx);
+        printf("Block %d, Thread %d: Updated tree_mask at token_tree_idx = %d\\n", bid, tid, token_tree_idx);
 
         int position = 0;
         if (tid == 0){
             positions[bid * draft_token_num] = seq_len;
             retrive_index[bid][0][0] = bid * draft_token_num;
-            printf("Block %d, Thread %d: Updated positions and retrive_index for tid == 0.\n", bid, tid);
+            printf("Block %d, Thread %d: Updated positions and retrive_index for tid == 0.\\n", bid, tid);
             return;
         }
 
@@ -65,12 +65,12 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
             tree_mask[token_tree_idx + cur_position] = true;
 
             // Debug: Print depends_order and tree_mask update
-            printf("Block %d, Thread %d: depends_order[%d] = %d, tree_mask[%d] = true\n",
+            printf("Block %d, Thread %d: depends_order[%d] = %d, tree_mask[%d] = true\\n",
                    bid, tid, position - 1, depends_order[position - 1], token_tree_idx + cur_position);
 
             int parent_tb_idx = selected_index[bid][cur_position] / topk;
             if(parent_tb_idx == 0){
-                printf("Block %d, Thread %d: Breaking loop (parent_tb_idx == 0).\n", bid, tid);
+                printf("Block %d, Thread %d: Breaking loop (parent_tb_idx == 0).\\n", bid, tid);
                 break;
             }
 
@@ -82,13 +82,13 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
             }
 
             // Debug: Print cur_position update
-            printf("Block %d, Thread %d: Updated cur_position = %d\n", bid, tid, cur_position);
+            printf("Block %d, Thread %d: Updated cur_position = %d\\n", bid, tid, cur_position);
         }
 
         positions[bid * draft_token_num + tid] = position + seq_len;
 
         // Debug: Print positions update
-        printf("Block %d, Thread %d: Updated positions[%d] = %d\n",
+        printf("Block %d, Thread %d: Updated positions[%d] = %d\\n",
                bid, tid, bid * draft_token_num + tid, position + seq_len);
 
         int is_leaf = 0;
@@ -99,7 +99,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
         }
 
         // Debug: Print is_leaf calculation
-        printf("Block %d, Thread %d: is_leaf = %d\n", bid, tid, is_leaf);
+        printf("Block %d, Thread %d: is_leaf = %d\\n", bid, tid, is_leaf);
 
         if(is_leaf == 1){
             for(int i = 0; i < position; i++){
@@ -108,10 +108,10 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
             retrive_index[bid][tid][0] = bid * draft_token_num;
 
             // Debug: Print retrive_index update
-            printf("Block %d, Thread %d: Updated retrive_index for is_leaf == 1.\n", bid, tid);
+            printf("Block %d, Thread %d: Updated retrive_index for is_leaf == 1.\\n", bid, tid);
         }
 
-        printf("Block %d, Thread %d: Execution completed.\n", bid, tid);
+        printf("Block %d, Thread %d: Execution completed.\\n", bid, tid);
 }
 //!cuda
 """,
