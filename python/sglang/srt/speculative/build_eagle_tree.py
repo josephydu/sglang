@@ -133,15 +133,6 @@ if __name__ == "__main__":
         # 加载输入数据
         input_data = torch.load(input_file)
 
-        print("====================================")
-        print("parent_list shape:", parent_list.shape)
-        print("top_score_index shape:", top_score_index.shape)
-        print("seq_lens shape:", seq_lens.shape)
-        print("tree_mask shape:", tree_mask.shape)
-        print("positions shape:", positions.shape)
-        print("retrive_index shape:", retrive_index.shape)
-        print("====================================")
-
         # 从加载的数据中提取参数
         parent_list = input_data["parent_list"]
         top_score_index = input_data["top_score_index"]
@@ -153,6 +144,14 @@ if __name__ == "__main__":
         positions = input_data["positions"]
         retrive_index = input_data["retrive_index"]
 
+        print("====================================")
+        print("parent_list shape:", parent_list.shape)
+        print("top_score_index shape:", top_score_index.shape)
+        print("seq_lens shape:", seq_lens.shape)
+        print("tree_mask shape:", tree_mask.shape)
+        print("positions shape:", positions.shape)
+        print("retrive_index shape:", retrive_index.shape)
+        print("====================================")
         # 调用 build_tree 函数
         try:
             kernels.build_tree(
