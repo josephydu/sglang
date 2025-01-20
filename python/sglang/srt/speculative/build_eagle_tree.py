@@ -56,22 +56,22 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
             selected_index[bid][cur_position];
         }
 
-        depends_order[position] = cur_position + 1;
-        position += 1;
+        // depends_order[position] = cur_position + 1;
+        // position += 1;
 
-        tree_mask[token_tree_idx + cur_position] = true;
+        // tree_mask[token_tree_idx + cur_position] = true;
 
-        int parent_tb_idx = selected_index[bid][cur_position] / topk;
-        if (parent_tb_idx == 0) {
-            break;
-        }
+        // int parent_tb_idx = selected_index[bid][cur_position] / topk;
+        // if (parent_tb_idx == 0) {
+        //     break;
+        // }
 
-        int token_idx = parent_list[bid][parent_tb_idx];
-        for (cur_position = 0; cur_position < draft_token_num; cur_position++) {
-            if (selected_index[bid][cur_position] == token_idx) {
-                break;
-            }
-        }
+        // int token_idx = parent_list[bid][parent_tb_idx];
+        // for (cur_position = 0; cur_position < draft_token_num; cur_position++) {
+        //     if (selected_index[bid][cur_position] == token_idx) {
+        //         break;
+        //     }
+        // }
     }
 
     positions[bid * draft_token_num + tid] = position + seq_len;
