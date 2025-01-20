@@ -48,7 +48,8 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
 
             long token_idx = parent_list[bid][parent_tb_idx];
             for(cur_position=0; cur_position<draft_token_num;cur_position++){
-                printf("check equal: bid=%d,tid=%d,cur_position=%d,left=%ld, right=%ld, equal=%d\\n", bid, tid, cur_position,selected_index[bid][cur_position], token_idx,selected_index[bid][cur_position]==token_idx?1:0);
+                if (bid == 17)
+                    printf("check equal: bid=%d,tid=%d,cur_position=%d,left=%ld, right=%ld, equal=%d\\n", bid, tid, cur_position,selected_index[bid][cur_position], token_idx,selected_index[bid][cur_position]==token_idx?1:0);
                 if(selected_index[bid][cur_position]==token_idx){
                     break;
                 }
