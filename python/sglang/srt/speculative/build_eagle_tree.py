@@ -13,10 +13,10 @@ kernels = cutex.SourceModule(
 __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected_index, Tensor<int, 1> verified_seq_len,
         Tensor<bool, 1> tree_mask, Tensor<long, 1> positions, Tensor<long, 3> retrive_index, int topk, int depth, int draft_token_num) {
 
-    printf("shape %d, %d\\n", selected_index.size(0), selected_index.size(1));
     int bid = blockIdx.x;
     int tid = threadIdx.x;
 
+    print("tid == %d\\n", tid);
     if (tid >= draft_token_num) {
         return;
     }
