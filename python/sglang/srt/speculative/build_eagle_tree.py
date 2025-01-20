@@ -12,78 +12,95 @@ kernels = cutex.SourceModule(
 //cuda
 __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected_index, Tensor<int, 1> verified_seq_len,
         Tensor<bool, 1> tree_mask, Tensor<long, 1> positions, Tensor<long, 3> retrive_index, int topk, int depth, int draft_token_num) {
-        int bid = blockIdx.x;
-        int tid = threadIdx.x;
+    int bid = blockIdx.x;
+    int tid = threadIdx.x;
 
-        if (tid >= draft_token_num){
-            printf("Block %d, Thread %d: Exiting (tid >= draft_token_num).\\n", bid, tid);
+    if (tid >= draft_token_num) {
+        return;
+    }
+
+    int seq_tree_idx = draft_token_num * draft_token_num * bid;
+    for (int i = 0; i < bid; i++) {
+        seq_tree_idx += verified_seq_len[i] * draft_token_num;
+    }
+    int seq_len = verified_seq_len[bid];
+    int token_tree_idx = seq_tree_idx + (seq_len + draft_token_num) * tid + seq_len + 1;
+
+    // Ensure token_tree_idx is within bounds
+    if (token_tree_idx >= tree_mask.size()) {
+        printf("ERROR: Block %d, Thread %d: token_tree_idx out of bounds! token_tree_idx = %d, tree_mask size = %d\n",
+               bid, tid, token_tree_idx, tree_mask.size());
+        return;
+    }
+
+    for (int i = 0; i < draft_token_num - 1; i++) {
+        tree_mask[token_tree_idx + i] = false;
+    }
+
+    int position = 0;
+    if (tid == 0) {
+        positions[bid * draft_token_num] = seq_len;
+        retrive_index[bid][0][0] = bid * draft_token_num;
+        return;
+    }
+
+    int depends_order[10];
+
+    int cur_position = tid - 1;
+    while (true) {
+        // Check if selected_index is out of bounds
+        if (cur_position >= selected_index.size(1)) {
+            printf("ERROR: Block %d, Thread %d: selected_index out of bounds! cur_position = %d, selected_index size = %d\n",
+                   bid, tid, cur_position, selected_index.size(1));
             return;
         }
 
-        int seq_tree_idx = draft_token_num * draft_token_num * bid;
-        for(int i=0; i<bid; i++){
-            seq_tree_idx += verified_seq_len[i] * draft_token_num;
-        }
-        int seq_len = verified_seq_len[bid];
-        int token_tree_idx = seq_tree_idx + (seq_len + draft_token_num) * tid + seq_len + 1;
+        depends_order[position] = cur_position + 1;
+        position += 1;
 
-        // Ensure token_tree_idx is within bounds
-        if (token_tree_idx >= tree_mask.size()) {
-            printf("ERROR: Block %d, Thread %d: token_tree_idx out of bounds! token_tree_idx = %d, tree_mask size = %d\\n",
-                   bid, tid, token_tree_idx, tree_mask.size());
+        // Check if tree_mask is out of bounds
+        if (token_tree_idx + cur_position >= tree_mask.size()) {
+            printf("ERROR: Block %d, Thread %d: tree_mask out of bounds! token_tree_idx = %d, cur_position = %d, tree_mask size = %d\n",
+                   bid, tid, token_tree_idx, cur_position, tree_mask.size());
             return;
         }
+        tree_mask[token_tree_idx + cur_position] = true;
 
-        for(int i=0; i<draft_token_num-1; i++){
-            tree_mask[token_tree_idx+i] = false;
+        int parent_tb_idx = selected_index[bid][cur_position] / topk;
+        if (parent_tb_idx == 0) {
+            break;
         }
 
-
-        int position = 0;
-        if (tid == 0){
-            positions[bid * draft_token_num] = seq_len;
-            retrive_index[bid][0][0] = bid * draft_token_num;
-            return;
-        }
-
-        int depends_order[64];
-
-        int cur_position = tid - 1;
-        while(true){
-            depends_order[position] = cur_position + 1;
-            position += 1;
-            tree_mask[token_tree_idx + cur_position] = true;
-
-            int parent_tb_idx = selected_index[bid][cur_position] / topk;
-            if(parent_tb_idx == 0){
+        int token_idx = parent_list[bid][parent_tb_idx];
+        for (cur_position = 0; cur_position < draft_token_num; cur_position++) {
+            if (selected_index[bid][cur_position] == token_idx) {
                 break;
             }
-
-            int token_idx = parent_list[bid][parent_tb_idx];
-            for(cur_position = 0; cur_position < draft_token_num; cur_position++){
-                if(selected_index[bid][cur_position] == token_idx){
-                    break;
-                }
-            }
         }
 
-        positions[bid * draft_token_num + tid] = position + seq_len;
-
-        int is_leaf = 0;
-        for(int i = 1; i < draft_token_num; i++){
-            if(tree_mask[seq_tree_idx + i * (draft_token_num + seq_len) + seq_len + tid]) {
-                is_leaf++;
-            }
+        // Check if cur_position is out of bounds
+        if (cur_position >= draft_token_num) {
+            printf("ERROR: Block %d, Thread %d: cur_position out of bounds! cur_position = %d, draft_token_num = %d\n",
+                   bid, tid, cur_position, draft_token_num);
+            return;
         }
+    }
 
+    positions[bid * draft_token_num + tid] = position + seq_len;
 
-        if(is_leaf == 1){
-            for(int i = 0; i < position; i++){
-                retrive_index[bid][tid][position - i] = depends_order[i] + bid * draft_token_num;
-            }
-            retrive_index[bid][tid][0] = bid * draft_token_num;
+    int is_leaf = 0;
+    for (int i = 1; i < draft_token_num; i++) {
+        if (tree_mask[seq_tree_idx + i * (draft_token_num + seq_len) + seq_len + tid]) {
+            is_leaf++;
         }
+    }
 
+    if (is_leaf == 1) {
+        for (int i = 0; i < position; i++) {
+            retrive_index[bid][tid][position - i] = depends_order[i] + bid * draft_token_num;
+        }
+        retrive_index[bid][tid][0] = bid * draft_token_num;
+    }
 }
 //!cuda
 """,
