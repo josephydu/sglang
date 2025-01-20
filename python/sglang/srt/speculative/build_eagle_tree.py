@@ -41,13 +41,16 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
             depends_order[position] = cur_position+1;
             position += 1;
             tree_mask[token_tree_idx+cur_position] = true;
+            if (cur_positon >= draft_token_num) {
+                break;
+            }
             int parent_tb_idx = selected_index[bid][cur_position]/topk;
             if(parent_tb_idx==0){
                 break;
             }
 
             int token_idx = parent_list[bid][parent_tb_idx];
-            for(cur_position=0; cur_position<draft_token_num - 2 ;cur_position++){
+            for(cur_position=0; cur_position<draft_token_num ;cur_position++){
                 if(selected_index[bid][cur_position]==token_idx){
                     break;
                 }
