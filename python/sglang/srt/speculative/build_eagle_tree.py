@@ -56,7 +56,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
             selected_index[bid][cur_position];
         }
 
-        // depends_order[position] = cur_position + 1;
+        depends_order[position] = cur_position + 1;
         // position += 1;
 
         // tree_mask[token_tree_idx + cur_position] = true;
