@@ -14,63 +14,104 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
         Tensor<bool, 1> tree_mask, Tensor<long, 1> positions, Tensor<long, 3> retrive_index, int topk, int depth, int draft_token_num) {
         int bid = blockIdx.x;
         int tid = threadIdx.x;
+
+        // Debug: Print block and thread IDs
+        printf("Block %d, Thread %d: Starting execution.\n", bid, tid);
+
         if (tid >= draft_token_num){
+            printf("Block %d, Thread %d: Exiting (tid >= draft_token_num).\n", bid, tid);
             return;
         }
+
         int seq_tree_idx = draft_token_num * draft_token_num * bid;
         for(int i=0; i<bid; i++){
             seq_tree_idx += verified_seq_len[i] * draft_token_num;
         }
         int seq_len = verified_seq_len[bid];
-        int token_tree_idx = seq_tree_idx + (seq_len+draft_token_num)*tid + seq_len + 1;
+        int token_tree_idx = seq_tree_idx + (seq_len + draft_token_num) * tid + seq_len + 1;
+
+        // Debug: Print indices
+        printf("Block %d, Thread %d: seq_tree_idx = %d, seq_len = %d, token_tree_idx = %d\n",
+               bid, tid, seq_tree_idx, seq_len, token_tree_idx);
+
+        // Ensure token_tree_idx is within bounds
+        if (token_tree_idx >= tree_mask.size()) {
+            printf("ERROR: Block %d, Thread %d: token_tree_idx out of bounds! token_tree_idx = %d, tree_mask size = %d\n",
+                   bid, tid, token_tree_idx, tree_mask.size());
+            return;
+        }
+
         for(int i=0; i<draft_token_num-1; i++){
             tree_mask[token_tree_idx+i] = false;
         }
 
+        // Debug: Print tree_mask update
+        printf("Block %d, Thread %d: Updated tree_mask at token_tree_idx = %d\n", bid, tid, token_tree_idx);
+
         int position = 0;
-        if (tid==0){
-            positions[bid*draft_token_num] = seq_len;
+        if (tid == 0){
+            positions[bid * draft_token_num] = seq_len;
             retrive_index[bid][0][0] = bid * draft_token_num;
+            printf("Block %d, Thread %d: Updated positions and retrive_index for tid == 0.\n", bid, tid);
             return;
         }
 
-        int depends_order[100];
+        int depends_order[10];
 
-        int cur_position = tid-1;
+        int cur_position = tid - 1;
         while(true){
-            depends_order[position] = cur_position+1;
+            depends_order[position] = cur_position + 1;
             position += 1;
-            tree_mask[token_tree_idx+cur_position] = true;
-            int parent_tb_idx = selected_index[bid][cur_position]/topk;
-            if(parent_tb_idx==0){
+            tree_mask[token_tree_idx + cur_position] = true;
+
+            // Debug: Print depends_order and tree_mask update
+            printf("Block %d, Thread %d: depends_order[%d] = %d, tree_mask[%d] = true\n",
+                   bid, tid, position - 1, depends_order[position - 1], token_tree_idx + cur_position);
+
+            int parent_tb_idx = selected_index[bid][cur_position] / topk;
+            if(parent_tb_idx == 0){
+                printf("Block %d, Thread %d: Breaking loop (parent_tb_idx == 0).\n", bid, tid);
                 break;
             }
 
             int token_idx = parent_list[bid][parent_tb_idx];
-            for(cur_position=0; cur_position<draft_token_num;cur_position++){
-                if(selected_index[bid][cur_position]==token_idx){
+            for(cur_position = 0; cur_position < draft_token_num; cur_position++){
+                if(selected_index[bid][cur_position] == token_idx){
                     break;
                 }
             }
+
+            // Debug: Print cur_position update
+            printf("Block %d, Thread %d: Updated cur_position = %d\n", bid, tid, cur_position);
         }
-        positions[bid*draft_token_num+tid] = position + seq_len;
+
+        positions[bid * draft_token_num + tid] = position + seq_len;
+
+        // Debug: Print positions update
+        printf("Block %d, Thread %d: Updated positions[%d] = %d\n",
+               bid, tid, bid * draft_token_num + tid, position + seq_len);
 
         int is_leaf = 0;
-        for(int i=1;i<draft_token_num;i++){
-            if(tree_mask[seq_tree_idx + i * (draft_token_num+seq_len) + seq_len + tid])
-            {
-                is_leaf ++;
+        for(int i = 1; i < draft_token_num; i++){
+            if(tree_mask[seq_tree_idx + i * (draft_token_num + seq_len) + seq_len + tid]) {
+                is_leaf++;
             }
         }
-        if(is_leaf==1){
-            for(int i=0; i<position; i++){
-                retrive_index[bid][tid][position-i] = depends_order[i] + bid * draft_token_num;
+
+        // Debug: Print is_leaf calculation
+        printf("Block %d, Thread %d: is_leaf = %d\n", bid, tid, is_leaf);
+
+        if(is_leaf == 1){
+            for(int i = 0; i < position; i++){
+                retrive_index[bid][tid][position - i] = depends_order[i] + bid * draft_token_num;
             }
-            retrive_index[bid][tid][0] = bid*draft_token_num;
+            retrive_index[bid][tid][0] = bid * draft_token_num;
+
+            // Debug: Print retrive_index update
+            printf("Block %d, Thread %d: Updated retrive_index for is_leaf == 1.\n", bid, tid);
         }
 
-
-
+        printf("Block %d, Thread %d: Execution completed.\n", bid, tid);
 }
 //!cuda
 """,
