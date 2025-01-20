@@ -12,71 +12,62 @@ kernels = cutex.SourceModule(
 //cuda
 __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected_index, Tensor<int, 1> verified_seq_len,
         Tensor<bool, 1> tree_mask, Tensor<long, 1> positions, Tensor<long, 3> retrive_index, int topk, int depth, int draft_token_num) {
-
-    int bid = blockIdx.x;
-    int tid = threadIdx.x;
-
-    if (tid >= draft_token_num) {
-        return;
-    }
-
-    int seq_tree_idx = draft_token_num * draft_token_num * bid;
-    for (int i = 0; i < bid; i++) {
-        seq_tree_idx += verified_seq_len[i] * draft_token_num;
-    }
-    int seq_len = verified_seq_len[bid];
-    int token_tree_idx = seq_tree_idx + (seq_len + draft_token_num) * tid + seq_len + 1;
-
-    for (int i = 0; i < draft_token_num - 1; i++) {
-        tree_mask[token_tree_idx + i] = false;
-    }
-
-    int position = 0;
-    if (tid == 0) {
-        positions[bid * draft_token_num] = seq_len;
-        retrive_index[bid][0][0] = bid * draft_token_num;
-        return;
-    }
-
-    int depends_order[10];
-
-    int cur_position = tid - 1;
-    while (true) {
-
-
-        depends_order[position] = cur_position + 1;
-        position += 1;
-
-        tree_mask[token_tree_idx + cur_position] = true;
-
-        int parent_tb_idx = selected_index[bid][cur_position] / topk;
-        if (parent_tb_idx == 0) {
-            break;
+        int bid = blockIdx.x;
+        int tid = threadIdx.x;
+        if (tid >= draft_token_num){
+            return;
+        }
+        int seq_tree_idx = draft_token_num * draft_token_num * bid;
+        for(int i=0; i<bid; i++){
+            seq_tree_idx += verified_seq_len[i] * draft_token_num;
+        }
+        int seq_len = verified_seq_len[bid];
+        int token_tree_idx = seq_tree_idx + (seq_len+draft_token_num)*tid + seq_len + 1;
+        for(int i=0; i<draft_token_num-1; i++){
+            tree_mask[token_tree_idx+i] = false;
         }
 
-        int token_idx = parent_list[bid][parent_tb_idx];
-        for (cur_position = 0; cur_position < draft_token_num - 2; cur_position++) {
-            if (selected_index[bid][cur_position] == token_idx) {
+        int position = 0;
+        if (tid==0){
+            positions[bid*draft_token_num] = seq_len;
+            retrive_index[bid][0][0] = bid * draft_token_num;
+            return;
+        }
+
+        int depends_order[10];
+
+        int cur_position = tid-1;
+        while(true){
+            depends_order[position] = cur_position+1;
+            position += 1;
+            tree_mask[token_tree_idx+cur_position] = true;
+            int parent_tb_idx = selected_index[bid][cur_position]/topk;
+            if(parent_tb_idx==0){
                 break;
             }
-        }
-    }
 
-    positions[bid * draft_token_num + tid] = position + seq_len;
-
-    int is_leaf = 0;
-    for (int i = 1; i < draft_token_num; i++) {
-        if (tree_mask[seq_tree_idx + i * (draft_token_num + seq_len) + seq_len + tid]) {
-            is_leaf++;
+            int token_idx = parent_list[bid][parent_tb_idx];
+            for(cur_position=0; cur_position<draft_token_num;cur_position++){
+                if(selected_index[bid][cur_position]==token_idx){
+                    break;
+                }
+            }
         }
-    }
+        positions[bid*draft_token_num+tid] = position + seq_len;
 
-    if (is_leaf == 1) {
-        for (int i = 0; i < position; i++) {
-            retrive_index[bid][tid][position - i] = depends_order[i] + bid * draft_token_num;
+        int is_leaf = 0;
+        for(int i=1;i<draft_token_num;i++){
+            if(tree_mask[seq_tree_idx + i * (draft_token_num+seq_len) + seq_len + tid])
+            {
+                is_leaf ++;
+            }
         }
-        retrive_index[bid][tid][0] = bid * draft_token_num;
-    }
+        if(is_leaf==1){
+            for(int i=0; i<position; i++){
+                retrive_index[bid][tid][position-i] = depends_order[i] + bid * draft_token_num;
+            }
+            retrive_index[bid][tid][0] = bid*draft_token_num;
+        }
 }
 //!cuda
 """,
