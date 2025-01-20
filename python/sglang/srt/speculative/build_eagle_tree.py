@@ -16,7 +16,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
     int bid = blockIdx.x;
     int tid = threadIdx.x;
 
-    if (tid >= draft_token_num - 2) {
+    if (tid >= draft_token_num) {
         return;
     }
 
@@ -55,7 +55,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
         }
 
         int token_idx = parent_list[bid][parent_tb_idx];
-        for (cur_position = 0; cur_position < draft_token_num; cur_position++) {
+        for (cur_position = 0; cur_position < draft_token_num - 2; cur_position++) {
             if (selected_index[bid][cur_position] == token_idx) {
                 break;
             }
