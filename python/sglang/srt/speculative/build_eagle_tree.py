@@ -129,8 +129,18 @@ import os
 if __name__ == "__main__":
 
     def load_and_call_build_tree(input_file):
+
         # 加载输入数据
         input_data = torch.load(input_file)
+
+        print("====================================")
+        print("parent_list shape:", parent_list.shape)
+        print("top_score_index shape:", top_score_index.shape)
+        print("seq_lens shape:", seq_lens.shape)
+        print("tree_mask shape:", tree_mask.shape)
+        print("positions shape:", positions.shape)
+        print("retrive_index shape:", retrive_index.shape)
+        print("====================================")
 
         # 从加载的数据中提取参数
         parent_list = input_data["parent_list"]
