@@ -92,12 +92,14 @@ def build_tree_kernel(parent_list, top_score_index, seq_lens, topk, depth, draft
     )
     positions = torch.empty((bs * draft_token,), device=device, dtype=torch.long)
 
+    print("====================================")
     print("parent_list shape:", parent_list.shape)
     print("top_score_index shape:", top_score_index.shape)
     print("seq_lens shape:", seq_lens.shape)
     print("tree_mask shape:", tree_mask.shape)
     print("positions shape:", positions.shape)
     print("retrive_index shape:", retrive_index.shape)
+    print("====================================")
 
     kernels.build_tree(
         parent_list,
