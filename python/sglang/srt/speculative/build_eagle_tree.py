@@ -42,7 +42,12 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
     int cur_position = tid - 1;
     while (true) {
         if (cur_position == 64) {
-            printf("hahahahha");
+            printf("hahahahha64\\n");
+            selected_index[bid][cur_position];
+        }
+
+        if (cur_position ==63) {
+            printf("hahahahha63\\n");
             selected_index[bid][cur_position];
         }
 
