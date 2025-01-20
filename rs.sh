@@ -1,0 +1,1 @@
+python3 -m sglang.launch_server --model /workspace/Llama-2-7b-chat-hf --speculative-algo EAGLE --speculative-draft /workspace/sglang-EAGLE-llama2-chat-7B --speculative-num-steps 5 --speculative-eagle-topk 8 --speculative-num-draft-tokens 64 --mem-fraction 0.7
