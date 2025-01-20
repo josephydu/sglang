@@ -34,7 +34,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
             return;
         }
 
-        int depends_order[10];
+        int depends_order[100];
 
         int cur_position = tid-1;
         while(true){
