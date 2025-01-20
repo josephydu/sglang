@@ -92,28 +92,44 @@ def build_tree_kernel(parent_list, top_score_index, seq_lens, topk, depth, draft
     )
     positions = torch.empty((bs * draft_token,), device=device, dtype=torch.long)
 
-    print("====================================")
-    print("parent_list shape:", parent_list.shape)
-    print("top_score_index shape:", top_score_index.shape)
-    print("seq_lens shape:", seq_lens.shape)
-    print("tree_mask shape:", tree_mask.shape)
-    print("positions shape:", positions.shape)
-    print("retrive_index shape:", retrive_index.shape)
-    print("====================================")
+    # 创建保存目录
+    save_dir = "error_inputs"
+    os.makedirs(save_dir, exist_ok=True)
 
-    kernels.build_tree(
-        parent_list,
-        top_score_index,
-        seq_lens.to(torch.int32),
-        tree_mask,
-        positions,
-        retrive_index,
-        topk,
-        depth,
-        draft_token,
-        grid=(bs, 1, 1),
-        block=(64, 1, 1),
-    )
+    # 保存输入数据到文件
+    input_data = {
+        "parent_list": parent_list.clone(),  # 使用 clone() 确保保存的是原始数据
+        "top_score_index": top_score_index.clone(),
+        "seq_lens": seq_lens.clone(),
+        "topk": topk,
+        "depth": depth,
+        "draft_token": draft_token,
+        "tree_mask": tree_mask.clone(),  # 也可以选择保存 tree_mask
+        "positions": positions.clone(),  # 也可以选择保存 positions
+        "retrive_index": retrive_index.clone(),  # 也可以选择保存 retrive_index
+    }
+
+    input_file = os.path.join(save_dir, "input_data.pt")
+    torch.save(input_data, input_file)
+
+    try:
+        kernels.build_tree(
+            parent_list,
+            top_score_index,
+            seq_lens.to(torch.int32),
+            tree_mask,
+            positions,
+            retrive_index,
+            topk,
+            depth,
+            draft_token,
+            grid=(bs, 1, 1),
+            block=(64, 1, 1),
+        )
+    except Exception as e:
+        print(f"Error occurred: {e}. Input data saved to {input_file}.")
+        raise  # 重新抛出异常以便后续处理
+
     index = retrive_index.sum(dim=-1) != -depth - 2
     cum_len = torch.cumsum(torch.sum(index, dim=-1), dim=-1)
     retrive_cum_len = torch.zeros(
