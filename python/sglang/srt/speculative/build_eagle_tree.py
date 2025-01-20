@@ -40,7 +40,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
     int depends_order[10];
 
     int cur_position = tid - 1;
-    printf("select Index = %d, %d", selected_index.size(0), selected_index.size(1));
+    printf("select Index = %d, %d\n", selected_index.size(0), selected_index.size(1));
     while (true) {
         // Check if selected_index is out of bounds
         if (cur_position >= selected_index.size(1)) {
