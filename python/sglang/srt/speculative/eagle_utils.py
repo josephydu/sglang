@@ -249,7 +249,8 @@ class EAGLEDraftInput(SpecInfo):
                 self.scores.unsqueeze(2), topk_p.reshape(-1, self.topk, self.topk)
             )  # (b, topk, 1) x (b, topk ,topk) -> (b, topk, topk)
             print("==========scores==========")
-            print(torch.isnan(scores).any().item())
+            print(scores)
+            # print(torch.isnan(scores).any().item())
             print("==========scores==========")
 
             topk_cs = torch.topk(
