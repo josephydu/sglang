@@ -48,8 +48,8 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
 
             long token_idx = parent_list[bid][parent_tb_idx];
             for(cur_position=0; cur_position<draft_token_num;cur_position++){
-                // if (bid == 17)
-                    // printf("check equal: bid=%d,tid=%d,cur_position=%d,left=%ld, right=%ld, equal=%d\\n", bid, tid, cur_position,selected_index[bid][cur_position], token_idx,selected_index[bid][cur_position]==token_idx?1:0);
+                if (bid == 17)
+                    printf("check equal: bid=%d,tid=%d,cur_position=%d,left=%ld, right=%ld, equal=%d\\n", bid, tid, cur_position,selected_index[bid][cur_position], token_idx,selected_index[bid][cur_position]==token_idx?1:0);
                 if(selected_index[bid][cur_position]==token_idx){
                     break;
                 }
@@ -147,7 +147,13 @@ def build_tree_kernel(parent_list, top_score_index, seq_lens, topk, depth, draft
     return tree_mask, positions, retrive_index, retrive_cum_len
 
 
+import json
 import os
+
+
+def tensor_to_list(tensor):
+    return tensor.cpu().numpy().tolist()
+
 
 if __name__ == "__main__":
 
@@ -155,7 +161,7 @@ if __name__ == "__main__":
 
         # 加载输入数据
         input_data = torch.load(input_file)
-
+        output_file = "output_data.json"
         # 从加载的数据中提取参数
         parent_list = input_data["parent_list"]
         top_score_index = input_data["top_score_index"]
@@ -166,7 +172,21 @@ if __name__ == "__main__":
         tree_mask = input_data["tree_mask"]
         positions = input_data["positions"]
         retrive_index = input_data["retrive_index"]
+        data_to_save = {
+            "parent_list": tensor_to_list(input_data["parent_list"]),
+            "top_score_index": tensor_to_list(input_data["top_score_index"]),
+            "seq_lens": tensor_to_list(input_data["seq_lens"]),
+            "topk": input_data["topk"],
+            "depth": input_data["depth"],
+            "draft_token": input_data["draft_token"],
+            "tree_mask": tensor_to_list(input_data["tree_mask"]),
+            "positions": tensor_to_list(input_data["positions"]),
+            "retrive_index": tensor_to_list(input_data["retrive_index"]),
+        }
 
+        # 将数据保存到 JSON 文件中
+        with open(output_file, "w") as json_file:
+            json.dump(data_to_save, json_file, indent=4)
         print("====================================")
         print("parent_list shape:", parent_list.shape)
         print("top_score_index shape:", top_score_index.shape)
