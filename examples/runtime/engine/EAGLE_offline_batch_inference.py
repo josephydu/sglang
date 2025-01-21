@@ -30,7 +30,7 @@ def main():
         mem_fraction_static=0.7,
     )
 
-    outputs = llm.generate(prompts, sampling_params)
+    outputs = llm.generate(prompts[:5], sampling_params)
 
     # Print the outputs.
     # for prompt, output in zip(prompts, outputs):
