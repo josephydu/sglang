@@ -238,9 +238,9 @@ class EAGLEDraftInput(SpecInfo):
 
     def prepare_for_decode(self, batch: ScheduleBatch):
         prob = self.sample_output  # shape: (b * top_k, vocab) or (b, vocab)
-        print("=====================")
+        print("=========prob============")
         print(prob)
-        print("=====================")
+        print("=========prob============")
         top = torch.topk(prob, self.topk, dim=-1)
         topk_index, topk_p = (
             top.indices,
