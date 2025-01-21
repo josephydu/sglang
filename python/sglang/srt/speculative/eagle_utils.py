@@ -353,6 +353,9 @@ class EAGLEDraftInput(SpecInfo):
         score_list = torch.cat(self.score_list, dim=1).flatten(
             1
         )  # b, n, topk; n= 1+(self.iter-1)*self.topk
+        print("================score_list================")
+        print(score_list)
+        print("================score_list================")
         ss_token_list = torch.cat(
             self.token_list, dim=1
         )  # b, (self.topk+(self.iter-1)*self.topk)
