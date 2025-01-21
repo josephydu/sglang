@@ -28,7 +28,7 @@ def main():
         speculative_eagle_topk=8,
         speculative_num_draft_tokens=64,
         mem_fraction_static=0.7,
-        tp=4,
+        tp_size=4,
     )
 
     outputs = llm.generate(prompts, sampling_params)
