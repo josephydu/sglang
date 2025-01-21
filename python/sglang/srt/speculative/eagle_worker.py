@@ -160,6 +160,10 @@ class EAGLEWorker(TpModelWorker):
         sample_output = torch.softmax(
             logits_output.next_token_logits, dim=-1
         )  # TODO(kavioyu): Support more sampling methods
+
+        print("==============sample_output==============")
+        print(sample_output)
+        print("============================")
         spec_info = forward_batch.spec_info
         spec_info.sample_output = sample_output
         spec_info.hidden_states = logits_output.hidden_states
