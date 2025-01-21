@@ -185,8 +185,10 @@ if __name__ == "__main__":
         }
 
         # 将数据保存到 JSON 文件中
-        with open(output_file, "w") as json_file:
-            json.dump(data_to_save, json_file, indent=4)
+        with open(output_file, "w") as txt_file:
+            for key, value in data_to_save.items():
+                txt_file.write(f"{key}: {value}\n")
+
         print("====================================")
         print("parent_list shape:", parent_list.shape)
         print("top_score_index shape:", top_score_index.shape)
