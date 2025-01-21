@@ -368,8 +368,6 @@ class EAGLEDraftInput(SpecInfo):
         draft_tokens = torch.cat((self.verified_id.unsqueeze(1), draft_tokens), dim=1)
         parent_list = torch.cat(self.parents_list[:-1], dim=1)
 
-        torch.cuda.synchronize()
-        t1 = time.time()
         tree_mask, position, retrive_index, retrive_cum_len = build_tree_kernel(
             parent_list,
             top_scores_index,
@@ -378,9 +376,6 @@ class EAGLEDraftInput(SpecInfo):
             self.iter - 1,
             self.num_verify_token,
         )
-        torch.cuda.synchronize()
-        t2 = time.time()
-        print(f"[build_tree_kernel time] = {t2 - t1}")
 
         return EagleVerifyInput(
             draft_tokens.flatten(),
@@ -562,6 +557,9 @@ class EagleVerifyInput(SpecInfo):
         )
         accept_length = torch.empty((bs,), dtype=torch.int, device="cuda")
         extract_index = torch.full((bs * 2,), 0, dtype=torch.int, device="cuda")
+
+        torch.cuda.synchronize()
+        t1 = time.time()
         eagle_verify_retrive[(bs,)](
             self.retrive_index.contiguous(),
             accept_mask.contiguous(),
@@ -573,6 +571,9 @@ class EagleVerifyInput(SpecInfo):
             self.draft_token_num,
             triton.next_power_of_2(max_draft_len),
         )
+        torch.cuda.synchronize()
+        t2 = time.time()
+        print(f"[eagle_verify_retrive time] = {t2 - t1}")
 
         draft_input = EAGLEDraftInput()
         new_accept_index = []
