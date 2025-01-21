@@ -54,6 +54,9 @@ class EAGLEWorker(TpModelWorker):
         forward_batch = ForwardBatch.init_new(model_worker_batch, self.model_runner)
         forward_batch.capture_hidden_mode = CaptureHiddenMode.LAST
         logits_output = self.model_runner.forward(forward_batch)
+        print("==============logits_output11111111==============")
+        print(logits_output)
+        print("============================")
         self.capture_for_decode(logits_output, forward_batch)
 
     def forward_draft_extend(self, batch: ScheduleBatch):
@@ -63,6 +66,9 @@ class EAGLEWorker(TpModelWorker):
         forward_batch = ForwardBatch.init_new(model_worker_batch, self.model_runner)
         forward_batch.capture_hidden_mode = CaptureHiddenMode.LAST
         logits_output = self.model_runner.forward(forward_batch)
+        print("==============logits_output2222222==============")
+        print(logits_output)
+        print("============================")
         self.capture_for_decode(logits_output, forward_batch)
         self._set_mem_pool(batch, self.target_worker.model_runner)
 
@@ -146,7 +152,9 @@ class EAGLEWorker(TpModelWorker):
         forward_batch = ForwardBatch.init_new(model_worker_batch, self.model_runner)
         forward_batch.capture_hidden_mode = CaptureHiddenMode.LAST
         logits_output = self.model_runner.forward(forward_batch)
-
+        print("==============logits_output33333333==============")
+        print(logits_output)
+        print("============================")
         batch.spec_info.hidden_states = logits_output.hidden_states
         self.capture_for_decode(logits_output, forward_batch)
         batch.forward_mode = ForwardMode.DECODE
@@ -160,10 +168,6 @@ class EAGLEWorker(TpModelWorker):
         sample_output = torch.softmax(
             logits_output.next_token_logits, dim=-1
         )  # TODO(kavioyu): Support more sampling methods
-
-        print("==============sample_output==============")
-        print(sample_output)
-        print("============================")
         spec_info = forward_batch.spec_info
         spec_info.sample_output = sample_output
         spec_info.hidden_states = logits_output.hidden_states
