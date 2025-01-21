@@ -1,0 +1,1 @@
+python3 -m sglang.launch_server --model /workspace/Qwen2-7B-Instruct --max-prefill-tokens 16384  --trust-remote-code --tp 1 --dp 1  --mem-fraction-static 0.5 --draft-model-path /workspace/EAGLE-Qwen2-7B-Instruct --num-speculative-steps 4 --eagle-topk 2 --num-draft-tokens 8 --speculative-algorithm EAGLE --disable-radix-cache
