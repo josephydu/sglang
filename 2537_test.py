@@ -15,7 +15,4 @@ for _ in range(10):
         max_tokens=1024,
     )
     completion_tokens = response.usage.completion_tokens
-    completion_tokens_wo_jump_forward = response.usage.completion_tokens_wo_jump_forward
-    print(
-        f"{completion_tokens=}, sample_tokens = {completion_tokens/completion_tokens_wo_jump_forward}"
-    )
+    print(f"{completion_tokens=}")
