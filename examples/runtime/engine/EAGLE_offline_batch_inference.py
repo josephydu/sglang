@@ -17,16 +17,16 @@ def main():
     ]
 
     # Create a sampling params object.
-    sampling_params = {"temperature": 0, "max_new_tokens": 30}
+    sampling_params = {"temperature": 0, "max_new_tokens": 512}
 
     # Create an LLM.
     llm = sgl.Engine(
         model_path="/workspace/Llama-2-7b-chat-hf",
         speculative_algorithm="EAGLE",
         speculative_draft_model_path="/workspace/sglang-EAGLE-llama2-chat-7B",
-        speculative_num_steps=3,
-        speculative_eagle_topk=4,
-        speculative_num_draft_tokens=16,
+        speculative_num_steps=5,
+        speculative_eagle_topk=8,
+        speculative_num_draft_tokens=64,
     )
 
     outputs = llm.generate(prompts, sampling_params)
