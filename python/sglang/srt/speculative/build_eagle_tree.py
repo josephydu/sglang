@@ -147,15 +147,13 @@ def build_tree_kernel(parent_list, top_score_index, seq_lens, topk, depth, draft
     return tree_mask, positions, retrive_index, retrive_cum_len
 
 
-import json
-import os
-
-
 def tensor_to_list(tensor):
     return tensor.cpu().numpy().tolist()
 
 
 if __name__ == "__main__":
+    import json
+    import os
 
     def load_and_call_build_tree(input_file):
 

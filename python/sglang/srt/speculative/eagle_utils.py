@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING, List
 
 import torch
@@ -367,6 +368,8 @@ class EAGLEDraftInput(SpecInfo):
         draft_tokens = torch.cat((self.verified_id.unsqueeze(1), draft_tokens), dim=1)
         parent_list = torch.cat(self.parents_list[:-1], dim=1)
 
+        torch.cuda.synchronize()
+        t1 = time.time()
         tree_mask, position, retrive_index, retrive_cum_len = build_tree_kernel(
             parent_list,
             top_scores_index,
@@ -375,6 +378,9 @@ class EAGLEDraftInput(SpecInfo):
             self.iter - 1,
             self.num_verify_token,
         )
+        torch.cuda.synchronize()
+        t2 = time.time()
+        print(f"[build_tree_kernel time] = {t2 - t1}")
 
         return EagleVerifyInput(
             draft_tokens.flatten(),
