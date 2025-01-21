@@ -149,7 +149,7 @@ class EAGLEWorker(TpModelWorker):
         # print("==============forward_draft_extend_after_decode==============")
         # print(f"input_ids = {forward_batch.input_ids}, shape={forward_batch.input_ids.shape}")
         # print(f"logits_output = {logits_output}, shape={logits_output.shape}")
-        print("============================")
+        # print("============================")
         batch.spec_info.hidden_states = logits_output.hidden_states
         batch.spec_info.hidden_states = logits_output
         self.capture_for_decode(logits_output, forward_batch)
