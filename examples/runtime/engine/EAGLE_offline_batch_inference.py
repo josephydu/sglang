@@ -8,6 +8,12 @@ def main():
         "The president of the United States is",
         "The capital of France is",
         "The future of AI is",
+        "I am a ....",
+        "How is the weather today?",
+        "Do you aggree with this?",
+        "Can you write an essay for me?",
+        "Please translate this sentence to Chinense!",
+        "Write a bubble sort use Java for me",
     ]
 
     # Create a sampling params object.
@@ -15,9 +21,9 @@ def main():
 
     # Create an LLM.
     llm = sgl.Engine(
-        model_path="meta-llama/Llama-2-7b-chat-hf",
+        model_path="/workspace/Llama-2-7b-chat-hf",
         speculative_algorithm="EAGLE",
-        speculative_draft_model_path="lmzheng/sglang-EAGLE-llama2-chat-7B",
+        speculative_draft_model_path="/workspace/sglang-EAGLE-llama2-chat-7B",
         speculative_num_steps=3,
         speculative_eagle_topk=4,
         speculative_num_draft_tokens=16,
@@ -26,9 +32,9 @@ def main():
     outputs = llm.generate(prompts, sampling_params)
 
     # Print the outputs.
-    for prompt, output in zip(prompts, outputs):
-        print("===============================")
-        print(f"Prompt: {prompt}\nGenerated text: {output['text']}")
+    # for prompt, output in zip(prompts, outputs):
+    #     print("===============================")
+    #     print(f"Prompt: {prompt}\nGenerated text: {output['text']}")
 
 
 # The __main__ condition is necessary here because we use "spawn" to create subprocesses
