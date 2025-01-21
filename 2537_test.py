@@ -4,7 +4,7 @@ client = openai.Client(base_url="http://127.0.0.1:30000/v1", api_key="None")
 
 for _ in range(10):
     response = client.chat.completions.create(
-        model="/workspace/Llama-2-7b-chat-hf",
+        model="/workspace/Qwen2-7B-Instruct",
         messages=[
             {
                 "role": "user",
