@@ -146,9 +146,9 @@ class EAGLEWorker(TpModelWorker):
         forward_batch = ForwardBatch.init_new(model_worker_batch, self.model_runner)
         forward_batch.capture_hidden_mode = CaptureHiddenMode.LAST
         logits_output = self.model_runner.forward(forward_batch)
-        print("==============forward_draft_extend_after_decode==============")
-        print(f"input_ids = {forward_batch.input_ids}")
-        print(f"logits_output = {logits_output}")
+        # print("==============forward_draft_extend_after_decode==============")
+        # print(f"input_ids = {forward_batch.input_ids}, shape={forward_batch.input_ids.shape}")
+        # print(f"logits_output = {logits_output}, shape={logits_output.shape}")
         print("============================")
         batch.spec_info.hidden_states = logits_output.hidden_states
         batch.spec_info.hidden_states = logits_output

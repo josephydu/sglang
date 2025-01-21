@@ -74,7 +74,7 @@ __global__ void build_tree(Tensor<long, 2> parent_list, Tensor<long, 2> selected
 //!cuda
 """,
     float_bits=16,  # change to 16 to use half precision as `float` type in the above source code.
-    boundscheck=True,  # turning on for debug and off for performance (to use full threads of a block), default is on.
+    boundscheck=False,  # turning on for debug and off for performance (to use full threads of a block), default is on.
 )
 
 
@@ -91,34 +91,34 @@ def build_tree_kernel(parent_list, top_score_index, seq_lens, topk, depth, draft
     )
     positions = torch.empty((bs * draft_token,), device=device, dtype=torch.long)
 
-    print("====================================")
-    print("parent_list shape:", parent_list.shape)
-    print("top_score_index shape:", top_score_index.shape)
-    print("seq_lens shape:", seq_lens.shape)
-    print("tree_mask shape:", tree_mask.shape)
-    print("positions shape:", positions.shape)
-    print("retrive_index shape:", retrive_index.shape)
-    print("====================================")
+    # print("====================================")
+    # print("parent_list shape:", parent_list.shape)
+    # print("top_score_index shape:", top_score_index.shape)
+    # print("seq_lens shape:", seq_lens.shape)
+    # print("tree_mask shape:", tree_mask.shape)
+    # print("positions shape:", positions.shape)
+    # print("retrive_index shape:", retrive_index.shape)
+    # print("====================================")
 
-    # 创建保存目录
-    save_dir = "error_inputs"
-    os.makedirs(save_dir, exist_ok=True)
+    # # 创建保存目录
+    # save_dir = "error_inputs"
+    # os.makedirs(save_dir, exist_ok=True)
 
-    # 保存输入数据到文件
-    input_data = {
-        "parent_list": parent_list.clone(),  # 使用 clone() 确保保存的是原始数据
-        "top_score_index": top_score_index.clone(),
-        "seq_lens": seq_lens.clone(),
-        "topk": topk,
-        "depth": depth,
-        "draft_token": draft_token,
-        "tree_mask": tree_mask.clone(),  # 也可以选择保存 tree_mask
-        "positions": positions.clone(),  # 也可以选择保存 positions
-        "retrive_index": retrive_index.clone(),  # 也可以选择保存 retrive_index
-    }
+    # # 保存输入数据到文件
+    # input_data = {
+    #     "parent_list": parent_list.clone(),  # 使用 clone() 确保保存的是原始数据
+    #     "top_score_index": top_score_index.clone(),
+    #     "seq_lens": seq_lens.clone(),
+    #     "topk": topk,
+    #     "depth": depth,
+    #     "draft_token": draft_token,
+    #     "tree_mask": tree_mask.clone(),  # 也可以选择保存 tree_mask
+    #     "positions": positions.clone(),  # 也可以选择保存 positions
+    #     "retrive_index": retrive_index.clone(),  # 也可以选择保存 retrive_index
+    # }
 
-    input_file = os.path.join(save_dir, "input_data.pt")
-    torch.save(input_data, input_file)
+    # input_file = os.path.join(save_dir, "input_data.pt")
+    # torch.save(input_data, input_file)
 
     try:
         kernels.build_tree(
