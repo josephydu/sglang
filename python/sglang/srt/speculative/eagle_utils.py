@@ -558,8 +558,8 @@ class EagleVerifyInput(SpecInfo):
         accept_length = torch.empty((bs,), dtype=torch.int, device="cuda")
         extract_index = torch.full((bs * 2,), 0, dtype=torch.int, device="cuda")
 
-        torch.cuda.synchronize()
-        t1 = time.time()
+        # torch.cuda.synchronize()
+        # t1 = time.time()
         eagle_verify_retrive[(bs,)](
             self.retrive_index.contiguous(),
             accept_mask.contiguous(),
@@ -571,9 +571,9 @@ class EagleVerifyInput(SpecInfo):
             self.draft_token_num,
             triton.next_power_of_2(max_draft_len),
         )
-        torch.cuda.synchronize()
-        t2 = time.time()
-        print(f"[eagle_verify_retrive time] = {t2 - t1}")
+        # torch.cuda.synchronize()
+        # t2 = time.time()
+        # print(f"[eagle_verify_retrive time] = {t2 - t1}")
 
         draft_input = EAGLEDraftInput()
         new_accept_index = []
