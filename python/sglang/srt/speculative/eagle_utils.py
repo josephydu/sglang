@@ -238,6 +238,9 @@ class EAGLEDraftInput(SpecInfo):
 
     def prepare_for_decode(self, batch: ScheduleBatch):
         prob = self.sample_output  # shape: (b * top_k, vocab) or (b, vocab)
+        print("=====================")
+        print(prob)
+        print("=====================")
         top = torch.topk(prob, self.topk, dim=-1)
         topk_index, topk_p = (
             top.indices,
@@ -248,10 +251,6 @@ class EAGLEDraftInput(SpecInfo):
             scores = torch.mul(
                 self.scores.unsqueeze(2), topk_p.reshape(-1, self.topk, self.topk)
             )  # (b, topk, 1) x (b, topk ,topk) -> (b, topk, topk)
-            print("==========scores==========")
-            print(scores)
-            # print(torch.isnan(scores).any().item())
-            print("==========scores==========")
 
             topk_cs = torch.topk(
                 scores.flatten(start_dim=1), self.topk, dim=-1
