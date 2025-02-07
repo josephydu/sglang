@@ -1,14 +1,13 @@
 import torch
 import torch.nn.functional as F
-
-from sglang.srt.models.qwen2_vl import Qwen2VLForConditionalGeneration
-
-# from transformers.models.qwen2_vl.modeling_qwen2_vl import (  # noqa
-#     Qwen2VisionTransformerPretrainedModel,
-# )
+from transformers.models.qwen2_vl.modeling_qwen2_vl import (  # noqa
+    Qwen2VisionTransformerPretrainedModel,
+)
 
 
-class Qwen2VisionTransformerForNavitPOINTS(Qwen2VLForConditionalGeneration):  # noqa
+class Qwen2VisionTransformerForNavitPOINTS(
+    Qwen2VisionTransformerPretrainedModel
+):  # noqa
     """Rewrite the forward function of Qwen2VisionTransformerPretrainedModel to
     adapt to POINTS.  # noqa.
 
