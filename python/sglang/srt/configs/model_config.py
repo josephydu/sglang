@@ -63,6 +63,7 @@ class ModelConfig:
             self.hf_config.architectures, is_embedding
         )
         self.is_multimodal = is_multimodal_model(self.hf_config.architectures)
+        print(f"is_multimodal_model={self.is_multimodal}")
         self.is_encoder_decoder = is_encoder_decoder_model(self.hf_config.architectures)
         self.dtype = _get_and_verify_dtype(self.hf_text_config, dtype)
 
@@ -395,7 +396,6 @@ def is_generation_model(model_architectures: List[str], is_embedding: bool = Fal
 
 
 def is_multimodal_model(model_architectures: List[str]):
-    print(f"222222========>{model_architectures}")
     if (
         "LlavaLlamaForCausalLM" in model_architectures
         or "LlavaQwenForCausalLM" in model_architectures
@@ -406,6 +406,7 @@ def is_multimodal_model(model_architectures: List[str]):
         or "MiniCPMV" in model_architectures
         or "POINTSV15ChatModel" in model_architectures
     ):
+
         return True
     else:
         return False
