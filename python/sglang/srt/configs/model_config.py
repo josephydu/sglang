@@ -63,7 +63,6 @@ class ModelConfig:
             self.hf_config.architectures, is_embedding
         )
         self.is_multimodal = is_multimodal_model(self.hf_config.architectures)
-        print(f"is_multimodal_model={self.is_multimodal}")
         self.is_encoder_decoder = is_encoder_decoder_model(self.hf_config.architectures)
         self.dtype = _get_and_verify_dtype(self.hf_text_config, dtype)
 
@@ -89,6 +88,7 @@ class ModelConfig:
             self.context_len = derived_context_len
 
         # Unify the config keys for hf_text_config
+        print(self.hf_text_config)
         self.head_dim = getattr(
             self.hf_text_config,
             "head_dim",
