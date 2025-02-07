@@ -5,6 +5,8 @@ import torch
 from PIL import Image
 from transformers import GenerationMixin, PreTrainedModel, PreTrainedTokenizer
 
+from sglang.srt.layers.quantization.base_config import QuantizationConfig
+
 try:
     from transformers.models.qwen2_vl.image_processing_qwen2_vl import (  # noqa
         Qwen2VLImageProcessor,
@@ -1038,7 +1040,11 @@ class POINTSV15ChatModel(PreTrainedModel, GenerationMixin):
         config (POINTSChatConfigV15): The model config.
     """
 
-    def __init__(self, config: POINTSV15ChatConfig) -> None:
+    def __init__(
+        self,
+        config: POINTSV15ChatConfig,
+        quant_config: Optional[QuantizationConfig] = None,
+    ) -> None:
         super().__init__(config)
         self.llm = CustomLlamaForCausalLM(config.llm_config)
         self.vision_encoder = Qwen2VisionTransformerForNavitPOINTS._from_config(  # noqa
