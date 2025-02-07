@@ -294,7 +294,7 @@ def get_hf_text_config(config: PretrainedConfig):
     """Get the "sub" config relevant to llm for multi modal models.
     No op for pure text models.
     """
-    print(f"11111111=>{config}")
+    print(f"11111111=>{config.text_config}")
     class_name = config.architectures[0]
     if class_name.startswith("Llava") and class_name.endswith("ForCausalLM"):
         # We support non-hf version of llava models, so we do not want to
