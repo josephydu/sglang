@@ -202,7 +202,6 @@ def get_processor(
     **kwargs,
 ):
 
-    print(f"[get_processor]=>tokenizer_name{tokenizer_name}")
     processor = AutoProcessor.from_pretrained(
         tokenizer_name,
         *args,
@@ -210,6 +209,7 @@ def get_processor(
         tokenizer_revision=tokenizer_revision,
         **kwargs,
     )
+    print(f"[get_processor]=>tokenizer_name{tokenizer_name}processor=>{processor}")
 
     attach_additional_stop_token_ids(processor.tokenizer)
     return processor
