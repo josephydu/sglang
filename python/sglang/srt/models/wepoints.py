@@ -1050,9 +1050,7 @@ class POINTSV15ChatModel(PreTrainedModel, GenerationMixin):
         self.vision_encoder = Qwen2VisionTransformerForNavitPOINTS._from_config(  # noqa
             config.vision_config, attn_implementation="flash_attention_2"
         )
-        self.vision_projector = PatchMerger(
-            config.llm_config.hidden_size, context_dim=1280
-        )
+        self.vision_projector = PatchMerger(config.hidden_size, context_dim=1280)
 
     def process_images(
         self, images: torch.Tensor, image_grid_thws: List[list]
