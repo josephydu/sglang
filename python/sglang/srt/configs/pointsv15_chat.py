@@ -149,7 +149,7 @@ class POINTSV15ChatConfig(PretrainedConfig):
         self.initializer_range = llm_config["initializer_range"]
         self.layernorm_epsilon = llm_config["layernorm_epsilon"]
         self.use_cache = llm_config["use_cache"]
-        if llm_config["rms_norm"] is not None:
+        if llm_config.get("rms_norm", None) is not None:
             self.norm_type = "rms_norm" if llm_config["rms_norm"] else "layer_norm"
         else:
             self.norm_type = llm_config["norm_type"]
