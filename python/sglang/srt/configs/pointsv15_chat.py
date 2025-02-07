@@ -130,6 +130,34 @@ class POINTSV15ChatConfig(PretrainedConfig):
         # else:
         #     self.llm_config = llm_config
         print(f"[POINTSV15ChatConfig] => llm_config{llm_config}")
+        super().__init__(
+            bos_token_id=llm_config.bos_token_id,
+            eos_token_id=llm_config.eos_token_id,
+            **kwargs,
+        )
+        self.vocab_size = llm_config.vocab_size
+        self.max_position_embeddings = llm_config.max_position_embeddings
+        self.hidden_size = llm_config.hidden_size
+        self.num_layers = llm_config.num_layers
+        self.num_attention_heads = llm_config.num_attention_heads
+        self.num_kv_heads = llm_config.num_kv_heads
+        self.ffn_hidden_size = llm_config.ffn_hidden_size
+        self.hidden_act = llm_config.hidden_act
+        self.rotary_pct = llm_config.rotary_pct
+        self.rotary_emb_base = llm_config.rotary_emb_base
+        self.rotary_compress = llm_config.rotary_compress
+        self.initializer_range = llm_config.initializer_range
+        self.layernorm_epsilon = llm_config.layernorm_epsilon
+        self.use_cache = llm_config.use_cache
+        if llm_config.rms_norm is not None:
+            self.norm_type = "rms_norm" if llm_config.rms_norm else "layer_norm"
+        else:
+            self.norm_type = llm_config.norm_type
+        self.qkv_proj_bias = llm_config.qkv_proj_bias
+        self.out_proj_bias = llm_config.out_proj_bias
+        self.mlp_fc1_bias = llm_config.mlp_fc1_bias
+        self.mlp_fc2_bias = llm_config.mlp_fc2_bias
+        self.num_hidden_layers = llm_config.num_layers
 
     # def to_dict(self) -> Dict[str, Any]:
     #     output = copy.deepcopy(self.__dict__)
