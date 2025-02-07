@@ -1046,6 +1046,7 @@ class POINTSV15ChatModel(PreTrainedModel, GenerationMixin):
         quant_config: Optional[QuantizationConfig] = None,
     ) -> None:
         super().__init__(config)
+        print(f"[POINTSV15ChatModel]config=>{config}")
         self.llm = CustomLlamaForCausalLM(config.llm_config)
         self.vision_encoder = Qwen2VisionTransformerForNavitPOINTS._from_config(  # noqa
             config.vision_config, attn_implementation="flash_attention_2"
