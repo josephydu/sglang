@@ -5,9 +5,7 @@ from transformers.models.qwen2_vl.modeling_qwen2_vl import (  # noqa
 )
 
 
-class Qwen2VisionTransformerForNavitPOINTS(
-    Qwen2VisionTransformerPretrainedModel
-):  # noqa
+class POINTSV15ChatModel(Qwen2VisionTransformerPretrainedModel):  # noqa
     """Rewrite the forward function of Qwen2VisionTransformerPretrainedModel to
     adapt to POINTS.  # noqa.
 
@@ -36,4 +34,4 @@ class Qwen2VisionTransformerForNavitPOINTS(
         return hidden_states
 
 
-EntryClass = Qwen2VisionTransformerForNavitPOINTS
+EntryClass = POINTSV15ChatModel
