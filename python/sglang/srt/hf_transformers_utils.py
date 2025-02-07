@@ -201,6 +201,8 @@ def get_processor(
     tokenizer_revision: Optional[str] = None,
     **kwargs,
 ):
+
+    print(f"[get_processor]=>tokenizer_name{tokenizer_name}")
     processor = AutoProcessor.from_pretrained(
         tokenizer_name,
         *args,
