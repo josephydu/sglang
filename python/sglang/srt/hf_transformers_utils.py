@@ -43,7 +43,7 @@ _CONFIG_REGISTRY: Dict[str, Type[PretrainedConfig]] = {
     DbrxConfig.model_type: DbrxConfig,
     ExaoneConfig.model_type: ExaoneConfig,
     Qwen2VLConfig.model_type: Qwen2VLConfig,
-    POINTSV15ChatConfig.model_type: Qwen2VLConfig,
+    POINTSV15ChatConfig.model_type: POINTSV15ChatConfig,
 }
 
 
