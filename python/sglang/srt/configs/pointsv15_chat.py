@@ -123,14 +123,16 @@ class POINTSV15ChatConfig(PretrainedConfig):
             self.vision_config = Qwen2VLVisionConfig(**vision_config)
         else:
             self.vision_config = vision_config
-        if isinstance(llm_config, dict):
-            self.llm_config = CustomLlamaConfig(**llm_config)
-        else:
-            self.llm_config = llm_config
-        print(f"[POINTSV15ChatConfig]self.llm_config = {self.llm_config}")
 
-    def to_dict(self) -> Dict[str, Any]:
-        output = copy.deepcopy(self.__dict__)
-        output["vision_config"] = self.vision_config.to_dict()
-        output["llm_config"] = self.llm_config.to_dict()
-        return output
+        # change it to adapter sglang
+        # if isinstance(llm_config, dict):
+        #     self.llm_config = CustomLlamaConfig(**llm_config)
+        # else:
+        #     self.llm_config = llm_config
+        print(f"[POINTSV15ChatConfig] => llm_config{llm_config}")
+
+    # def to_dict(self) -> Dict[str, Any]:
+    #     output = copy.deepcopy(self.__dict__)
+    #     output["vision_config"] = self.vision_config.to_dict()
+    #     output["llm_config"] = self.llm_config.to_dict()
+    #     return output

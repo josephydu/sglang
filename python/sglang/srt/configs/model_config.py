@@ -94,8 +94,7 @@ class ModelConfig:
         self.head_dim = getattr(
             self.hf_text_config,
             "head_dim",
-            self.hf_text_config.llm_config.hidden_size
-            // self.hf_text_config.llm_config.num_attention_heads,
+            self.hf_text_config.hidden_size // self.hf_text_config.num_attention_heads,
         )
 
         # FIXME: temporary special judge for MLA architecture
