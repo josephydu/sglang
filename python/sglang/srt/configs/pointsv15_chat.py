@@ -127,6 +127,7 @@ class POINTSV15ChatConfig(PretrainedConfig):
             self.llm_config = CustomLlamaConfig(**llm_config)
         else:
             self.llm_config = llm_config
+        print(f"[POINTSV15ChatConfig]self.llm_config = {self.llm_config}")
 
     def to_dict(self) -> Dict[str, Any]:
         output = copy.deepcopy(self.__dict__)
