@@ -31,7 +31,7 @@ from transformers.modeling_outputs import (
 from transformers.modeling_utils import PreTrainedModel
 from transformers.utils import logging
 
-from sglang.srt.configs import CustomLlamaConfig, POINTSV15ChatConfig
+from sglang.srt.configs import POINTSV15ChatConfig
 
 try:
     from apex.megatron_layer_norm import MixedFusedLayerNorm as LayerNorm
@@ -112,7 +112,7 @@ class RMSNorm(torch.nn.Module):
         return output * self.weight
 
 
-def get_norm(config: CustomLlamaConfig):
+def get_norm(config):
     norm_type = config.norm_type
     if norm_type == "rms_norm":
         return partial(RMSNorm, eps=config.layernorm_epsilon)
@@ -228,7 +228,7 @@ def apply_rotary_pos_emb_torch(
 
 
 class CustomLlamaAttention(nn.Module):
-    def __init__(self, config: CustomLlamaConfig):
+    def __init__(self, config):
         super().__init__()
         self.num_attention_heads = config.num_attention_heads
         self.num_kv_heads = config.num_kv_heads
@@ -671,7 +671,6 @@ class CustomLlamaLayer(nn.Module):
 
 
 class CustomLlamaPreTrainedModel(PreTrainedModel):
-    config_class = CustomLlamaConfig
     base_model_prefix = "lm"
     _no_split_modules = ["CustomLlamaLayer"]
 
@@ -1046,8 +1045,8 @@ class POINTSV15ChatModel(PreTrainedModel, GenerationMixin):
         quant_config: Optional[QuantizationConfig] = None,
     ) -> None:
         super().__init__(config)
-        print(f"[POINTSV15ChatModel]config=>{config}")
-        self.llm = CustomLlamaForCausalLM(config.llm_config)
+        # print(f"[POINTSV15ChatModel]config=>{config}")
+        self.llm = CustomLlamaForCausalLM(config)
         self.vision_encoder = Qwen2VisionTransformerForNavitPOINTS._from_config(  # noqa
             config.vision_config, attn_implementation="flash_attention_2"
         )
