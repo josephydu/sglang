@@ -574,6 +574,7 @@ class POINTSV15ChatModel(nn.Module):
             ("gate_up_proj", "gate_proj", 0),
         ]
         params_dict = dict(self.named_parameters(remove_duplicate=False))
+        print(params_dict)
         for name, loaded_weight in weights:
             if "rotary_emb.inv_freq" in name:
                 continue
