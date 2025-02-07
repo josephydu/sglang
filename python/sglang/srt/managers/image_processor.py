@@ -541,12 +541,16 @@ def get_image_processor(
 ) -> BaseImageProcessor:
     print(f"[get_image_processor]hf_config.architectures=>{hf_config.architectures}")
     if "MllamaForConditionalGeneration" in hf_config.architectures:
+        print(1)
         return MllamaImageProcessor(hf_config, server_args, processor)
     elif "Qwen2VLForConditionalGeneration" in hf_config.architectures:
+        print(2)
         return Qwen2VLImageProcessor(hf_config, server_args, processor.image_processor)
     elif "MiniCPMV" in hf_config.architectures:
+        print(3)
         return MiniCPMVImageProcessor(hf_config, server_args, processor)
     else:
+        print(4)
         return LlavaImageProcessor(hf_config, server_args, processor.image_processor)
 
 
