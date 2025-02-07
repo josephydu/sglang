@@ -294,7 +294,6 @@ def get_hf_text_config(config: PretrainedConfig):
     """Get the "sub" config relevant to llm for multi modal models.
     No op for pure text models.
     """
-    print(f"11111111=>{config.text_config}")
     class_name = config.architectures[0]
     if class_name.startswith("Llava") and class_name.endswith("ForCausalLM"):
         # We support non-hf version of llava models, so we do not want to
@@ -396,6 +395,7 @@ def is_generation_model(model_architectures: List[str], is_embedding: bool = Fal
 
 
 def is_multimodal_model(model_architectures: List[str]):
+    print(f"222222========>{model_architectures}")
     if (
         "LlavaLlamaForCausalLM" in model_architectures
         or "LlavaQwenForCausalLM" in model_architectures
