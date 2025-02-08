@@ -1,17 +1,54 @@
 import copy
-from typing import Any, Dict
+import os
+from typing import Any, Dict, Union
 
-from transformers import PretrainedConfig
+from transformers import PretrainedConfig, Qwen2Config
 
-try:
-    from transformers.models.qwen2_vl.configuration_qwen2_vl import Qwen2VLVisionConfig
-except ImportError:
-    print("Please upgrade transformers to version 4.46.3 or higher")
 
-from transformers.configuration_utils import PretrainedConfig
-from transformers.utils import logging
+class Qwen2VLVisionConfig(PretrainedConfig):
+    model_type = "qwen2_vl"
 
-logger = logging.get_logger(__name__)
+    def __init__(
+        self,
+        depth=32,
+        embed_dim=1280,
+        hidden_size=3584,
+        hidden_act="quick_gelu",
+        mlp_ratio=4,
+        num_heads=16,
+        in_channels=3,
+        patch_size=14,
+        spatial_merge_size=2,
+        temporal_patch_size=2,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.depth = depth
+        self.embed_dim = embed_dim
+        self.hidden_size = hidden_size
+        self.hidden_act = hidden_act
+        self.mlp_ratio = mlp_ratio
+        self.num_heads = num_heads
+        self.in_channels = in_channels
+        self.patch_size = patch_size
+        self.spatial_merge_size = spatial_merge_size
+        self.temporal_patch_size = temporal_patch_size
+
+    @classmethod
+    def from_pretrained(
+        cls, pretrained_model_name_or_path: Union[str, os.PathLike], **kwargs
+    ) -> "PretrainedConfig":
+        cls._set_token_in_kwargs(kwargs)
+
+        config_dict, kwargs = cls.get_config_dict(
+            pretrained_model_name_or_path, **kwargs
+        )
+
+        if config_dict.get("model_type") == "qwen2_vl":
+            config_dict = config_dict["vision_config"]
+
+        return cls.from_dict(config_dict, **kwargs)
 
 
 class POINTSV15ChatConfig(PretrainedConfig):
@@ -25,46 +62,43 @@ class POINTSV15ChatConfig(PretrainedConfig):
         llm_config = kwargs.pop("llm_config", None)
         if isinstance(vision_config, dict):
             self.vision_config = Qwen2VLVisionConfig(**vision_config)
-        else:
-            self.vision_config = vision_config
+        elif vision_config is None:
+            self.vision_config = Qwen2VLVisionConfig()
 
-        # change it to adapter sglang
+        # =========== Adapt for WePoints-Sglang
+
         # if isinstance(llm_config, dict):
-        #     self.llm_config = CustomLlamaConfig(**llm_config)
+        #     self.llm_config = Qwen2Config(**llm_config)
         # else:
         #     self.llm_config = llm_config
-        # print(f"[POINTSV15ChatConfig] => llm_config{llm_config}")
-        super().__init__(
-            bos_token_id=llm_config["bos_token_id"],
-            eos_token_id=llm_config["eos_token_id"],
-            **kwargs,
-        )
+
         self.vocab_size = llm_config["vocab_size"]
         self.max_position_embeddings = llm_config["max_position_embeddings"]
         self.hidden_size = llm_config["hidden_size"]
-        self.num_layers = llm_config["num_layers"]
+        self.intermediate_size = llm_config["intermediate_size"]
+        self.num_hidden_layers = llm_config["num_hidden_layers"]
         self.num_attention_heads = llm_config["num_attention_heads"]
-        self.num_kv_heads = llm_config["num_kv_heads"]
-        self.ffn_hidden_size = llm_config["ffn_hidden_size"]
-        self.hidden_act = llm_config["hidden_act"]
-        self.rotary_pct = llm_config["rotary_pct"]
-        self.rotary_emb_base = llm_config["rotary_emb_base"]
-        self.rotary_compress = llm_config["rotary_compress"]
-        self.initializer_range = llm_config["initializer_range"]
-        self.layernorm_epsilon = llm_config["layernorm_epsilon"]
-        self.use_cache = llm_config["use_cache"]
-        if llm_config.get("rms_norm", None) is not None:
-            self.norm_type = "rms_norm" if llm_config["rms_norm"] else "layer_norm"
-        else:
-            self.norm_type = llm_config["norm_type"]
-        self.qkv_proj_bias = llm_config["qkv_proj_bias"]
-        self.out_proj_bias = llm_config["out_proj_bias"]
-        self.mlp_fc1_bias = llm_config["mlp_fc1_bias"]
-        self.mlp_fc2_bias = llm_config["mlp_fc2_bias"]
-        self.num_hidden_layers = llm_config["num_layers"]
+        self.use_sliding_window = llm_config["use_sliding_window"]
+        self.sliding_window = llm_config["sliding_window"]
+        self.max_window_layers = llm_config["max_window_layers"]
 
-    # def to_dict(self) -> Dict[str, Any]:
-    #     output = copy.deepcopy(self.__dict__)
-    #     output["vision_config"] = self.vision_config.to_dict()
-    #     output["llm_config"] = self.llm_config.to_dict()
-    #     return output
+        # for backward compatibility
+        if num_key_value_heads is None:
+            num_key_value_heads = llm_config["num_attention_heads"]
+
+        self.num_key_value_heads = llm_config["num_key_value_heads"]
+        self.hidden_act = llm_config["hidden_act"]
+        self.initializer_range = llm_config["initializer_range"]
+        self.rms_norm_eps = llm_config["rms_norm_eps"]
+        self.use_cache = llm_config["use_cache"]
+        self.attention_dropout = llm_config["attention_dropout"]
+        self.rope_scaling = llm_config["rope_scaling"]
+
+        if self.rope_scaling is not None and "type" in self.rope_scaling:
+            if self.rope_scaling["type"] == "mrope":
+                self.rope_scaling["type"] = "default"
+            self.rope_scaling["rope_type"] = self.rope_scaling["type"]
+
+        super().__init__(
+            tie_word_embeddings=llm_config["tie_word_embeddings"], **kwargs
+        )
