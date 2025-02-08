@@ -84,8 +84,8 @@ class POINTSV15ChatConfig(PretrainedConfig):
         self.max_window_layers = llm_config["max_window_layers"]
 
         # for backward compatibility
-        if num_key_value_heads is None:
-            num_key_value_heads = llm_config["num_attention_heads"]
+        if llm_config["num_key_value_heads"] is None:
+            llm_config["num_key_value_heads"] = llm_config["num_attention_heads"]
 
         self.num_key_value_heads = llm_config["num_key_value_heads"]
         self.hidden_act = llm_config["hidden_act"]
