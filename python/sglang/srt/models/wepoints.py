@@ -619,8 +619,8 @@ class POINTSV15ChatModel(nn.Module):
         params_dict = dict(self.named_parameters(remove_duplicate=False))
         for name, loaded_weight in weights:
 
-            if "llm" in name:
-                name = name.replace("llm.", "")
+            # if "llm" in name:
+            # name = name.replace("llm.", "")
 
             if "rotary_emb.inv_freq" in name:
                 continue
