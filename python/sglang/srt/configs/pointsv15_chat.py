@@ -72,6 +72,7 @@ class POINTSV15ChatConfig(PretrainedConfig):
         # else:
         #     self.llm_config = llm_config
 
+        print(f"[POINTSV15ChatConfig]===========>\n{llm_config}")
         self.vocab_size = llm_config["vocab_size"]
         self.max_position_embeddings = llm_config["max_position_embeddings"]
         self.hidden_size = llm_config["hidden_size"]
