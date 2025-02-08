@@ -619,6 +619,9 @@ class POINTSV15ChatModel(nn.Module):
         params_dict = dict(self.named_parameters(remove_duplicate=False))
         for name, loaded_weight in weights:
 
+            if "llm" in name:
+                name = name.replace("llm.", "")
+
             if "rotary_emb.inv_freq" in name:
                 continue
 
@@ -661,11 +664,9 @@ class POINTSV15ChatModel(nn.Module):
                     # Skip loading extra bias for GPTQ models.
                     if name.endswith(".bias") and name not in params_dict:
                         continue
-                    print(name)
-                    # param = params_dict[name]
-
+                    param = params_dict[name]
                 except KeyError:
-                    # print(params_dict.keys())
+                    print(params_dict.keys())
                     raise
 
                 weight_loader = getattr(param, "weight_loader", default_weight_loader)

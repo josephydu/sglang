@@ -626,10 +626,9 @@ class Qwen2VLForConditionalGeneration(nn.Module):
                     # Skip loading extra bias for GPTQ models.
                     if name.endswith(".bias") and name not in params_dict:
                         continue
-                    # param = params_dict[name]
-                    print(name)
+                    param = params_dict[name]
                 except KeyError:
-                    # print(params_dict.keys())
+                    print(params_dict.keys())
                     raise
 
                 weight_loader = getattr(param, "weight_loader", default_weight_loader)
