@@ -477,7 +477,7 @@ class POINTSV15ChatModel(nn.Module):
         super().__init__()
 
         self.config = config
-        self.visual = Qwen2VisionTransformerForNavitPOINTS(
+        self.vision_encoder = Qwen2VisionTransformerForNavitPOINTS(
             config.vision_config,
             norm_eps=getattr(config, "rms_norm_eps", 1e-6),
             # NOTE: Qwen2-VL vision encoder does not support any
@@ -505,14 +505,18 @@ class POINTSV15ChatModel(nn.Module):
         self.pooler = Pooler(pooling_type=PoolingType.LAST, normalize=True)
 
     def _process_image_input(self, image_input: Qwen2VLImageInputs) -> torch.Tensor:
-        pixel_values = image_input["pixel_values"].type(self.visual.dtype)
-        image_embeds = self.visual(pixel_values, grid_thw=image_input["image_grid_thw"])
+        pixel_values = image_input["pixel_values"].type(self.vision_encoder.dtype)
+        image_embeds = self.vision_encoder(
+            pixel_values, grid_thw=image_input["image_grid_thw"]
+        )
         image_embeds = self.vision_projector(image_embeds)
         return image_embeds
 
     def _process_video_input(self, video_input: Qwen2VLVideoInputs) -> torch.Tensor:
-        pixel_values_videos = video_input["pixel_values_videos"].type(self.visual.dtype)
-        video_embeds = self.visual(
+        pixel_values_videos = video_input["pixel_values_videos"].type(
+            self.vision_encoder.dtype
+        )
+        video_embeds = self.vision_encoder(
             pixel_values_videos, grid_thw=video_input["video_grid_thw"]
         )
         video_embeds = self.vision_projector(video_embeds)
