@@ -541,8 +541,9 @@ class POINTSV15ChatModel(nn.Module):
                 otherwise it will be `(seq_len,).
                 (Use input_metadata.mrope_positions to replace it)
         """
-        if getattr(self.config, "rope_scaling", {}).get("type", None) == "mrope":
-            positions = forward_batch.mrope_positions
+        # There is no rope_scaling in POINTSV15ChatModel
+        # if getattr(self.config, "rope_scaling", {}).get("type", None) == "mrope":
+        #     positions = forward_batch.mrope_positions
 
         image_inputs = None
         if forward_batch.image_inputs is not None:
