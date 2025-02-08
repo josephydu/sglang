@@ -558,11 +558,11 @@ class POINTSV15ChatModel(nn.Module):
         ):
             inputs_embeds = self.model.embed_tokens(input_ids)
         else:
-            if getattr(self.config, "rope_scaling", {}).get("type", None) == "mrope":
-                assert positions.ndim == 2 and positions.size(0) == 3, (
-                    "multimodal section rotary embedding requires "
-                    f"(3, seq_len) positions, but got {positions.size()}"
-                )
+            # if getattr(self.config, "rope_scaling", {}).get("type", None) == "mrope":
+            #     assert positions.ndim == 2 and positions.size(0) == 3, (
+            #         "multimodal section rotary embedding requires "
+            #         f"(3, seq_len) positions, but got {positions.size()}"
+            #     )
 
             # Clamp input ids. This is because the input_ids for the image tokens are
             # filled with the hash values of the image for the prefix matching in the radix attention.
