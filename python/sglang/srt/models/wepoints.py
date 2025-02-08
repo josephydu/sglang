@@ -663,7 +663,7 @@ class POINTSV15ChatModel(nn.Module):
                         continue
                     param = params_dict[name]
                 except KeyError:
-                    print(params_dict.keys())
+                    # print(params_dict.keys())
                     raise
 
                 weight_loader = getattr(param, "weight_loader", default_weight_loader)
