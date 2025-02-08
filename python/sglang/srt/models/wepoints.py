@@ -484,6 +484,13 @@ class POINTSV15ChatModel(nn.Module):
             # quantization method now.
             quant_config=None,
         )
+        norm_layer = partial(nn.LayerNorm, eps=getattr(config, "rms_norm_eps", 1e-6))
+        self.vision_projector = Qwen2VisionPatchMerger(
+            d_model=config.hidden_size,
+            context_dim=1280,
+            norm_layer=norm_layer,
+            quant_config=quant_config,
+        )
 
         self.model = Qwen2Model(config, quant_config)
 
@@ -500,6 +507,7 @@ class POINTSV15ChatModel(nn.Module):
     def _process_image_input(self, image_input: Qwen2VLImageInputs) -> torch.Tensor:
         pixel_values = image_input["pixel_values"].type(self.visual.dtype)
         image_embeds = self.visual(pixel_values, grid_thw=image_input["image_grid_thw"])
+        image_embeds = self.vision_projector(image_embeds)
         return image_embeds
 
     def _process_video_input(self, video_input: Qwen2VLVideoInputs) -> torch.Tensor:
@@ -507,6 +515,7 @@ class POINTSV15ChatModel(nn.Module):
         video_embeds = self.visual(
             pixel_values_videos, grid_thw=video_input["video_grid_thw"]
         )
+        video_embeds = self.vision_projector(video_embeds)
         return video_embeds
 
     def forward(
@@ -639,7 +648,7 @@ class POINTSV15ChatModel(nn.Module):
                 break
             else:
 
-                if "visual" in name and "qkv.weight" in name:
+                if "vision_encoder" in name and "qkv.weight" in name:
                     visual_num_heads = self.config.vision_config.num_heads
                     visual_embed_dim = self.config.vision_config.embed_dim
                     head_size = visual_embed_dim // visual_num_heads
@@ -648,7 +657,7 @@ class POINTSV15ChatModel(nn.Module):
                     )
                     loaded_weight = loaded_weight.transpose(0, 1)
                     loaded_weight = loaded_weight.reshape(-1, visual_embed_dim)
-                elif "visual" in name and "qkv.bias" in name:
+                elif "vision_encoder" in name and "qkv.bias" in name:
                     visual_num_heads = self.config.vision_config.num_heads
                     visual_embed_dim = self.config.vision_config.embed_dim
                     head_size = visual_embed_dim // visual_num_heads
@@ -656,7 +665,7 @@ class POINTSV15ChatModel(nn.Module):
                     loaded_weight = loaded_weight.transpose(0, 1)
                     loaded_weight = loaded_weight.reshape(-1)
 
-                if "visual" in name:
+                if "vision_encoder" in name:
                     # adapt to VisionAttention
                     name = name.replace(r"attn.qkv.", r"attn.qkv_proj.")
 
