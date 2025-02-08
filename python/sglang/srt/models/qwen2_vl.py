@@ -584,56 +584,56 @@ class Qwen2VLForConditionalGeneration(nn.Module):
         ]
         params_dict = dict(self.named_parameters(remove_duplicate=False))
         for name, loaded_weight in weights:
-            print(name)
-            # if "rotary_emb.inv_freq" in name:
-            #     continue
+            if "rotary_emb.inv_freq" in name:
+                continue
 
-            # for param_name, weight_name, shard_id in stacked_params_mapping:
-            #     if weight_name not in name:
-            #         continue
-            #     name = name.replace(weight_name, param_name)
+            for param_name, weight_name, shard_id in stacked_params_mapping:
+                if weight_name not in name:
+                    continue
+                name = name.replace(weight_name, param_name)
 
-            #     # Skip loading extra bias for GPTQ models.
-            #     if name.endswith(".bias") and name not in params_dict:
-            #         continue
-            #     param = params_dict[name]
-            #     weight_loader = param.weight_loader
-            #     weight_loader(param, loaded_weight, shard_id)
-            #     break
-            # else:
+                # Skip loading extra bias for GPTQ models.
+                if name.endswith(".bias") and name not in params_dict:
+                    continue
+                param = params_dict[name]
+                weight_loader = param.weight_loader
+                weight_loader(param, loaded_weight, shard_id)
+                break
+            else:
 
-            #     if "visual" in name and "qkv.weight" in name:
-            #         visual_num_heads = self.config.vision_config.num_heads
-            #         visual_embed_dim = self.config.vision_config.embed_dim
-            #         head_size = visual_embed_dim // visual_num_heads
-            #         loaded_weight = loaded_weight.view(
-            #             3, visual_num_heads, head_size, visual_embed_dim
-            #         )
-            #         loaded_weight = loaded_weight.transpose(0, 1)
-            #         loaded_weight = loaded_weight.reshape(-1, visual_embed_dim)
-            #     elif "visual" in name and "qkv.bias" in name:
-            #         visual_num_heads = self.config.vision_config.num_heads
-            #         visual_embed_dim = self.config.vision_config.embed_dim
-            #         head_size = visual_embed_dim // visual_num_heads
-            #         loaded_weight = loaded_weight.view(3, visual_num_heads, head_size)
-            #         loaded_weight = loaded_weight.transpose(0, 1)
-            #         loaded_weight = loaded_weight.reshape(-1)
+                if "visual" in name and "qkv.weight" in name:
+                    visual_num_heads = self.config.vision_config.num_heads
+                    visual_embed_dim = self.config.vision_config.embed_dim
+                    head_size = visual_embed_dim // visual_num_heads
+                    loaded_weight = loaded_weight.view(
+                        3, visual_num_heads, head_size, visual_embed_dim
+                    )
+                    loaded_weight = loaded_weight.transpose(0, 1)
+                    loaded_weight = loaded_weight.reshape(-1, visual_embed_dim)
+                elif "visual" in name and "qkv.bias" in name:
+                    visual_num_heads = self.config.vision_config.num_heads
+                    visual_embed_dim = self.config.vision_config.embed_dim
+                    head_size = visual_embed_dim // visual_num_heads
+                    loaded_weight = loaded_weight.view(3, visual_num_heads, head_size)
+                    loaded_weight = loaded_weight.transpose(0, 1)
+                    loaded_weight = loaded_weight.reshape(-1)
 
-            #     if "visual" in name:
-            #         # adapt to VisionAttention
-            #         name = name.replace(r"attn.qkv.", r"attn.qkv_proj.")
+                if "visual" in name:
+                    # adapt to VisionAttention
+                    name = name.replace(r"attn.qkv.", r"attn.qkv_proj.")
 
-            #     try:
-            #         # Skip loading extra bias for GPTQ models.
-            #         if name.endswith(".bias") and name not in params_dict:
-            #             continue
-            #         param = params_dict[name]
-            #     except KeyError:
-            #         print(params_dict.keys())
-            #         raise
+                try:
+                    # Skip loading extra bias for GPTQ models.
+                    if name.endswith(".bias") and name not in params_dict:
+                        continue
+                    # param = params_dict[name]
+                    print(name)
+                except KeyError:
+                    # print(params_dict.keys())
+                    raise
 
-            #     weight_loader = getattr(param, "weight_loader", default_weight_loader)
-            #     weight_loader(param, loaded_weight)
+                weight_loader = getattr(param, "weight_loader", default_weight_loader)
+                weight_loader(param, loaded_weight)
 
 
 EntryClass = Qwen2VLForConditionalGeneration
