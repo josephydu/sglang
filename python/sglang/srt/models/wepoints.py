@@ -392,8 +392,13 @@ class Qwen2VisionTransformerForNavitPOINTS(Qwen2VisionTransformer):  # noqa
     Do no apply patch merging to the hidden features output by the transformer.
     """
 
-    def __init__(self, config) -> None:
-        super().__init__(config)
+    def __init__(
+        self,
+        config: Qwen2VLVisionConfig,
+        norm_eps: float = 1e-6,
+        quant_config: Optional[QuantizationConfig] = None,
+    ) -> None:
+        super().__init__(config, norm_eps, quant_config)
 
     def forward(
         self, hidden_states: torch.Tensor, grid_thw: torch.Tensor
