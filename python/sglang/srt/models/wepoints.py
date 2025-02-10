@@ -497,12 +497,12 @@ class POINTSV15ChatModel(nn.Module):
 
         self.model = Qwen2Model(config, quant_config)
 
-        # if config.tie_word_embeddings:
-        #     self.lm_head = self.model.embed_tokens
-        # else:
-        self.lm_head = ParallelLMHead(
-            config.vocab_size, config.hidden_size, quant_config=quant_config
-        )
+        if config.tie_word_embeddings:
+            self.lm_head = self.model.embed_tokens
+        else:
+            self.lm_head = ParallelLMHead(
+                config.vocab_size, config.hidden_size, quant_config=quant_config
+            )
 
         self.logits_processor = LogitsProcessor(config)
         self.pooler = Pooler(pooling_type=PoolingType.LAST, normalize=True)
@@ -557,9 +557,12 @@ class POINTSV15ChatModel(nn.Module):
             # filled with the hash values of the image for the prefix matching in the radix attention.
             # There values are useless because their embeddings will be replaced by vision embeddings anyway.
             input_ids.clamp_(min=0, max=self.config.vocab_size - 1)
+
             inputs_embeds = self.model.embed_tokens(input_ids)
 
-            print(f"shape of inputs_embeds {inputs_embeds.shape}")
+            print(
+                f"shape of inputs_embeds {inputs_embeds.shape}, input_ids.shape = {input_ids.shape}"
+            )
             extend_start_loc_cpu = forward_batch.extend_start_loc.cpu().numpy()
             prefix_lens_cpu = forward_batch.extend_prefix_lens_cpu
             for i, image in enumerate(forward_batch.image_inputs):
