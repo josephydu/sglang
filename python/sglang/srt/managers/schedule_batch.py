@@ -745,7 +745,6 @@ class ScheduleBatch:
         reqs = self.reqs
 
         input_ids = [r.fill_ids[len(r.prefix_indices) :] for r in reqs]
-        print(f"[prepare_for_extend]=>{input_ids}")
 
         extend_num_tokens = sum(len(ids) for ids in input_ids)
         seq_lens = []
