@@ -412,7 +412,7 @@ class Qwen2VisionTransformerForNavitPOINTS(Qwen2VisionTransformer):  # noqa
         ).cumsum(dim=0, dtype=torch.int32)
         cu_seqlens = F.pad(cu_seqlens, (1, 0), value=0)
 
-        x = x.unsqueeze(1)
+        hidden_states = hidden_states.unsqueeze(1)
 
         for blk in self.blocks:
             hidden_states = blk(
