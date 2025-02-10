@@ -1,14 +1,3 @@
-import torch
-import triton
-
-n = 2048
-
-a = torch.randn((n, n), device="cuda", dtype=torch.float16)
-b = torch.randn((n, n), device="cuda", dtype=torch.float16)
-
-
-ms = triton.testing.do_bench(lambda: torch.matmul(a, b))
-perf = lambda ms: 2 * n * n * n * 1e-12 / (ms * 1e-3)
-
-print(ms)
-print(perf(ms))
+print(
+    "What's new in POINTS1.5?\n\nKey Innovations\n\n1. Native Dynamic High Resolution: In line with the recent trend in vision-language models, we have replaced the original CLIP vision encoder with a NaViT-style vision encoder. This new encoder can process images at various resolutions without the need for splitting.\n\n2. Bilingual Support: Most of the pre-training and visual instruction tuning datasets in POINTS are in English. In this update, we have added support for Chinese, with plans to include more languages in the future. For the pre-training stage, we followed the strategy proposed by POINTS and created an additional 1 million Chinese pre-training datasets. For the visual instruction tuning stage, we supplemented the original English dataset used in POINTS with a series of Chinese visual instruction tuning datasets sourced from the open-source community. We also collected images and generated corresponding textual question-and-answer pairs using a combination of manual and automated methods. These visual instruction tuning datasets cover various domains, such as optical character recognition and general conversation.\n\n3. Quality Control: We conducted a series of quality control tests on both the pre-training and visual instruction tuning datasets. For instance, we filtered the pre-training dataset using perplexity, following the strategy proposed in POINTS. For the visual instruction tuning datasets, we implemented a combination of filtering strategies, such as removing samples with grammatical errors.\n\n4. Model Soup: In line with POINTS, we also applied model soup techniques to further enhance performance."
+)
