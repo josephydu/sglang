@@ -22,4 +22,4 @@ data = {
 }
 
 response = requests.post(url, json=data)
-print(response.text.choices[0]["message"]["content"])
+print(response.text["choices"][0]["message"]["content"])
