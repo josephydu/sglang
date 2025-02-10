@@ -175,6 +175,7 @@ class TpModelWorker:
 
     def forward_batch_embedding(self, model_worker_batch: ModelWorkerBatch):
         forward_batch = ForwardBatch.init_new(model_worker_batch, self.model_runner)
+        print(f"[forward_batch_generation]=>{forward_batch.input_ids.shape}")
         logits_output = self.model_runner.forward(forward_batch)
         embeddings = logits_output.embeddings
         return embeddings
