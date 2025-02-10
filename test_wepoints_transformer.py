@@ -23,7 +23,7 @@ messages = [
                 "text": "What is in this image?",
             },
             {
-                "type": "image_url",
+                "type": "image",
                 "image": {
                     "url": "https://github.com/sgl-project/sglang/blob/main/test/lang/example_image.png?raw=true"
                 },
