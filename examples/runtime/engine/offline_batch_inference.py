@@ -14,14 +14,15 @@ def main(
     server_args: ServerArgs,
 ):
     # Sample prompts.
-    prompts = [
-        "Hello, my name is",
-        "The president of the United States is",
-        "The capital of France is",
-        "The future of AI is",
-    ]
+    content = [dict(type="image", image="image.jpg"), dict(type="text", text=prompt)]
+    messages = [{"role": "user", "content": content}]
     # Create a sampling params object.
-    sampling_params = {"temperature": 0.8, "top_p": 0.95}
+    sampling_params = {
+        "max_new_tokens": 1024,
+        "temperature": 0.0,
+        "top_p": 0.0,
+        "num_beams": 1,
+    }
 
     # Create an LLM.
     llm = sgl.Engine(**dataclasses.asdict(server_args))
