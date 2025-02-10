@@ -594,6 +594,8 @@ class POINTSV15ChatModel(nn.Module):
                     right_idx = (
                         start_idx + (image_offset - prefix_len) + num_image_tokens
                     )
+
+                    print(f"left_idx=>{left_idx}, right_idx=>{right_idx}")
                     try:
                         inputs_embeds[left_idx:right_idx] = image_embeds[
                             image_embeds_offset : image_embeds_offset + num_image_tokens
