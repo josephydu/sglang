@@ -15,6 +15,8 @@ from transformers import (
 model = AutoModelForCausalLM.from_pretrained("/WePoints", device_map="auto")
 processor = AutoProcessor.from_pretrained("/WePoints")
 
+print(processor)
+
 # Image
 url = "https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen-VL/assets/demo.jpeg"
 image = Image.open(requests.get(url, stream=True).raw)
