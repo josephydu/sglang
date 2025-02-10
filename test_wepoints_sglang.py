@@ -8,12 +8,10 @@ data = {
         {
             "role": "user",
             "content": [
-                {"type": "text", "text": "请用中文描述图片里的内容"},
+                {"type": "text", "text": "提取图片中所有的文字"},
                 {
                     "type": "image_url",
-                    "image_url": {
-                        "url": "https://wiki.01studio.cc/en/assets/images/mnist1-cc229fb1d4374aa0aef6b4d26b2d22a3.jpg"
-                    },
+                    "image_url": {"url": "/ocr.png"},
                 },
             ],
         }

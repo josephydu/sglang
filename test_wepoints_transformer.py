@@ -40,12 +40,12 @@ tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 image_processor = AutoProcessor.from_pretrained(model_path).image_processor
 # image_processor = Qwen2ImageProcessorForPOINTSV15.from_pretrained(model_path)
 
-image_url = "https://wiki.01studio.cc/en/assets/images/mnist1-cc229fb1d4374aa0aef6b4d26b2d22a3.jpg"
+image_url = "/ocr.png"
 response = requests.get(image_url)
 image_data = BytesIO(response.content)
 pil_image = Image.open(image_data)
 pil_image = pil_image.save("image.jpg")
-prompt = "请用中文描述图片里的内容"
+prompt = "提取图片中所有的文字"
 
 content = [dict(type="image", image="image.jpg"), dict(type="text", text=prompt)]
 messages = [{"role": "user", "content": content}]
