@@ -8,11 +8,11 @@ data = {
         {
             "role": "user",
             "content": [
-                {"type": "text", "text": "please describe the image in detail"},
+                {"type": "text", "text": "请用中文描述图片里的内容"},
                 {
                     "type": "image_url",
                     "image_url": {
-                        "url": "https://github.com/user-attachments/assets/83258e94-5d61-48ef-a87f-80dd9d895524"
+                        "url": "https://github.com/sgl-project/sglang/blob/main/test/lang/example_image.png?raw=true"
                     },
                 },
             ],

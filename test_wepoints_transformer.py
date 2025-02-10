@@ -40,14 +40,12 @@ tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 image_processor = AutoProcessor.from_pretrained(model_path).image_processor
 # image_processor = Qwen2ImageProcessorForPOINTSV15.from_pretrained(model_path)
 
-image_url = (
-    "https://github.com/user-attachments/assets/83258e94-5d61-48ef-a87f-80dd9d895524"
-)
+image_url = "https://github.com/sgl-project/sglang/blob/main/test/lang/example_image.png?raw=true"
 response = requests.get(image_url)
 image_data = BytesIO(response.content)
 pil_image = Image.open(image_data)
 pil_image = pil_image.save("image.jpg")
-prompt = "please describe the image in detail"
+prompt = "请用中文描述图片里的内容"
 
 content = [dict(type="image", image="image.jpg"), dict(type="text", text=prompt)]
 messages = [{"role": "user", "content": content}]
