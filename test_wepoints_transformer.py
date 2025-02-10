@@ -14,25 +14,24 @@ model = AutoModelForCausalLM.from_pretrained(
 tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 image_processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
 
-messages = (
-    [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": "What is in this image?",
+messages = [
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": "What is in this image?",
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": "https://github.com/sgl-project/sglang/blob/main/test/lang/example_image.png?raw=true"
                 },
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": "https://github.com/sgl-project/sglang/blob/main/test/lang/example_image.png?raw=true"
-                    },
-                },
-            ],
-        }
-    ],
-)
+            },
+        ],
+    }
+]
+
 generation_config = {
     "max_new_tokens": 1024,
     "temperature": 0.0,
