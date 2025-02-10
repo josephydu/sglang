@@ -603,17 +603,6 @@ class POINTSV15ChatModel(nn.Module):
                             image_embeds_offset : image_embeds_offset + num_image_tokens
                         ]
                     except Exception as e:
-                        print(
-                            f"image_embeds.shape={image_embeds.shape},inputs_embeds.shape={inputs_embeds.shape}"
-                        )
-                        print(f"left_idx={left_idx},right_idx={right_idx}")
-                        print(
-                            f"image_embeds_offset={image_embeds_offset},image_embeds_offset + num_image_tokens={image_embeds_offset + num_image_tokens}"
-                        )
-
-                        print(
-                            f"shape inputs_embeds:{inputs_embeds[left_idx:right_idx].shape}, shape image_embeds: {image_embeds[image_embeds_offset : image_embeds_offset + num_image_tokens].shape}"
-                        )
                         raise (e)
                     image_embeds_offset += num_image_tokens
 

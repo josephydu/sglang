@@ -549,7 +549,9 @@ class Qwen2VLForConditionalGeneration(nn.Module):
                     num_image_tokens = self.calculate_num_image_tokens(
                         image_grid_thws[idx]
                     )
-
+                    print(
+                        f"start_idx=>{start_idx}, image_offset=>{image_offset}, left_idx=>{left_idx}, right_idx=>{right_idx}"
+                    )
                     left_idx = start_idx + (image_offset - prefix_len)
                     right_idx = (
                         start_idx + (image_offset - prefix_len) + num_image_tokens
