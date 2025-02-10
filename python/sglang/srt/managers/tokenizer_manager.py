@@ -160,7 +160,7 @@ class TokenizerManager:
                     trust_remote_code=server_args.trust_remote_code,
                     revision=server_args.revision,
                 )
-                print(f"[TokenizerManager]self.processor=>{self.processor}")
+                # print(f"[TokenizerManager]self.processor=>{self.processor}")
                 self.tokenizer = self.processor.tokenizer
                 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
