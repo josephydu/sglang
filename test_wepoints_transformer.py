@@ -24,7 +24,7 @@ messages = [
             },
             {
                 "type": "image_url",
-                "image_url": {
+                "image": {
                     "url": "https://github.com/sgl-project/sglang/blob/main/test/lang/example_image.png?raw=true"
                 },
             },
