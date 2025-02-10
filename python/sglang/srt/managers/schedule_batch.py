@@ -745,7 +745,7 @@ class ScheduleBatch:
         reqs = self.reqs
 
         input_ids = [r.fill_ids[len(r.prefix_indices) :] for r in reqs]
-        print(f"[prepare_for_extend]=>{input_ids.shape}")
+        print(f"[prepare_for_extend]=>{input_ids}")
 
         extend_num_tokens = sum(len(ids) for ids in input_ids)
         seq_lens = []
@@ -795,6 +795,8 @@ class ScheduleBatch:
         self.input_ids = torch.tensor(sum(input_ids, []), dtype=torch.int32).to(
             self.device, non_blocking=True
         )
+
+        print(f"[prepare_for_extend]=>{self.input_ids.shape}")
         self.req_pool_indices = torch.tensor(req_pool_indices, dtype=torch.int64).to(
             self.device, non_blocking=True
         )
