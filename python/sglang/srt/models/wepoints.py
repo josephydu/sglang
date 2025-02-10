@@ -564,6 +564,9 @@ class POINTSV15ChatModel(nn.Module):
                 f"shape of inputs_embeds {inputs_embeds.shape}, input_ids.shape = {input_ids.shape}"
             )
             extend_start_loc_cpu = forward_batch.extend_start_loc.cpu().numpy()
+
+            print(f"[extend_start_loc_cpu]{extend_start_loc_cpu}")
+
             prefix_lens_cpu = forward_batch.extend_prefix_lens_cpu
             for i, image in enumerate(forward_batch.image_inputs):
                 if image is None:
