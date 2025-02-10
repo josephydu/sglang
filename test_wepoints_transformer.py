@@ -18,19 +18,11 @@ response = requests.get(image_url)
 image_data = BytesIO(response.content)
 pil_image = Image.open(image_data)
 pil_image = pil_image.save("image.jpg")
-
-messages = [
-    {
-        "role": "user",
-        "content": [
-            {
-                "type": "text",
-                "text": "What is in this image?",
-            },
-            {"type": "image", "image": "image.jpg"},
-        ],
-    }
+content = [
+    dict(type="image", image="image.jpg"),
+    dict(type="text", text="What is in this image?"),
 ]
+messages = [{"role": "user", "content": content}]
 
 generation_config = {
     "max_new_tokens": 1024,
