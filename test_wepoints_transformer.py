@@ -44,7 +44,7 @@ image_url = "/ocr.png"
 # response = requests.get(image_url)
 # image_data = BytesIO(response.content)
 pil_image = Image.open(image_url)
-pil_image = pil_image.save("image.jpg")
+pil_image = pil_image.save("image.png")
 prompt = "提取图片中所有的文字"
 
 content = [dict(type="image", image="image.jpg"), dict(type="text", text=prompt)]
