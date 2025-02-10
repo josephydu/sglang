@@ -47,7 +47,7 @@ pil_image = Image.open(image_url)
 pil_image = pil_image.save("image.png")
 prompt = "提取图片中所有的文字"
 
-content = [dict(type="image", image="image.jpg"), dict(type="text", text=prompt)]
+content = [dict(type="image", image="image.png"), dict(type="text", text=prompt)]
 messages = [{"role": "user", "content": content}]
 generation_config = {
     "max_new_tokens": 1024,
