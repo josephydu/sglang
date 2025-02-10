@@ -950,7 +950,7 @@ def main(args: argparse.Namespace):
             model_id=model_id,
             model_name=model_name,
             tokenizer=tokenizer,
-            input_requests=input_requests,
+            input_requests=input_requests[0],
             logprobs=args.logprobs,
             best_of=args.best_of,
             request_rate=args.request_rate,
