@@ -20,7 +20,7 @@ data = {
     ],
     "max_new_tokens": 1024,
     "temperature": 0.0,
-    "top_p": 0,
+    "top_p": 1,
     "num_beams": 1,
 }
 
