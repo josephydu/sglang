@@ -403,6 +403,7 @@ class Qwen2VisionTransformerForNavitPOINTS(Qwen2VisionTransformer):  # noqa
     def forward(
         self, hidden_states: torch.Tensor, grid_thw: torch.Tensor
     ) -> torch.Tensor:
+        hidden_states = hidden_states.to(device=self.device, dtype=self.dtype)
         hidden_states = self.patch_embed(hidden_states)
         rotary_pos_emb = self.rot_pos_emb(grid_thw)
 
@@ -410,6 +411,8 @@ class Qwen2VisionTransformerForNavitPOINTS(Qwen2VisionTransformer):  # noqa
             grid_thw[:, 1] * grid_thw[:, 2], grid_thw[:, 0]
         ).cumsum(dim=0, dtype=torch.int32)
         cu_seqlens = F.pad(cu_seqlens, (1, 0), value=0)
+
+        x = x.unsqueeze(1)
 
         for blk in self.blocks:
             hidden_states = blk(
