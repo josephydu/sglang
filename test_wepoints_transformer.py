@@ -13,9 +13,7 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 image_processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
-image_url = (
-    "https://github.com/user-attachments/assets/83258e94-5d61-48ef-a87f-80dd9d895524"
-)
+image_url = "https://github.com/sgl-project/sglang/blob/main/test/lang/example_image.png?raw=true"
 response = requests.get(image_url)
 image_data = BytesIO(response.content)
 pil_image = Image.open(image_data)
