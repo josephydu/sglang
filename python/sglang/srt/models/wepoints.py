@@ -497,12 +497,12 @@ class POINTSV15ChatModel(nn.Module):
 
         self.model = Qwen2Model(config, quant_config)
 
-        # if config.tie_word_embeddings:
-        # self.lm_head = self.model.embed_tokens
-        # else:
-        self.lm_head = ParallelLMHead(
-            config.vocab_size, config.hidden_size, quant_config=quant_config
-        )
+        if config.tie_word_embeddings:
+            self.lm_head = self.model.embed_tokens
+        else:
+            self.lm_head = ParallelLMHead(
+                config.vocab_size, config.hidden_size, quant_config=quant_config
+            )
 
         self.logits_processor = LogitsProcessor(config)
         self.pooler = Pooler(pooling_type=PoolingType.LAST, normalize=True)
