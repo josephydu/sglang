@@ -12,7 +12,7 @@ data = {
                 {
                     "type": "image_url",
                     "image_url": {
-                        "url": "https://github.com/sgl-project/sglang/blob/main/test/lang/example_image.png?raw=true"
+                        "url": "https://raw.githubusercontent.com/sgl-project/sglang/main/assets/logo.png"
                     },
                 },
             ],

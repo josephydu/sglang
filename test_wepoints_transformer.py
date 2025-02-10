@@ -40,7 +40,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 image_processor = AutoProcessor.from_pretrained(model_path).image_processor
 # image_processor = Qwen2ImageProcessorForPOINTSV15.from_pretrained(model_path)
 
-image_url = "https://github.com/sgl-project/sglang/blob/main/test/lang/example_image.png?raw=true"
+image_url = "https://raw.githubusercontent.com/sgl-project/sglang/main/assets/logo.png"
 response = requests.get(image_url)
 image_data = BytesIO(response.content)
 pil_image = Image.open(image_data)
