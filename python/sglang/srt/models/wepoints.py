@@ -601,6 +601,10 @@ class POINTSV15ChatModel(nn.Module):
                         print(
                             f"image_embeds_offset={image_embeds_offset},image_embeds_offset + num_image_tokens={image_embeds_offset + num_image_tokens}"
                         )
+
+                        print(
+                            f"shape inputs_embeds:{inputs_embeds[left_idx:right_idx].shape}, shape image_embeds: {image_embeds[image_embeds_offset : image_embeds_offset + num_image_tokens].shape}"
+                        )
                         raise (e)
                     image_embeds_offset += num_image_tokens
 
