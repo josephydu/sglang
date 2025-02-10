@@ -747,6 +747,7 @@ class ModelRunner:
         self.attn_backend.init_forward_metadata(forward_batch)
         if self.is_generation:
             if forward_batch.input_embeds is None:
+                print(f"[forward_extend]shape:{forward_batch.input_ids}")
                 return self.model.forward(
                     forward_batch.input_ids, forward_batch.positions, forward_batch
                 )
