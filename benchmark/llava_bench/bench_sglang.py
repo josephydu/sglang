@@ -92,5 +92,7 @@ if __name__ == "__main__":
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--num-questions", type=int, default=None)
     parser.add_argument("--max-tokens", type=int, default=768)
+    parser.add_argument("--host", type=str, default="127.0.0.1")
+    parser.add_argument("--port", type=str, default="30000")
     args = add_common_sglang_args_and_parse(parser)
     main(args)
