@@ -161,7 +161,7 @@ class TpModelWorker:
         skip_sample: bool = False,
     ):
         forward_batch = ForwardBatch.init_new(model_worker_batch, self.model_runner)
-        print(f"[forward_batch_generation]=>{forward_batch.input_ids.shape}")
+        # print(f"[forward_batch_generation]=>{forward_batch.input_ids.shape}")
         logits_output = self.model_runner.forward(forward_batch)
         if launch_done:
             launch_done.set()
