@@ -29,16 +29,7 @@ from io import BytesIO
 import requests
 import torch
 from PIL import Image
-
-# generation_config = {
-#     "max_new_tokens": 1024,
-#     "temperature": 0.0,
-#     "top_p": 0.0,
-#     "num_beams": 1,
-# }
-# response = model.chat(messages, tokenizer, image_processor, generation_config)
-# print(response)
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer
 from wepoints.utils.images import Qwen2ImageProcessorForPOINTSV15
 
 model_path = "/WePoints/"
@@ -46,7 +37,8 @@ model = AutoModelForCausalLM.from_pretrained(
     model_path, trust_remote_code=True, torch_dtype=torch.float16, device_map="cuda"
 )
 tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-image_processor = Qwen2ImageProcessorForPOINTSV15.from_pretrained(model_path)
+image_processor = AutoProcessor.from_pretrained(model_path)
+# image_processor = Qwen2ImageProcessorForPOINTSV15.from_pretrained(model_path)
 print("==============")
 print(image_processor)
 print("==============")
