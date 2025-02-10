@@ -577,9 +577,7 @@ class POINTSV15ChatModel(nn.Module):
                 image_embeds = self._process_image_input(image_input)
 
                 image_embeds_offset = 0
-                print(
-                    f"image_embeds.shape={image_embeds.shape},inputs_embeds.shape={inputs_embeds.shape}"
-                )
+
                 for idx, image_offset in enumerate(image_offsets):
                     if image_offset < prefix_len:
                         continue
@@ -591,10 +589,16 @@ class POINTSV15ChatModel(nn.Module):
                     right_idx = (
                         start_idx + (image_offset - prefix_len) + num_image_tokens
                     )
-
-                    inputs_embeds[left_idx:right_idx] = image_embeds[
-                        image_embeds_offset : image_embeds_offset + num_image_tokens
-                    ]
+                    try:
+                        inputs_embeds[left_idx:right_idx] = image_embeds[
+                            image_embeds_offset : image_embeds_offset + num_image_tokens
+                        ]
+                    except Exception as e:
+                        print(
+                            f"image_embeds.shape={image_embeds.shape},inputs_embeds.shape={inputs_embeds.shape}"
+                        )
+                        print(f"left_idx={left_idx},right_idx={right_idx}")
+                        raise (e)
                     image_embeds_offset += num_image_tokens
 
         input_ids = None
