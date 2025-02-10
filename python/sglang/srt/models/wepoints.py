@@ -577,6 +577,9 @@ class POINTSV15ChatModel(nn.Module):
                 image_embeds = self._process_image_input(image_input)
 
                 image_embeds_offset = 0
+                print(
+                    f"image_embeds.shape={image_embeds.shape},inputs_embeds.shape={inputs_embeds.shape}"
+                )
                 for idx, image_offset in enumerate(image_offsets):
                     if image_offset < prefix_len:
                         continue
