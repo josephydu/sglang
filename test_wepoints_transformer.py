@@ -41,7 +41,7 @@ from PIL import Image
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from wepoints.utils.images import Qwen2ImageProcessorForPOINTSV15
 
-model_path = "WePOINTS/POINTS-1-5-Qwen-2-5-7B-Chat"
+model_path = "/WePoints/"
 model = AutoModelForCausalLM.from_pretrained(
     model_path, trust_remote_code=True, torch_dtype=torch.float16, device_map="cuda"
 )
