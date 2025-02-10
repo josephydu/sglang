@@ -44,7 +44,7 @@ def vlm_text_with_image(args):
     print("==============")
     print(type(processor))
     print("==============")
-    model = AutoModelForCausalLM.from_pretrained(
+    model = AutoModelForImageTextToText.from_pretrained(
         args.model_path,
         torch_dtype=args.dtype,
         low_cpu_mem_usage=True,
