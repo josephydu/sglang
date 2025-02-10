@@ -283,6 +283,8 @@ def sample_hf_requests(
     filter_func = lambda x: len(x["conversations"]) >= 2
     filtered_dataset = dataset.shuffle(seed=random_seed).filter(filter_func)
     sampled_requests: List[Tuple[str, int, int, Dict[str, Collection[str]]]] = []
+
+    cnt = 0
     for data in filtered_dataset:
         if len(sampled_requests) == num_requests:
             break
@@ -331,6 +333,9 @@ def sample_hf_requests(
             mm_content = None
 
         sampled_requests.append((prompt, prompt_len, output_len, mm_content))
+        cnt += 1
+        if cnt % 7 == 0:
+            break
 
     return sampled_requests
 
