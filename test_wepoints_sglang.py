@@ -25,4 +25,4 @@ data = {
 }
 
 response = requests.post(url, json=data)
-response(response.text)
+print(response.text)
