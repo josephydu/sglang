@@ -39,9 +39,6 @@ model = AutoModelForCausalLM.from_pretrained(
 tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 image_processor = AutoProcessor.from_pretrained(model_path).image_processor
 # image_processor = Qwen2ImageProcessorForPOINTSV15.from_pretrained(model_path)
-print("==============")
-print(image_processor)
-print("==============")
 
 image_url = (
     "https://github.com/user-attachments/assets/83258e94-5d61-48ef-a87f-80dd9d895524"
@@ -57,8 +54,6 @@ messages = [{"role": "user", "content": content}]
 generation_config = {
     "max_new_tokens": 1024,
     "temperature": 0.0,
-    "top_p": 0.5,
-    "num_beams": 1,
 }
 response = model.chat(messages, tokenizer, image_processor, generation_config)
 print(response)

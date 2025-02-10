@@ -20,8 +20,6 @@ data = {
     ],
     "max_new_tokens": 1024,
     "temperature": 0.0,
-    "top_p": 0.5,
-    "num_beams": 1,
 }
 
 response = requests.post(url, json=data)
