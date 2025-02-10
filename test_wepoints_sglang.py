@@ -20,6 +20,7 @@ data = {
     ],
     "max_new_tokens": 1024,
     "temperature": 0.0,
+    "do_sample": False,
 }
 
 response = requests.post(url, json=data)

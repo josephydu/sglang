@@ -54,6 +54,7 @@ messages = [{"role": "user", "content": content}]
 generation_config = {
     "max_new_tokens": 1024,
     "temperature": 0.0,
+    "do_sample": False,
 }
 response = model.chat(messages, tokenizer, image_processor, generation_config)
 print(response)

@@ -44,7 +44,6 @@ def vlm_text_with_image(args):
     print("==============")
     print(processor)
     print("==============")
-    return
     model = AutoModelForImageTextToText.from_pretrained(
         args.model_path,
         torch_dtype=args.dtype,
