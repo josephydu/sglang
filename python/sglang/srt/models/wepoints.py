@@ -535,15 +535,7 @@ class POINTSV15ChatModel(nn.Module):
             input_ids: Flattened (concatenated) input_ids corresponding to a
                 batch.
             positions: Flattened (concatenated) position ids corresponding to a
-                batch.
-                **NOTE**: If mrope is enabled (default setting for Qwen2-VL
-                opensource models), the shape will be `(3, seq_len)`,
-                otherwise it will be `(seq_len,).
-                (Use input_metadata.mrope_positions to replace it)
         """
-        # There is no rope_scaling in POINTSV15ChatModel
-        # if getattr(self.config, "rope_scaling", {}).get("type", None) == "mrope":
-        #     positions = forward_batch.mrope_positions
 
         image_inputs = None
         if forward_batch.image_inputs is not None:
@@ -558,17 +550,10 @@ class POINTSV15ChatModel(nn.Module):
         ):
             inputs_embeds = self.model.embed_tokens(input_ids)
         else:
-            # if getattr(self.config, "rope_scaling", {}).get("type", None) == "mrope":
-            #     assert positions.ndim == 2 and positions.size(0) == 3, (
-            #         "multimodal section rotary embedding requires "
-            #         f"(3, seq_len) positions, but got {positions.size()}"
-            #     )
-
             # Clamp input ids. This is because the input_ids for the image tokens are
             # filled with the hash values of the image for the prefix matching in the radix attention.
             # There values are useless because their embeddings will be replaced by vision embeddings anyway.
             input_ids.clamp_(min=0, max=self.config.vocab_size - 1)
-
             inputs_embeds = self.model.embed_tokens(input_ids)
             extend_start_loc_cpu = forward_batch.extend_start_loc.cpu().numpy()
             prefix_lens_cpu = forward_batch.extend_prefix_lens_cpu
