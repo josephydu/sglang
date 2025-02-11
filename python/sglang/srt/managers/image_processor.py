@@ -539,7 +539,7 @@ class Qwen2VLImageProcessor(BaseImageProcessor):
 def get_image_processor(
     hf_config, server_args: ServerArgs, processor
 ) -> BaseImageProcessor:
-    print(f"[get_image_processor]hf_config.architectures=>{hf_config.architectures}")
+    # print(f"[get_image_processor]hf_config.architectures=>{hf_config.architectures}")
     if "MllamaForConditionalGeneration" in hf_config.architectures:
         # print(1)
         return MllamaImageProcessor(hf_config, server_args, processor)
@@ -547,7 +547,7 @@ def get_image_processor(
         "Qwen2VLForConditionalGeneration"
         or "POINTSV15ChatModel" in hf_config.architectures
     ):
-        print(f"[get_image_processor]===================================")
+        # print(f"[get_image_processor]===================================")
         return Qwen2VLImageProcessor(hf_config, server_args, processor.image_processor)
     elif "MiniCPMV" in hf_config.architectures:
         # print(3)
