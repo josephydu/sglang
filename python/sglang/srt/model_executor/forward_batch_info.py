@@ -278,7 +278,6 @@ class ForwardBatch:
             ret.extend_seq_lens_cpu = batch.extend_seq_lens
             ret.extend_logprob_start_lens_cpu = batch.extend_logprob_start_lens
 
-        print(f"[init_new]{model_runner.model_is_mrope}")
         if model_runner.model_is_mrope:
             ret._compute_mrope_positions(model_runner, batch)
 
