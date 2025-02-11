@@ -539,7 +539,7 @@ class POINTSV15ChatModel(nn.Module):
                 batch.
             positions: Flattened (concatenated) position ids corresponding to a
         """
-        print(f"input_ids.shape=>{input_ids.shape}")
+        # print(f"input_ids.shape=>{input_ids.shape}")
         image_inputs = None
         if forward_batch.image_inputs is not None:
             image_inputs = [
@@ -560,12 +560,12 @@ class POINTSV15ChatModel(nn.Module):
 
             inputs_embeds = self.model.embed_tokens(input_ids)
 
-            print(
-                f"shape of inputs_embeds {inputs_embeds.shape}, input_ids.shape = {input_ids.shape}"
-            )
+            # print(
+            # f"shape of inputs_embeds {inputs_embeds.shape}, input_ids.shape = {input_ids.shape}"
+            # )
             extend_start_loc_cpu = forward_batch.extend_start_loc.cpu().numpy()
 
-            print(f"[extend_start_loc_cpu]{extend_start_loc_cpu}")
+            # print(f"[extend_start_loc_cpu]{extend_start_loc_cpu}")
 
             prefix_lens_cpu = forward_batch.extend_prefix_lens_cpu
             for i, image in enumerate(forward_batch.image_inputs):
@@ -598,9 +598,9 @@ class POINTSV15ChatModel(nn.Module):
                         start_idx + (image_offset - prefix_len) + num_image_tokens
                     )
 
-                    print(
-                        f"start_idx=>{start_idx}, image_offset=>{image_offset}, left_idx=>{left_idx}, right_idx=>{right_idx}"
-                    )
+                    # print(
+                    # f"start_idx=>{start_idx}, image_offset=>{image_offset}, left_idx=>{left_idx}, right_idx=>{right_idx}"
+                    # )
                     try:
                         inputs_embeds[left_idx:right_idx] = image_embeds[
                             image_embeds_offset : image_embeds_offset + num_image_tokens
