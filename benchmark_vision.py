@@ -232,6 +232,10 @@ def sample_vision_arena_requests(
             fixed_output_len = 128
 
         prompt_len = len(prompt_token_ids)
+
+        if prompt_len > 1024:
+            continue
+
         output_len = fixed_output_len
 
         assert isinstance(data["images"][0], Image), (
