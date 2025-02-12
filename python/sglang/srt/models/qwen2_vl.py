@@ -554,9 +554,9 @@ class Qwen2VLForConditionalGeneration(nn.Module):
                         start_idx + (image_offset - prefix_len) + num_image_tokens
                     )
 
-                    print(
-                        f"start_idx=>{start_idx}, image_offset=>{image_offset}, left_idx=>{left_idx}, right_idx=>{right_idx}"
-                    )
+                    # print(
+                    #     f"start_idx=>{start_idx}, image_offset=>{image_offset}, left_idx=>{left_idx}, right_idx=>{right_idx}"
+                    # )
                     inputs_embeds[left_idx:right_idx] = image_embeds[
                         image_embeds_offset : image_embeds_offset + num_image_tokens
                     ]
