@@ -145,9 +145,7 @@ class ModelRunner:
             )
             if self.model_config.hf_config.architectures == [
                 "Qwen2VLForConditionalGeneration"
-            ] or self.model_config.hf_config.architectures == [
-                "Qwen2VLForConditionalGeneration"
-            ]:
+            ] or self.model_config.hf_config.architectures == ["POINTSV15ChatModel"]:
                 # TODO: qwen2-vl does not support radix cache now, set disable_radix_cache=True automatically
                 logger.info(
                     "Automatically turn off --chunked-prefill-size and disable radix cache for qwen2-vl."
