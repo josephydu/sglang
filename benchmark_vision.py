@@ -137,6 +137,9 @@ class RequestFuncOutput:
     error: str = ""
 
 
+AIOHTTP_TIMEOUT = aiohttp.ClientTimeout(total=6 * 60 * 60)
+
+
 async def async_request_openai_chat_completions(
     request_func_input: RequestFuncInput,
     pbar: Optional[tqdm] = None,
@@ -824,7 +827,7 @@ async def benchmark(
     else:
         raise ValueError(f"Unknown backend: {backend}")
 
-    # print("Starting initial single prompt test run...")
+    print("Starting initial single prompt test run...")
     test_prompt, test_prompt_len, test_output_len, test_mm_content = input_requests[0]
     if backend != "openai-chat" and test_mm_content is not None:
         # multi-modal benchmark is only available on OpenAI Chat backend.
