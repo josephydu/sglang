@@ -31,27 +31,27 @@ import io
 import json
 import os
 import random
+import sys
 import time
+import traceback
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, AsyncGenerator, Collection, Dict, List, Optional, Tuple
+from typing import Any, AsyncGenerator, Collection, Dict, List, Optional, Tuple, Union
 
+import aiohttp
 import numpy as np
-from backend_request_func import (
-    ASYNC_REQUEST_FUNCS,
-    RequestFuncInput,
-    RequestFuncOutput,
-)
+import pandas as pd
 from datasets import load_dataset
 from PIL.Image import Image
 from tqdm.asyncio import tqdm
-from transformers import PreTrainedTokenizerBase
-
-try:
-    from vllm.transformers_utils.tokenizer import get_tokenizer
-except ImportError:
-    from backend_request_func import get_tokenizer
+from transformers import (
+    AutoTokenizer,
+    PreTrainedTokenizer,
+    PreTrainedTokenizerBase,
+    PreTrainedTokenizerFast,
+)
+from vllm.transformers_utils.tokenizer import get_tokenizer
 
 try:
     from vllm.utils import FlexibleArgumentParser
@@ -59,6 +59,185 @@ except ImportError:
     from argparse import ArgumentParser as FlexibleArgumentParser
 
 MILLISECONDS_TO_SECONDS_CONVERSION = 1000
+
+from dataclasses import dataclass, field
+
+
+def get_model(pretrained_model_name_or_path: str) -> str:
+    if os.getenv("VLLM_USE_MODELSCOPE", "False").lower() == "true":
+        from modelscope import snapshot_download
+
+        model_path = snapshot_download(
+            model_id=pretrained_model_name_or_path,
+            local_files_only=huggingface_hub.constants.HF_HUB_OFFLINE,
+            ignore_file_pattern=[".*.pt", ".*.safetensors", ".*.bin"],
+        )
+
+        return model_path
+    return pretrained_model_name_or_path
+
+
+def get_tokenizer(
+    pretrained_model_name_or_path: str,
+    tokenizer_mode: str = "auto",
+    trust_remote_code: bool = False,
+    **kwargs,
+):
+    if pretrained_model_name_or_path is not None and not os.path.exists(
+        pretrained_model_name_or_path
+    ):
+        pretrained_model_name_or_path = get_model(pretrained_model_name_or_path)
+    if tokenizer_mode == "slow":
+        if kwargs.get("use_fast", False):
+            raise ValueError("Cannot use the fast tokenizer in slow tokenizer mode.")
+        kwargs["use_fast"] = False
+    if tokenizer_mode == "mistral":
+        try:
+            from vllm.transformers_utils.tokenizer import MistralTokenizer
+        except ImportError as e:
+            raise ImportError(
+                "MistralTokenizer requires vllm package.\n"
+                "Please install it with `pip install vllm` "
+                "to use mistral tokenizer mode."
+            ) from e
+        return MistralTokenizer.from_pretrained(str(pretrained_model_name_or_path))
+    else:
+        return AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path,
+            trust_remote_code=trust_remote_code,
+            **kwargs,
+        )
+
+
+@dataclass
+class RequestFuncInput:
+    prompt: str
+    api_url: str
+    prompt_len: int
+    output_len: int
+    model: str
+    model_name: Optional[str] = None
+    best_of: int = 1
+    logprobs: Optional[int] = None
+    extra_body: Optional[dict] = None
+    multi_modal_content: Optional[dict] = None
+    ignore_eos: bool = False
+
+
+@dataclass
+class RequestFuncOutput:
+    generated_text: str = ""
+    success: bool = False
+    latency: float = 0.0
+    output_tokens: int = 0
+    ttft: float = 0.0  # Time to first token
+    itl: List[float] = field(default_factory=list)  # List of inter-token latencies
+    tpot: float = 0.0  # avg next-token latencies
+    prompt_len: int = 0
+    error: str = ""
+
+
+AIOHTTP_TIMEOUT = aiohttp.ClientTimeout(total=6 * 60 * 60)
+
+
+async def async_request_openai_chat_completions(
+    request_func_input: RequestFuncInput,
+    pbar: Optional[tqdm] = None,
+) -> RequestFuncOutput:
+    api_url = request_func_input.api_url
+    assert api_url.endswith(
+        "chat/completions"
+    ), "OpenAI Chat Completions API URL must end with 'chat/completions'."
+
+    async with aiohttp.ClientSession(
+        trust_env=True, timeout=AIOHTTP_TIMEOUT
+    ) as session:
+        content = [{"type": "text", "text": request_func_input.prompt}]
+        if request_func_input.multi_modal_content:
+            content.append(request_func_input.multi_modal_content)
+        payload = {
+            "model": (
+                request_func_input.model_name
+                if request_func_input.model_name
+                else request_func_input.model
+            ),
+            "messages": [
+                {"role": "user", "content": content},
+            ],
+            "temperature": 0.0,
+            "max_completion_tokens": request_func_input.output_len,
+            "stream": True,
+            "stream_options": {
+                "include_usage": True,
+            },
+        }
+        if request_func_input.ignore_eos:
+            payload["ignore_eos"] = request_func_input.ignore_eos
+        if request_func_input.extra_body:
+            payload.update(request_func_input.extra_body)
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}",
+        }
+
+        output = RequestFuncOutput()
+        output.prompt_len = request_func_input.prompt_len
+
+        generated_text = ""
+        ttft = 0.0
+        st = time.perf_counter()
+        most_recent_timestamp = st
+        try:
+            async with session.post(
+                url=api_url, json=payload, headers=headers
+            ) as response:
+                if response.status == 200:
+                    async for chunk_bytes in response.content:
+                        chunk_bytes = chunk_bytes.strip()
+                        if not chunk_bytes:
+                            continue
+
+                        chunk = chunk_bytes.decode("utf-8").removeprefix("data: ")
+                        if chunk != "[DONE]":
+                            timestamp = time.perf_counter()
+                            data = json.loads(chunk)
+
+                            if choices := data.get("choices"):
+                                content = choices[0]["delta"].get("content")
+                                # First token
+                                if ttft == 0.0:
+                                    ttft = timestamp - st
+                                    output.ttft = ttft
+
+                                # Decoding phase
+                                else:
+                                    output.itl.append(timestamp - most_recent_timestamp)
+
+                                generated_text += content or ""
+                            elif usage := data.get("usage"):
+                                output.output_tokens = usage.get("completion_tokens")
+
+                            most_recent_timestamp = timestamp
+
+                    output.generated_text = generated_text
+                    output.success = True
+                    output.latency = most_recent_timestamp - st
+                else:
+                    output.error = response.reason or ""
+                    output.success = False
+        except Exception:
+            output.success = False
+            exc_info = sys.exc_info()
+            output.error = "".join(traceback.format_exception(*exc_info))
+
+    if pbar:
+        pbar.update(1)
+    return output
+
+
+ASYNC_REQUEST_FUNCS = {
+    "openai-chat": async_request_openai_chat_completions,
+}
 
 
 @dataclass
@@ -137,6 +316,34 @@ def sample_sharegpt_requests(
     return filtered_dataset
 
 
+def sample_burstgpt_requests(
+    dataset_path: str,
+    num_requests: int,
+    random_seed: int,
+    tokenizer: PreTrainedTokenizerBase,
+) -> List[Tuple[str, int, int, None]]:
+    df = pd.read_csv(dataset_path)
+    gpt4_df = df[df["Model"] == "GPT-4"]
+    # Remove the failed requests (i.e., response length is 0)
+    gpt4_df = gpt4_df[gpt4_df["Response tokens"] > 0]
+    # Randomly sample num_requests from the dataset
+    if num_requests <= len(gpt4_df):
+        gpt4_df = gpt4_df.sample(n=num_requests, random_state=random_seed)
+    else:
+        gpt4_df = gpt4_df.sample(n=num_requests, random_state=random_seed, replace=True)
+    # Convert the dataframe to a list of tuples
+    dataset = gpt4_df.values.tolist()
+    input_requests = []
+    for i in range(num_requests):
+        input_len = int(dataset[i][2])
+        output_len = int(dataset[i][3])
+        prompt = tokenizer.decode(
+            [(i + j) % tokenizer.vocab_size for j in range(input_len)]
+        )
+        input_requests.append((prompt, input_len, output_len, None))
+    return input_requests
+
+
 def sample_sonnet_requests(
     dataset_path: str,
     num_requests: int,
@@ -212,6 +419,55 @@ def sample_sonnet_requests(
     return sampled_requests
 
 
+def sample_wepoints_requests(
+    dataset_path: str,
+    num_requests: int,
+    tokenizer: PreTrainedTokenizerBase,
+    fixed_output_len: Optional[int] = None,
+) -> List[Tuple[str, int, int, None]]:
+
+    print("start the sample_wepoints_requests...........")
+
+    from datakit.utils.distributed import dist_split_files
+    from datakit.utils.files import (
+        dump_list_to_jsonl_file,
+        find_all_files,
+        read_jsonl_file,
+    )
+    from datakit.utils.image import check_image_integrity, save_base64_image
+    from datakit.utils.mp import multi_process_with_append
+
+    all_jsonl_files = find_all_files(dataset_path, "jsonl")
+    print("[sample_wepoints_requests]Found {} jsonl files".format(len(all_jsonl_files)))
+    jsonl_files_cur_rank = dist_split_files(all_jsonl_files)
+
+    sampled_requests = []
+
+    for jsonl_file in tqdm(jsonl_files_cur_rank):
+        data = read_jsonl_file(jsonl_file)
+        prompt = "请提取出图片中所有的文字，并用 markdown 格式返回"
+        prompt_token_ids = tokenizer(prompt).input_ids
+        for item in data:
+
+            for image_name, base64_image in item["base64_image"].items():
+                if len(sampled_requests) == num_requests:
+                    break
+                if fixed_output_len is None:
+                    # Default max output len is set to 128
+                    print("--hf-output-len is not provided. Using default value 128.")
+                    fixed_output_len = 4096
+
+                prompt_len = len(prompt_token_ids)
+                output_len = fixed_output_len
+
+                mm_content = {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                }
+                sampled_requests.append((prompt, prompt_len, output_len, mm_content))
+    return sampled_requests
+
+
 def sample_vision_arena_requests(
     dataset,
     num_requests: int,
@@ -232,10 +488,6 @@ def sample_vision_arena_requests(
             fixed_output_len = 128
 
         prompt_len = len(prompt_token_ids)
-
-        if prompt_len > 1024:
-            continue
-
         output_len = fixed_output_len
 
         assert isinstance(data["images"][0], Image), (
@@ -277,6 +529,16 @@ def sample_hf_requests(
         return sample_vision_arena_requests(
             dataset, num_requests, tokenizer, fixed_output_len
         )
+    if (
+        dataset_path == "/WePointsData/input_data"
+        or dataset_path == "/WePointsData/input_data2"
+    ):
+        return sample_wepoints_requests(
+            dataset_path=dataset_path,
+            num_requests=num_requests,
+            tokenizer=tokenizer,
+            fixed_output_len=fixed_output_len,
+        )
 
     dataset = load_dataset(
         dataset_path, name=dataset_subset, split=dataset_split, streaming=True
@@ -287,8 +549,6 @@ def sample_hf_requests(
     filter_func = lambda x: len(x["conversations"]) >= 2
     filtered_dataset = dataset.shuffle(seed=random_seed).filter(filter_func)
     sampled_requests: List[Tuple[str, int, int, Dict[str, Collection[str]]]] = []
-
-    cnt = 0
     for data in filtered_dataset:
         if len(sampled_requests) == num_requests:
             break
@@ -337,9 +597,6 @@ def sample_hf_requests(
             mm_content = None
 
         sampled_requests.append((prompt, prompt_len, output_len, mm_content))
-        cnt += 1
-        if cnt % 7 == 0:
-            break
 
     return sampled_requests
 
@@ -573,34 +830,34 @@ async def benchmark(
     else:
         raise ValueError(f"Unknown backend: {backend}")
 
-    print("Starting initial single prompt test run...")
-    test_prompt, test_prompt_len, test_output_len, test_mm_content = input_requests[0]
-    if backend != "openai-chat" and test_mm_content is not None:
-        # multi-modal benchmark is only available on OpenAI Chat backend.
-        raise ValueError(
-            "Multi-modal content is only supported on 'openai-chat' backend."
-        )
-    test_input = RequestFuncInput(
-        model=model_id,
-        model_name=model_name,
-        prompt=test_prompt,
-        api_url=api_url,
-        prompt_len=test_prompt_len,
-        output_len=test_output_len,
-        logprobs=logprobs,
-        best_of=best_of,
-        multi_modal_content=test_mm_content,
-        ignore_eos=ignore_eos,
-    )
+    # print("Starting initial single prompt test run...")
+    # test_prompt, test_prompt_len, test_output_len, test_mm_content = input_requests[0]
+    # if backend != "openai-chat" and test_mm_content is not None:
+    #     # multi-modal benchmark is only available on OpenAI Chat backend.
+    #     raise ValueError(
+    #         "Multi-modal content is only supported on 'openai-chat' backend."
+    #     )
+    # test_input = RequestFuncInput(
+    #     model=model_id,
+    #     model_name=model_name,
+    #     prompt=test_prompt,
+    #     api_url=api_url,
+    #     prompt_len=test_prompt_len,
+    #     output_len=test_output_len,
+    #     logprobs=logprobs,
+    #     best_of=best_of,
+    #     multi_modal_content=test_mm_content,
+    #     ignore_eos=ignore_eos,
+    # )
 
-    test_output = await request_func(request_func_input=test_input)
-    if not test_output.success:
-        raise ValueError(
-            "Initial test run failed - Please make sure benchmark arguments "
-            f"are correctly specified. Error: {test_output.error}"
-        )
-    else:
-        print("Initial test run completed. Starting main benchmark run...")
+    # test_output = await request_func(request_func_input=test_input)
+    # if not test_output.success:
+    #     raise ValueError(
+    #         "Initial test run failed - Please make sure benchmark arguments "
+    #         f"are correctly specified. Error: {test_output.error}"
+    #     )
+    # else:
+    #     print("Initial test run completed. Starting main benchmark run...")
 
     if lora_modules:
         # For each input request, choose a LoRA module at random.
@@ -608,23 +865,23 @@ async def benchmark(
             [random.choice(lora_modules) for _ in range(len(input_requests))]
         )
 
-    if profile:
-        print("Starting profiler...")
-        profile_input = RequestFuncInput(
-            model=model_id,
-            model_name=model_name,
-            prompt=test_prompt,
-            api_url=base_url + "/start_profile",
-            prompt_len=test_prompt_len,
-            output_len=test_output_len,
-            logprobs=logprobs,
-            best_of=best_of,
-            multi_modal_content=test_mm_content,
-            ignore_eos=ignore_eos,
-        )
-        profile_output = await request_func(request_func_input=profile_input)
-        if profile_output.success:
-            print("Profiler started")
+    # if profile:
+    #     print("Starting profiler...")
+    #     profile_input = RequestFuncInput(
+    #         model=model_id,
+    #         model_name=model_name,
+    #         prompt=test_prompt,
+    #         api_url=base_url + "/start_profile",
+    #         prompt_len=test_prompt_len,
+    #         output_len=test_output_len,
+    #         logprobs=logprobs,
+    #         best_of=best_of,
+    #         multi_modal_content=test_mm_content,
+    #         ignore_eos=ignore_eos,
+    #     )
+    #     profile_output = await request_func(request_func_input=profile_input)
+    #     if profile_output.success:
+    #         print("Profiler started")
 
     if burstiness == 1.0:
         distribution = "Poisson process"
@@ -884,6 +1141,14 @@ def main(args: argparse.Namespace):
             fixed_output_len=args.sharegpt_output_len,
         )
 
+    elif args.dataset_name == "burstgpt":
+        input_requests = sample_burstgpt_requests(
+            dataset_path=args.dataset_path,
+            num_requests=args.num_prompts,
+            random_seed=args.seed,
+            tokenizer=tokenizer,
+        )
+
     elif args.dataset_name == "sonnet":
         # Do not format the prompt, pass to message directly
         if args.backend == "openai-chat":
@@ -954,7 +1219,7 @@ def main(args: argparse.Namespace):
             model_id=model_id,
             model_name=model_name,
             tokenizer=tokenizer,
-            input_requests=input_requests[0],
+            input_requests=input_requests,
             logprobs=args.logprobs,
             best_of=args.best_of,
             request_rate=args.request_rate,
@@ -1054,7 +1319,7 @@ if __name__ == "__main__":
         "--dataset-name",
         type=str,
         default="sharegpt",
-        choices=["sharegpt", "sonnet", "random", "hf"],
+        choices=["sharegpt", "burstgpt", "sonnet", "random", "hf"],
         help="Name of the dataset to benchmark on.",
     )
     parser.add_argument(
@@ -1297,11 +1562,12 @@ if __name__ == "__main__":
         "--tokenizer-mode",
         type=str,
         default="auto",
-        choices=["auto", "slow", "mistral"],
+        choices=["auto", "slow", "mistral", "custom"],
         help='The tokenizer mode.\n\n* "auto" will use the '
         'fast tokenizer if available.\n* "slow" will '
         "always use the slow tokenizer. \n* "
-        '"mistral" will always use the `mistral_common` tokenizer.',
+        '"mistral" will always use the `mistral_common` tokenizer. \n*'
+        '"custom" will use --tokenizer to select the preregistered tokenizer.',
     )
 
     parser.add_argument(
