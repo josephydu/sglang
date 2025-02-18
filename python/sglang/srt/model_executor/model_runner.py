@@ -753,19 +753,27 @@ class ModelRunner:
 
     def forward_extend(self, forward_batch: ForwardBatch):
         self.attn_backend.init_forward_metadata(forward_batch)
+        logger.info(
+            f"mem after model_runner extend forward atten init {torch.cuda.mem_get_info(0)[0] / (1 << 30),}",
+        )
         if self.is_generation:
             if forward_batch.input_embeds is None:
                 # print(f"[forward_extend]shape:{forward_batch.input_ids.shape}")
-                return self.model.forward(
+                res = self.model.forward(
                     forward_batch.input_ids, forward_batch.positions, forward_batch
                 )
             else:
-                return self.model.forward(
+                res = self.model.forward(
                     forward_batch.input_ids,
                     forward_batch.positions,
                     forward_batch,
                     input_embeds=forward_batch.input_embeds.bfloat16(),
                 )
+            logger.info(
+                f"mem after model_runner extend forward {torch.cuda.mem_get_info(0)[0] / (1 << 30)}",
+            )
+            return res
+
         else:
             # Only embedding models have get_embedding parameter
             return self.model.forward(
