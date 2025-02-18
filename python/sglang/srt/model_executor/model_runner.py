@@ -788,28 +788,28 @@ class ModelRunner:
             and self.cuda_graph_runner.can_run(forward_batch)
         ):
             res = self.cuda_graph_runner.replay(forward_batch)
-            print(
-                f"[forward 1]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
-            )
+            # print(
+            # f"[forward 1]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
+            # )
             return res
 
         if forward_batch.forward_mode.is_decode():
             res = self.forward_decode(forward_batch)
-            print(
-                f"[forward 2]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
-            )
+            # print(
+            # f"[forward 2]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
+            # )
             return res
         elif forward_batch.forward_mode.is_extend():
             res = self.forward_extend(forward_batch)
-            print(
-                f"[forward 3]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
-            )
+            # print(
+            # f"[forward 3]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
+            # )
             return res
         elif forward_batch.forward_mode.is_idle():
             res = self.forward_idle(forward_batch)
-            print(
-                f"[forward 4]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
-            )
+            # print(
+            # f"[forward 4]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
+            # )
             return res
         else:
             raise ValueError(f"Invalid forward mode: {forward_batch.forward_mode}")
