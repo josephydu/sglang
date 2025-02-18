@@ -186,15 +186,7 @@ async def async_request_openai_chat_completions(
 
 
 ASYNC_REQUEST_FUNCS = {
-    "tgi": async_request_tgi,
-    "vllm": async_request_openai_completions,
-    "lmdeploy": async_request_openai_completions,
-    "deepspeed-mii": async_request_deepspeed_mii,
-    "openai": async_request_openai_completions,
     "openai-chat": async_request_openai_chat_completions,
-    "tensorrt-llm": async_request_trt_llm,
-    "scalellm": async_request_openai_completions,
-    "sglang": async_request_openai_completions,
 }
 
 
