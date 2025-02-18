@@ -45,7 +45,12 @@ import pandas as pd
 from datasets import load_dataset
 from PIL.Image import Image
 from tqdm.asyncio import tqdm
-from transformers import PreTrainedTokenizerBase
+from transformers import (
+    AutoTokenizer,
+    PreTrainedTokenizer,
+    PreTrainedTokenizerBase,
+    PreTrainedTokenizerFast,
+)
 from vllm.transformers_utils.tokenizer import get_tokenizer
 
 try:
