@@ -304,7 +304,7 @@ class Qwen2VisionTransformer(nn.Module):
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
                     norm_layer=norm_layer,
-                    attn_implementation="sdpa",
+                    attn_implementation="flash_attention_2",
                     quant_config=quant_config,
                 )
                 for _ in range(depth)
