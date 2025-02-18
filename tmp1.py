@@ -17,6 +17,7 @@ data = {
         }
     ],
     "max_tokens": 300,
+    "temperature": 0,
 }
 
 response = requests.post(url, json=data)
