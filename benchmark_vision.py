@@ -529,7 +529,10 @@ def sample_hf_requests(
         return sample_vision_arena_requests(
             dataset, num_requests, tokenizer, fixed_output_len
         )
-    if dataset_path == "/WePointsData/input_data":
+    if (
+        dataset_path == "/WePointsData/input_data"
+        or dataset_path == "/WePointsData/input_data2"
+    ):
         return sample_wepoints_requests(
             dataset_path=dataset_path,
             num_requests=num_requests,
