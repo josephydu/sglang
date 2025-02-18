@@ -46,11 +46,7 @@ from datasets import load_dataset
 from PIL.Image import Image
 from tqdm.asyncio import tqdm
 from transformers import PreTrainedTokenizerBase
-
-try:
-    from vllm.transformers_utils.tokenizer import get_tokenizer
-except ImportError:
-    from backend_request_func import get_tokenizer
+from vllm.transformers_utils.tokenizer import get_tokenizer
 
 try:
     from vllm.utils import FlexibleArgumentParser
