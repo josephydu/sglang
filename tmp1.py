@@ -18,6 +18,7 @@ data = {
     ],
     "max_tokens": 15000,
     "temperature": 0,
+    "ignore_eos": True,
 }
 
 response = requests.post(url, json=data)
