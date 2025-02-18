@@ -92,6 +92,7 @@ from sglang.srt.utils import (
     broadcast_pyobj,
     configure_logger,
     crash_on_warnings,
+    get_available_gpu_memory,
     get_bool_env_var,
     get_zmq_socket,
     set_gpu_proc_affinity,
@@ -1072,13 +1073,16 @@ class Scheduler:
     ) -> Union[GenerationBatchResult, EmbeddingBatchResult]:
         """Run a batch."""
         self.forward_ct += 1
-
+        print(f"[run_batch 0]=>{get_available_gpu_memory('cuda', 0):.2f} GB")
         if self.is_generation:
             if self.spec_algorithm.is_none():
+                print(f"[run_batch 1]=>{get_available_gpu_memory('cuda', 0):.2f} GB")
                 model_worker_batch = batch.get_model_worker_batch()
+                print(f"[run_batch 2]=>{get_available_gpu_memory('cuda', 0):.2f} GB")
                 logits_output, next_token_ids = self.tp_worker.forward_batch_generation(
                     model_worker_batch
                 )
+                print(f"[run_batch 3]=>{get_available_gpu_memory('cuda', 0):.2f} GB")
             else:
                 (
                     logits_output,
