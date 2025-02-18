@@ -860,52 +860,21 @@ class Scheduler:
                 raise ValueError(msg)
 
     def get_next_batch_to_run(self) -> Optional[ScheduleBatch]:
-        print(
-            f"[get_next_batch_to_run 0]=>{get_available_gpu_memory('cuda', 0):.2f} GB"
-        )
-
         # Merge the prefill batch into the running batch
         if self.last_batch and self.last_batch.forward_mode.is_extend():
-            print(
-                f"[get_next_batch_to_run 1]=>{get_available_gpu_memory('cuda', 0):.2f} GB"
-            )
             if self.being_chunked_req:
                 # Move the chunked request out of the batch
-                print(
-                    f"[get_next_batch_to_run 2]=>{get_available_gpu_memory('cuda', 0):.2f} GB"
-                )
                 self.last_batch.filter_batch(being_chunked_req=self.being_chunked_req)
-                print(
-                    f"[get_next_batch_to_run 3]=>{get_available_gpu_memory('cuda', 0):.2f} GB"
-                )
                 self.tree_cache.cache_unfinished_req(self.being_chunked_req)
-                print(
-                    f"[get_next_batch_to_run 4]=>{get_available_gpu_memory('cuda', 0):.2f} GB"
-                )
                 # being chunked request keeps its rid but will get a new req_pool_idx
                 self.req_to_token_pool.free(self.being_chunked_req.req_pool_idx)
-                print(
-                    f"[get_next_batch_to_run 5]=>{get_available_gpu_memory('cuda', 0):.2f} GB"
-                )
                 self.batch_is_full = False
-                print(
-                    f"[get_next_batch_to_run 6]=>{get_available_gpu_memory('cuda', 0):.2f} GB"
-                )
 
             if not self.last_batch.is_empty():
-                print(
-                    f"[get_next_batch_to_run 7]=>{get_available_gpu_memory('cuda', 0):.2f} GB"
-                )
                 if self.running_batch is None:
                     self.running_batch = self.last_batch
-                    print(
-                        f"[get_next_batch_to_run 8]=>{get_available_gpu_memory('cuda', 0):.2f} GB"
-                    )
                 else:
                     self.running_batch.merge_batch(self.last_batch)
-                    print(
-                        f"[get_next_batch_to_run 9]=>{get_available_gpu_memory('cuda', 0):.2f} GB"
-                    )
 
         new_batch = self.get_new_batch_prefill()
         print(
