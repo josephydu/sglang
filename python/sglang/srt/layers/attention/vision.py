@@ -195,6 +195,7 @@ class VisionAttention(nn.Module):
             q, k, v = [rearrange(x, "b s ... -> (b s) ...") for x in [q, k, v]]
 
         output = self.qkv_backend.forward(q, k, v, bsz, cu_seqlens, attention_mask)
+        output = self.qkv_backend.forward(q, k, v, bsz, cu_seqlens, attention_mask)
 
         if self.use_qkv_parallel:
             # [b * s, h, head_size] --> [b, s, h * head_size]
