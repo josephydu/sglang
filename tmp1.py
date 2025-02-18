@@ -16,7 +16,7 @@ data = {
             ],
         }
     ],
-    "max_tokens": 30000,
+    "max_tokens": 15000,
     "temperature": 0,
 }
 
