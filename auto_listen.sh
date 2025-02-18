@@ -2,7 +2,7 @@
 
 # 定义要检查的 URL
 URL="http://127.0.0.1:30000/health"
-CHECK_INTERVAL=10  # 检查间隔
+CHECK_INTERVAL=30  # 检查间隔
 WAIT_SERVER_TIME=60  # 等待时间
 
 
