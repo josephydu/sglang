@@ -44,11 +44,11 @@ try:
     while True:
         # 发送 data1
         response = requests.post(url, json=data1)
-        time.sleep(0.5)  # 等待0.5秒
+        time.sleep(0.1)  # 等待0.5秒
 
         # 发送 data2
         response = requests.post(url, json=data2)
-        time.sleep(0.5)  # 等待0.5秒
+        time.sleep(0.1)  # 等待0.5秒
 
 except KeyboardInterrupt:
     print("\nStopped by user")
