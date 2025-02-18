@@ -796,7 +796,7 @@ class ScheduleBatch:
             self.device, non_blocking=True
         )
 
-        print(f"[prepare_for_extend]=>{self.input_ids.shape}")
+        # print(f"[prepare_for_extend]=>{self.input_ids.shape}")
         self.req_pool_indices = torch.tensor(req_pool_indices, dtype=torch.int64).to(
             self.device, non_blocking=True
         )
