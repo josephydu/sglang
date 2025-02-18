@@ -11,9 +11,7 @@ data = {
                 {"type": "text", "text": "图片里面有什么?"},
                 {
                     "type": "image_url",
-                    "image_url": {
-                        "url": "https://github.com/sgl-project/sglang/blob/main/test/lang/example_image.png?raw=true"
-                    },
+                    "image_url": {"url": "test.png"},
                 },
             ],
         }
