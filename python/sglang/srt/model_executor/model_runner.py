@@ -781,7 +781,7 @@ class ModelRunner:
         )
 
     def forward(self, forward_batch: ForwardBatch) -> LogitsProcessorOutput:
-        print(f"[forward 0]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB")
+        # print(f"[forward 0]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB")
         if (
             forward_batch.forward_mode.is_cuda_graph()
             and self.cuda_graph_runner
