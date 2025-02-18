@@ -3,14 +3,42 @@
 # 定义要检查的 URL
 URL="http://127.0.0.1:30000/health"
 
-# 使用 curl 检查服务健康状态
-response=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+# 先清除服务
+ps -elf | grep sglang  | awk '{print $4}' | xargs  kill -s 9
+sleep 10  # 等待60s服务关闭
+
+# 设置启动命令
 MEM_FRACTION_STATIC="--mem-fraction-static 0.6"
 MODEL_PATH="--model-path /WePoints/"
-# 检查 HTTP 状态码
-if [ "$response" -eq 200 ]; then
-    echo "服务正常运行 (HTTP 状态码: $response)"
-else
-    echo "服务异常 (HTTP 状态码: $response)，正在尝试启动服务..."
-    python3 -m sglang.launch_server $MEM_FRACTION_STATIC $MODEL_PATH--trust-remote-code --chat-template qwen2-vl --chunked-prefill-size -1
-fi
+DP="--dp 8"
+START_COMMAND="python3 -m sglang.launch_server $MODEL_PATH  --trust-remote-code --chat-template qwen2-vl $MEM_FRACTION_STATIC $DP"
+
+# 尝试第一次启动服务
+eval $START_COMMAND
+sleep 60  # 等待60s服务启动
+
+
+while true; do
+    # 使用 curl 检查服务健康状态
+    response=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+    # 检查 HTTP 状态码
+    if [ "$response" -eq 200 ]; then
+        echo "服务正常运行 (HTTP 状态码: $response)"
+    else
+        echo "服务异常 (HTTP 状态码: $response)，正在尝试重新启动服务..."
+
+        # 清除服务
+        echo "1.尝试清除服务..."
+        ps -elf | grep sglang  | awk '{print $4}' | xargs  kill -s 9
+        sleep 10  # 等待10s服务关闭
+
+        # 打印启动命令
+        echo "2.打印启动命令..."
+        echo "启动命令: $START_COMMAND"
+
+        # 启动服务的命令
+        echo "3.尝试启动服务..."
+        eval $START_COMMAND
+    fi
+    sleep 60  # 每60s检查一次
+done

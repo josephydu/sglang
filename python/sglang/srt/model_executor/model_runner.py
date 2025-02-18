@@ -762,7 +762,7 @@ class ModelRunner:
         #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
         # )
         self.attn_backend.init_forward_metadata(forward_batch)
-        print(
+        logger.info(
             "mem after model_runner extend forward atten init ",
             torch.cuda.mem_get_info(0)[0] / (1 << 30),
         )
@@ -779,7 +779,7 @@ class ModelRunner:
                     forward_batch,
                     input_embeds=forward_batch.input_embeds.bfloat16(),
                 )
-            print(
+            logger.info(
                 "mem after model_runner extend forward ",
                 torch.cuda.mem_get_info(0)[0] / (1 << 30),
             )
