@@ -25,156 +25,6 @@ from sglang.srt.layers.linear import (
 )
 from sglang.srt.layers.quantization import QuantizationConfig
 
-dtype_memory_size_dict = {
-    torch.float64: 64 / 8,
-    torch.double: 64 / 8,
-    torch.float32: 32 / 8,
-    torch.float: 32 / 8,
-    torch.float16: 16 / 8,
-    torch.half: 16 / 8,
-    torch.int64: 64 / 8,
-    torch.long: 64 / 8,
-    torch.int32: 32 / 8,
-    torch.int: 32 / 8,
-    torch.int16: 16 / 8,
-    torch.short: 16 / 6,
-    torch.uint8: 8 / 8,
-    torch.int8: 8 / 8,
-}
-# compatibility of torch1.0
-if getattr(torch, "bfloat16", None) is not None:
-    dtype_memory_size_dict[torch.bfloat16] = 16 / 8
-if getattr(torch, "bool", None) is not None:
-    dtype_memory_size_dict[torch.bool] = (
-        8 / 8
-    )  # pytorch use 1 byte for a bool, see https://github.com/pytorch/pytorch/issues/41571
-
-
-def get_mem_space(x):
-    try:
-        ret = dtype_memory_size_dict[x]
-    except KeyError:
-        print(f"dtype {x} is not supported!")
-    return ret
-
-
-class MemTracker(object):
-    """
-    Class used to track pytorch memory usage
-    Arguments:
-        detail(bool, default True): whether the function shows the detail gpu memory usage
-        path(str): where to save log file
-        verbose(bool, default False): whether show the trivial exception
-        device(int): GPU number, default is 0
-    """
-
-    def __init__(self, detail=True, path="", verbose=False, device=0):
-        self.print_detail = detail
-        self.last_tensor_sizes = set()
-        self.gpu_profile_fn = (
-            path + f"{datetime.datetime.now():%d-%b-%y-%H:%M:%S}-gpu_mem_track.txt"
-        )
-        self.verbose = verbose
-        self.begin = True
-        self.device = device
-
-    def get_tensors(self):
-        for obj in gc.get_objects():
-            try:
-                if torch.is_tensor(obj) or (
-                    hasattr(obj, "data") and torch.is_tensor(obj.data)
-                ):
-                    tensor = obj
-                else:
-                    continue
-                if tensor.is_cuda:
-                    yield tensor
-            except Exception as e:
-                if self.verbose:
-                    print("A trivial exception occured: {}".format(e))
-
-    def get_tensor_usage(self):
-        sizes = [
-            np.prod(np.array(tensor.size())) * get_mem_space(tensor.dtype)
-            for tensor in self.get_tensors()
-        ]
-        return np.sum(sizes) / 1024**2
-
-    def get_allocate_usage(self):
-        return torch.cuda.memory_allocated() / 1024**2
-
-    def clear_cache(self):
-        gc.collect()
-        torch.cuda.empty_cache()
-
-    def print_all_gpu_tensor(self, file=None):
-        for x in self.get_tensors():
-            print(
-                x.size(),
-                x.dtype,
-                np.prod(np.array(x.size())) * get_mem_space(x.dtype) / 1024**2,
-                file=file,
-            )
-
-    def track(self):
-        """
-        Track the GPU memory usage
-        """
-        frameinfo = inspect.stack()[1]
-        where_str = (
-            frameinfo.filename
-            + " line "
-            + str(frameinfo.lineno)
-            + ": "
-            + frameinfo.function
-        )
-
-        with open(self.gpu_profile_fn, "a+") as f:
-
-            if self.begin:
-                f.write(
-                    f"GPU Memory Track | {datetime.datetime.now():%d-%b-%y-%H:%M:%S} |"
-                    f" Total Tensor Used Memory:{self.get_tensor_usage():<7.1f}Mb"
-                    f" Total Allocated Memory:{self.get_allocate_usage():<7.1f}Mb\n\n"
-                )
-                self.begin = False
-
-            if self.print_detail is True:
-                ts_list = [
-                    (tensor.size(), tensor.dtype) for tensor in self.get_tensors()
-                ]
-                new_tensor_sizes = {
-                    (
-                        type(x),
-                        tuple(x.size()),
-                        ts_list.count((x.size(), x.dtype)),
-                        np.prod(np.array(x.size())) * get_mem_space(x.dtype) / 1024**2,
-                        x.dtype,
-                    )
-                    for x in self.get_tensors()
-                }
-                for t, s, n, m, data_type in new_tensor_sizes - self.last_tensor_sizes:
-                    f.write(
-                        f"+ | {str(n)} * Size:{str(s):<20} | Memory: {str(m*n)[:6]} M | {str(t):<20} | {data_type}\n"
-                    )
-                for t, s, n, m, data_type in self.last_tensor_sizes - new_tensor_sizes:
-                    f.write(
-                        f"- | {str(n)} * Size:{str(s):<20} | Memory: {str(m*n)[:6]} M | {str(t):<20} | {data_type}\n"
-                    )
-
-                self.last_tensor_sizes = new_tensor_sizes
-
-            f.write(
-                f"\nAt {where_str:<50}"
-                f" Total Tensor Used Memory:{self.get_tensor_usage():<7.1f}Mb"
-                f" Total Allocated Memory:{self.get_allocate_usage():<7.1f}Mb\n\n"
-            )
-
-
-frame = inspect.currentframe()
-gpu_tracker = MemTracker(frame)  # 创建显存检测对象
-# ===========================================================
-
 
 def rotate_half(x: torch.Tensor, interleaved: bool = False) -> torch.Tensor:
     if not interleaved:
@@ -350,10 +200,8 @@ class VisionAttention(nn.Module):
             # [b, s, head, head_size] --> [b * s, head, head_size]
             q, k, v = [rearrange(x, "b s ... -> (b s) ...") for x in [q, k, v]]
 
-        gpu_tracker.track()
         # output = self.qkv_backend.forward(q, k, v, bsz, cu_seqlens, attention_mask)
         output = self.qkv_backend.forward(q, k, v, bsz, cu_seqlens)
-        gpu_tracker.track()
 
         if self.use_qkv_parallel:
             # [b * s, h, head_size] --> [b, s, h * head_size]
@@ -483,15 +331,26 @@ class VisionSdpaAttention(nn.Module):
         Returns:
              [b * s, h, head_size]
         """
-
+        print(
+            f"最大显存使用1: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
+        )
         s = q.shape[0] // bsz
+        print(
+            f"最大显存使用2: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
+        )
 
         # [b, 1, s, s]
         if attention_mask is None:
             attention_mask = self.generate_patch_attention_mask(
                 s, bsz, q.device, cu_seqlens, self.flatten_batch, q.dtype
             )
+        print(
+            f"最大显存使用3: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
+        )
         q, k, v = [rearrange(x, "(b s) h d -> b h s d", b=bsz) for x in [q, k, v]]
+        print(
+            f"最大显存使用4: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
+        )
         # [b, 1, s]
         if self.use_full_precision_softmax:
             scale = self.head_size**-0.5
@@ -516,8 +375,14 @@ class VisionSdpaAttention(nn.Module):
                 q, k, v, attention_mask, dropout_p=self.dropout
             )
 
+        print(
+            f"最大显存使用5: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
+        )
         # [b, h, s, head_size] --> [b * s, h, head_size]
         output = rearrange(output, "b h s d -> (b s) h d")
+        print(
+            f"最大显存使用6: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
+        )
 
         return output
 
@@ -549,9 +414,21 @@ class VisionTritonAttention(nn.Module):
         """
 
         # [b * s, head, head_size]
+        print(
+            f"最大显存使用1: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
+        )
         output = torch.empty_like(q)
+        print(
+            f"最大显存使用2: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
+        )
         seq_lens = cu_seqlens[1:] - cu_seqlens[:-1]
+        print(
+            f"最大显存使用3: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
+        )
         max_seqlen = seq_lens.max().item()
+        print(
+            f"最大显存使用4: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
+        )
         context_attention_fwd(
             q,
             k,
@@ -561,6 +438,9 @@ class VisionTritonAttention(nn.Module):
             seq_lens.cuda(),
             max_seqlen,
             is_causal=False,
+        )
+        print(
+            f"最大显存使用5: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
         )
 
         return output
