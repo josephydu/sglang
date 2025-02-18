@@ -38,6 +38,7 @@ from datetime import datetime
 from typing import Any, AsyncGenerator, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
+import pandas as pd
 from backend_request_func import (
     ASYNC_REQUEST_FUNCS,
     RequestFuncInput,
@@ -137,6 +138,34 @@ def sample_sharegpt_requests(
     return filtered_dataset
 
 
+def sample_burstgpt_requests(
+    dataset_path: str,
+    num_requests: int,
+    random_seed: int,
+    tokenizer: PreTrainedTokenizerBase,
+) -> List[Tuple[str, int, int, None]]:
+    df = pd.read_csv(dataset_path)
+    gpt4_df = df[df["Model"] == "GPT-4"]
+    # Remove the failed requests (i.e., response length is 0)
+    gpt4_df = gpt4_df[gpt4_df["Response tokens"] > 0]
+    # Randomly sample num_requests from the dataset
+    if num_requests <= len(gpt4_df):
+        gpt4_df = gpt4_df.sample(n=num_requests, random_state=random_seed)
+    else:
+        gpt4_df = gpt4_df.sample(n=num_requests, random_state=random_seed, replace=True)
+    # Convert the dataframe to a list of tuples
+    dataset = gpt4_df.values.tolist()
+    input_requests = []
+    for i in range(num_requests):
+        input_len = int(dataset[i][2])
+        output_len = int(dataset[i][3])
+        prompt = tokenizer.decode(
+            [(i + j) % tokenizer.vocab_size for j in range(input_len)]
+        )
+        input_requests.append((prompt, input_len, output_len, None))
+    return input_requests
+
+
 def sample_sonnet_requests(
     dataset_path: str,
     num_requests: int,
@@ -212,6 +241,55 @@ def sample_sonnet_requests(
     return sampled_requests
 
 
+def sample_wepoints_requests(
+    dataset_path: str,
+    num_requests: int,
+    tokenizer: PreTrainedTokenizerBase,
+    fixed_output_len: Optional[int] = None,
+) -> List[Tuple[str, int, int, None]]:
+
+    print("start the sample_wepoints_requests...........")
+
+    from datakit.utils.distributed import dist_split_files
+    from datakit.utils.files import (
+        dump_list_to_jsonl_file,
+        find_all_files,
+        read_jsonl_file,
+    )
+    from datakit.utils.image import check_image_integrity, save_base64_image
+    from datakit.utils.mp import multi_process_with_append
+
+    all_jsonl_files = find_all_files(dataset_path, "jsonl")
+    print("[sample_wepoints_requests]Found {} jsonl files".format(len(all_jsonl_files)))
+    jsonl_files_cur_rank = dist_split_files(all_jsonl_files)
+
+    sampled_requests = []
+
+    for jsonl_file in tqdm(jsonl_files_cur_rank):
+        data = read_jsonl_file(jsonl_file)
+        prompt = "请提取出图片中所有的文字，并用 markdown 格式返回"
+        prompt_token_ids = tokenizer(prompt).input_ids
+        for item in data:
+
+            for image_name, base64_image in item["base64_image"].items():
+                if len(sampled_requests) == num_requests:
+                    break
+                if fixed_output_len is None:
+                    # Default max output len is set to 128
+                    print("--hf-output-len is not provided. Using default value 128.")
+                    fixed_output_len = 4096
+
+                prompt_len = len(prompt_token_ids)
+                output_len = fixed_output_len
+
+                mm_content = {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                }
+                sampled_requests.append((prompt, prompt_len, output_len, mm_content))
+    return sampled_requests
+
+
 def sample_vision_arena_requests(
     dataset,
     num_requests: int,
@@ -232,10 +310,6 @@ def sample_vision_arena_requests(
             fixed_output_len = 128
 
         prompt_len = len(prompt_token_ids)
-
-        if prompt_len > 1024:
-            continue
-
         output_len = fixed_output_len
 
         assert isinstance(data["images"][0], Image), (
@@ -277,6 +351,13 @@ def sample_hf_requests(
         return sample_vision_arena_requests(
             dataset, num_requests, tokenizer, fixed_output_len
         )
+    if dataset_path == "/WePointsData/input_data":
+        return sample_wepoints_requests(
+            dataset_path=dataset_path,
+            num_requests=num_requests,
+            tokenizer=tokenizer,
+            fixed_output_len=fixed_output_len,
+        )
 
     dataset = load_dataset(
         dataset_path, name=dataset_subset, split=dataset_split, streaming=True
@@ -287,8 +368,6 @@ def sample_hf_requests(
     filter_func = lambda x: len(x["conversations"]) >= 2
     filtered_dataset = dataset.shuffle(seed=random_seed).filter(filter_func)
     sampled_requests: List[Tuple[str, int, int, Dict[str, Collection[str]]]] = []
-
-    cnt = 0
     for data in filtered_dataset:
         if len(sampled_requests) == num_requests:
             break
@@ -337,9 +416,6 @@ def sample_hf_requests(
             mm_content = None
 
         sampled_requests.append((prompt, prompt_len, output_len, mm_content))
-        cnt += 1
-        if cnt % 7 == 0:
-            break
 
     return sampled_requests
 
@@ -573,7 +649,7 @@ async def benchmark(
     else:
         raise ValueError(f"Unknown backend: {backend}")
 
-    print("Starting initial single prompt test run...")
+    # print("Starting initial single prompt test run...")
     test_prompt, test_prompt_len, test_output_len, test_mm_content = input_requests[0]
     if backend != "openai-chat" and test_mm_content is not None:
         # multi-modal benchmark is only available on OpenAI Chat backend.
@@ -884,6 +960,14 @@ def main(args: argparse.Namespace):
             fixed_output_len=args.sharegpt_output_len,
         )
 
+    elif args.dataset_name == "burstgpt":
+        input_requests = sample_burstgpt_requests(
+            dataset_path=args.dataset_path,
+            num_requests=args.num_prompts,
+            random_seed=args.seed,
+            tokenizer=tokenizer,
+        )
+
     elif args.dataset_name == "sonnet":
         # Do not format the prompt, pass to message directly
         if args.backend == "openai-chat":
@@ -954,7 +1038,7 @@ def main(args: argparse.Namespace):
             model_id=model_id,
             model_name=model_name,
             tokenizer=tokenizer,
-            input_requests=input_requests[0],
+            input_requests=input_requests,
             logprobs=args.logprobs,
             best_of=args.best_of,
             request_rate=args.request_rate,
@@ -1054,7 +1138,7 @@ if __name__ == "__main__":
         "--dataset-name",
         type=str,
         default="sharegpt",
-        choices=["sharegpt", "sonnet", "random", "hf"],
+        choices=["sharegpt", "burstgpt", "sonnet", "random", "hf"],
         help="Name of the dataset to benchmark on.",
     )
     parser.add_argument(
@@ -1297,11 +1381,12 @@ if __name__ == "__main__":
         "--tokenizer-mode",
         type=str,
         default="auto",
-        choices=["auto", "slow", "mistral"],
+        choices=["auto", "slow", "mistral", "custom"],
         help='The tokenizer mode.\n\n* "auto" will use the '
         'fast tokenizer if available.\n* "slow" will '
         "always use the slow tokenizer. \n* "
-        '"mistral" will always use the `mistral_common` tokenizer.',
+        '"mistral" will always use the `mistral_common` tokenizer. \n*'
+        '"custom" will use --tokenizer to select the preregistered tokenizer.',
     )
 
     parser.add_argument(
