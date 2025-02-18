@@ -351,6 +351,7 @@ class VisionAttention(nn.Module):
             q, k, v = [rearrange(x, "b s ... -> (b s) ...") for x in [q, k, v]]
 
         gpu_tracker.track()
+        # output = self.qkv_backend.forward(q, k, v, bsz, cu_seqlens, attention_mask)
         output = self.qkv_backend.forward(q, k, v, bsz, cu_seqlens, attention_mask)
         gpu_tracker.track()
 
