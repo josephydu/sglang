@@ -16,6 +16,8 @@ START_COMMAND="python3 -m sglang.launch_server $MODEL_PATH --trust-remote-code -
 SERVER_LOG_FILE="server.log"
 # 尝试第一次启动服务
 echo "正在启动服务..."
+# 向文件中写入此时的时间
+echo "==================启动时间: $(date)==================" >> "$SERVER_LOG_FILE"
 eval $START_COMMAND >> "$SERVER_LOG_FILE" 2>&1 &
 sleep 60  # 等待60s服务启动
 
@@ -40,6 +42,7 @@ while true; do
 
         # 启动服务的命令
         echo "3.尝试启动服务..."
+        echo "==================启动时间: $(date)==================" >> "$SERVER_LOG_FILE"
         eval $START_COMMAND >> "$SERVER_LOG_FILE" 2>&1 &
         sleep 60 # 等待60s服务启动
     fi
