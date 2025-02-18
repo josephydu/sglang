@@ -17,6 +17,8 @@ import logging
 import threading
 from typing import Optional
 
+import torch
+
 from sglang.srt.configs.model_config import ModelConfig
 from sglang.srt.hf_transformers_utils import get_processor, get_tokenizer
 from sglang.srt.managers.io_struct import (
@@ -166,11 +168,12 @@ class TpModelWorker:
         if launch_done:
             launch_done.set()
 
+        print("mem before worker sampling ", torch.cuda.mem_get_info(0)[0] / (1 << 30))
         if skip_sample:
             next_token_ids = None
         else:
             next_token_ids = self.model_runner.sample(logits_output, model_worker_batch)
-
+        print("mem after worker sampling ", torch.cuda.mem_get_info(0)[0] / (1 << 30))
         return logits_output, next_token_ids
 
     def forward_batch_embedding(self, model_worker_batch: ModelWorkerBatch):
