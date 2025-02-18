@@ -742,6 +742,7 @@ class ModelRunner:
         tensor_parallel(self.model, device_mesh)
 
     def forward_decode(self, forward_batch: ForwardBatch):
+
         self.attn_backend.init_forward_metadata(forward_batch)
         return self.model.forward(
             forward_batch.input_ids, forward_batch.positions, forward_batch
@@ -777,19 +778,36 @@ class ModelRunner:
         )
 
     def forward(self, forward_batch: ForwardBatch) -> LogitsProcessorOutput:
+        print(f"[forward 0]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB")
         if (
             forward_batch.forward_mode.is_cuda_graph()
             and self.cuda_graph_runner
             and self.cuda_graph_runner.can_run(forward_batch)
         ):
-            return self.cuda_graph_runner.replay(forward_batch)
+            res = self.cuda_graph_runner.replay(forward_batch)
+            print(
+                f"[forward 1]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
+            )
+            return res
 
         if forward_batch.forward_mode.is_decode():
-            return self.forward_decode(forward_batch)
+            res = self.forward_decode(forward_batch)
+            print(
+                f"[forward 2]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
+            )
+            return res
         elif forward_batch.forward_mode.is_extend():
-            return self.forward_extend(forward_batch)
+            res = self.forward_extend(forward_batch)
+            print(
+                f"[forward 3]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
+            )
+            return res
         elif forward_batch.forward_mode.is_idle():
-            return self.forward_idle(forward_batch)
+            res = self.forward_idle(forward_batch)
+            print(
+                f"[forward 4]{get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
+            )
+            return res
         else:
             raise ValueError(f"Invalid forward mode: {forward_batch.forward_mode}")
 
