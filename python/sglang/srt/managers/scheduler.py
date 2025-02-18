@@ -877,9 +877,6 @@ class Scheduler:
                     self.running_batch.merge_batch(self.last_batch)
 
         new_batch = self.get_new_batch_prefill()
-        print(
-            f"[get_next_batch_to_run 10]=>{get_available_gpu_memory('cuda', 0):.2f} GB"
-        )
         if new_batch is not None:
             # Run prefill first if possible
             ret = new_batch
@@ -888,9 +885,6 @@ class Scheduler:
             if self.running_batch is None:
                 ret = None
             else:
-                print(
-                    f"[get_next_batch_to_run 11]=>{get_available_gpu_memory('cuda', 0):.2f} GB"
-                )
                 self.running_batch = self.update_running_batch(self.running_batch)
                 ret = self.running_batch
 
