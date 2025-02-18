@@ -738,29 +738,29 @@ class ModelRunner:
         tensor_parallel(self.model, device_mesh)
 
     def forward_decode(self, forward_batch: ForwardBatch):
-        print(
-            "mem before model_runner decode forward ",
-            torch.cuda.mem_get_info(0)[0] / (1 << 30),
-        )
+        # print(
+        # "mem before model_runner decode forward ",
+        # torch.cuda.mem_get_info(0)[0] / (1 << 30),
+        # )
         self.attn_backend.init_forward_metadata(forward_batch)
-        print(
-            "mem after model_runner decode forward ",
-            torch.cuda.mem_get_info(0)[0] / (1 << 30),
-        )
+        # print(
+        #     "mem after model_runner decode forward ",
+        #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
+        # )
         res = self.model.forward(
             forward_batch.input_ids, forward_batch.positions, forward_batch
         )
-        print(
-            "mem after model_runner decode forward ",
-            torch.cuda.mem_get_info(0)[0] / (1 << 30),
-        )
+        # print(
+        #     "mem after model_runner decode forward ",
+        #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
+        # )
         return res
 
     def forward_extend(self, forward_batch: ForwardBatch):
-        print(
-            "mem before model_runner extend forward ",
-            torch.cuda.mem_get_info(0)[0] / (1 << 30),
-        )
+        # print(
+        #     "mem before model_runner extend forward ",
+        #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
+        # )
         self.attn_backend.init_forward_metadata(forward_batch)
         print(
             "mem after model_runner extend forward atten init ",
@@ -804,15 +804,15 @@ class ModelRunner:
             and self.cuda_graph_runner
             and self.cuda_graph_runner.can_run(forward_batch)
         ):
-            print(
-                "mem before model_runner cuda_graph forward ",
-                torch.cuda.mem_get_info(0)[0] / (1 << 30),
-            )
+            # print(
+            #     "mem before model_runner cuda_graph forward ",
+            #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
+            # )
             res = self.cuda_graph_runner.replay(forward_batch)
-            print(
-                "mem after model_runner cuda_graph forward ",
-                torch.cuda.mem_get_info(0)[0] / (1 << 30),
-            )
+            # print(
+            #     "mem after model_runner cuda_graph forward ",
+            #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
+            # )
             return res
 
         if forward_batch.forward_mode.is_decode():

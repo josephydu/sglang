@@ -443,7 +443,7 @@ class Scheduler:
                 ),
             ]
         )
-        print("mem after init ", torch.cuda.mem_get_info(0)[0] / (1 << 30))
+        # print("mem after init ", torch.cuda.mem_get_info(0)[0] / (1 << 30))
 
     def watchdog_thread(self):
         """A watch dog thread that will try to kill the server itself if one batch takes too long."""
@@ -1078,17 +1078,17 @@ class Scheduler:
         if self.is_generation:
             if self.spec_algorithm.is_none():
                 model_worker_batch = batch.get_model_worker_batch()
-                print(
-                    "mem before worker forward ",
-                    torch.cuda.mem_get_info(0)[0] / (1 << 30),
-                )
+                # print(
+                #     "mem before worker forward ",
+                #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
+                # )
                 logits_output, next_token_ids = self.tp_worker.forward_batch_generation(
                     model_worker_batch
                 )
-                print(
-                    "mem after worker forward ",
-                    torch.cuda.mem_get_info(0)[0] / (1 << 30),
-                )
+                # print(
+                #     "mem after worker forward ",
+                #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
+                # )
             else:
                 (
                     logits_output,
