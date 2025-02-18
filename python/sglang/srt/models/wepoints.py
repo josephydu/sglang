@@ -540,7 +540,7 @@ class POINTSV15ChatModel(nn.Module):
                 batch.
             positions: Flattened (concatenated) position ids corresponding to a
         """
-        print(f"input_ids.shape=>{input_ids.shape}")
+        # print(f"input_ids.shape=>{input_ids.shape}")
         image_inputs = None
         if forward_batch.image_inputs is not None:
             image_inputs = [
