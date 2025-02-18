@@ -48,6 +48,7 @@ from sglang.srt.model_executor.forward_batch_info import CaptureHiddenMode, Forw
 from sglang.srt.sampling.sampling_batch_info import SamplingBatchInfo
 from sglang.srt.sampling.sampling_params import SamplingParams
 from sglang.srt.server_args import ServerArgs
+from sglang.srt.utils import get_available_gpu_memory
 
 if TYPE_CHECKING:
     from sglang.srt.speculative.spec_info import SpecInfo, SpeculativeAlgorithm
