@@ -9,9 +9,9 @@ sleep 10  # 等待60s服务关闭
 
 # 设置启动命令
 MEM_FRACTION_STATIC="--mem-fraction-static 0.6"
-MODEL_PATH="--model-path /WePoints/"
-DP="--dp 1"
-START_COMMAND="python3 -m sglang.launch_server $MODEL_PATH --trust-remote-code --chat-template qwen2-vl $MEM_FRACTION_STATIC $DP"
+MODEL_PATH="/WePoints/"
+DP="1"
+START_COMMAND="python3 -m sglang.launch_server --model-path $MODEL_PATH --trust-remote-code --chat-template qwen2-vl --mem-fraction-static $MEM_FRACTION_STATIC --dp $DP"
 
 SERVER_LOG_FILE="server.log"
 # 尝试第一次启动服务
@@ -22,6 +22,7 @@ eval $START_COMMAND >> "$SERVER_LOG_FILE" 2>&1 &
 sleep 60  # 等待60s服务启动
 
 
+CHECK_INTERVAL=10  # 检查间隔
 while true; do
     # 使用 curl 检查服务健康状态
     response=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
@@ -46,5 +47,5 @@ while true; do
         eval $START_COMMAND >> "$SERVER_LOG_FILE" 2>&1 &
         sleep 60 # 等待60s服务启动
     fi
-    sleep 10  # 每60s检查一次
+    sleep $CHECK_INTERVAL
 done
