@@ -58,6 +58,52 @@ MILLISECONDS_TO_SECONDS_CONVERSION = 1000
 from dataclasses import dataclass, field
 
 
+def get_model(pretrained_model_name_or_path: str) -> str:
+    if os.getenv("VLLM_USE_MODELSCOPE", "False").lower() == "true":
+        from modelscope import snapshot_download
+
+        model_path = snapshot_download(
+            model_id=pretrained_model_name_or_path,
+            local_files_only=huggingface_hub.constants.HF_HUB_OFFLINE,
+            ignore_file_pattern=[".*.pt", ".*.safetensors", ".*.bin"],
+        )
+
+        return model_path
+    return pretrained_model_name_or_path
+
+
+def get_tokenizer(
+    pretrained_model_name_or_path: str,
+    tokenizer_mode: str = "auto",
+    trust_remote_code: bool = False,
+    **kwargs,
+) -> Union[PreTrainedTokenizer, PreTrainedTokenizerFast]:
+    if pretrained_model_name_or_path is not None and not os.path.exists(
+        pretrained_model_name_or_path
+    ):
+        pretrained_model_name_or_path = get_model(pretrained_model_name_or_path)
+    if tokenizer_mode == "slow":
+        if kwargs.get("use_fast", False):
+            raise ValueError("Cannot use the fast tokenizer in slow tokenizer mode.")
+        kwargs["use_fast"] = False
+    if tokenizer_mode == "mistral":
+        try:
+            from vllm.transformers_utils.tokenizer import MistralTokenizer
+        except ImportError as e:
+            raise ImportError(
+                "MistralTokenizer requires vllm package.\n"
+                "Please install it with `pip install vllm` "
+                "to use mistral tokenizer mode."
+            ) from e
+        return MistralTokenizer.from_pretrained(str(pretrained_model_name_or_path))
+    else:
+        return AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path,
+            trust_remote_code=trust_remote_code,
+            **kwargs,
+        )
+
+
 @dataclass
 class RequestFuncInput:
     prompt: str
