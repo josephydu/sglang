@@ -3,6 +3,8 @@
 # 定义要检查的 URL
 URL="http://127.0.0.1:30000/health"
 CHECK_INTERVAL=10  # 检查间隔
+WAIT_SERVER_TIME=60  # 等待时间
+
 
 # 先清除服务
 echo "正在清除其他服务..."
@@ -24,7 +26,7 @@ echo "$START_COMMAND"
 # 向日志文件中写入此时的时间
 echo "==================启动时间: $(date)==================" >> "$SERVER_LOG_FILE"
 eval $START_COMMAND >> "$SERVER_LOG_FILE" 2>&1 &
-sleep 60  # 等待60s服务启动
+sleep $WAIT_SERVER_TIME  # 等待服务启动
 echo "启动成功，开始监听服务状态..."
 
 
@@ -50,7 +52,7 @@ while true; do
         echo "3.尝试启动服务..."
         echo "==================启动时间: $(date)==================" >> "$SERVER_LOG_FILE"
         eval $START_COMMAND >> "$SERVER_LOG_FILE" 2>&1 &
-        sleep 60 # 等待60s服务启动
+        sleep $WAIT_SERVER_TIME # 等待服务启动
     fi
     sleep $CHECK_INTERVAL
 done
