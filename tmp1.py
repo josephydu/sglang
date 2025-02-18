@@ -1,6 +1,6 @@
 import requests
 
-url = f"http://localhost:{30000}/v1/chat/completions"
+url = f"http://127.0.0.1:{30000}/v1/chat/completions"
 
 data = {
     "model": "WePoints",
