@@ -10,13 +10,13 @@ sleep 10  # 等待60s服务关闭
 # 设置启动命令
 MEM_FRACTION_STATIC="--mem-fraction-static 0.6"
 MODEL_PATH="--model-path /WePoints/"
-DP="--dp 8"
-SERVER_LOG_FILE="server.log"
+DP="--dp 1"
 START_COMMAND="python3 -m sglang.launch_server $MODEL_PATH --trust-remote-code --chat-template qwen2-vl $MEM_FRACTION_STATIC $DP"
 
+SERVER_LOG_FILE="server.log"
 # 尝试第一次启动服务
 echo "正在启动服务..."
-eval $START_COMMAND
+eval $START_COMMAND >> "$SERVER_LOG_FILE" 2>&1 &
 sleep 60  # 等待60s服务启动
 
 
@@ -40,8 +40,8 @@ while true; do
 
         # 启动服务的命令
         echo "3.尝试启动服务..."
-        eval $START_COMMAND >> "$LOG_FILE" 2>&1 &
-        sleep 60
+        eval $START_COMMAND >> "$SERVER_LOG_FILE" 2>&1 &
+        sleep 60 # 等待60s服务启动
     fi
     sleep 10  # 每60s检查一次
 done
