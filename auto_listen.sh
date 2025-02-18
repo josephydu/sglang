@@ -14,6 +14,7 @@ DP="--dp 8"
 START_COMMAND="python3 -m sglang.launch_server $MODEL_PATH  --trust-remote-code --chat-template qwen2-vl $MEM_FRACTION_STATIC $DP"
 
 # 尝试第一次启动服务
+echo "正在启动服务..."
 eval $START_COMMAND
 sleep 60  # 等待60s服务启动
 
