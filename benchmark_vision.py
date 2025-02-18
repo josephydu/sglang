@@ -419,6 +419,9 @@ def sample_sonnet_requests(
     return sampled_requests
 
 
+import json
+
+
 def sample_wepoints_requests(
     dataset_path: str,
     num_requests: int,
@@ -427,6 +430,18 @@ def sample_wepoints_requests(
 ) -> List[Tuple[str, int, int, None]]:
 
     print("start the sample_wepoints_requests...........")
+
+    cache_path = "./wepoints_cache"
+    os.makedirs(cache_path, exist_ok=True)
+    cache_file = os.path.join(
+        cache_path, f"requests_{num_requests}_{dataset_path.replace('/', '_')}.json"
+    )
+
+    # Try to load from cache first
+    if os.path.exists(cache_file):
+        print(f"Loading cached requests from {cache_file}")
+        with open(cache_file, "r") as f:
+            return json.load(f)
 
     from datakit.utils.distributed import dist_split_files
     from datakit.utils.files import (
@@ -465,6 +480,12 @@ def sample_wepoints_requests(
                     "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
                 }
                 sampled_requests.append((prompt, prompt_len, output_len, mm_content))
+
+    # Save requests to cache file
+    print(f"Saving requests to cache file {cache_file}")
+    with open(cache_file, "w") as f:
+        json.dump(sampled_requests, f)
+
     return sampled_requests
 
 
