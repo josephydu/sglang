@@ -5,7 +5,7 @@ URL="http://127.0.0.1:30000/health"
 
 # 先清除服务
 ps -elf | grep sglang  | awk '{print $4}' | xargs  kill -s 9
-sleep 10  # 等待60s服务关闭
+sleep 10  # 等待服务关闭
 
 # 设置启动命令
 MEM_FRACTION_STATIC="--mem-fraction-static 0.6"
