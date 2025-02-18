@@ -41,6 +41,7 @@ while true; do
         # 启动服务的命令
         echo "3.尝试启动服务..."
         eval $START_COMMAND >> "$LOG_FILE" 2>&1 &
+        sleep 60
     fi
-    sleep 60  # 每60s检查一次
+    sleep 10  # 每60s检查一次
 done
