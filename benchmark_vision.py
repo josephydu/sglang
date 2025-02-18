@@ -830,34 +830,34 @@ async def benchmark(
     else:
         raise ValueError(f"Unknown backend: {backend}")
 
-    print("Starting initial single prompt test run...")
-    test_prompt, test_prompt_len, test_output_len, test_mm_content = input_requests[0]
-    if backend != "openai-chat" and test_mm_content is not None:
-        # multi-modal benchmark is only available on OpenAI Chat backend.
-        raise ValueError(
-            "Multi-modal content is only supported on 'openai-chat' backend."
-        )
-    test_input = RequestFuncInput(
-        model=model_id,
-        model_name=model_name,
-        prompt=test_prompt,
-        api_url=api_url,
-        prompt_len=test_prompt_len,
-        output_len=test_output_len,
-        logprobs=logprobs,
-        best_of=best_of,
-        multi_modal_content=test_mm_content,
-        ignore_eos=ignore_eos,
-    )
+    # print("Starting initial single prompt test run...")
+    # test_prompt, test_prompt_len, test_output_len, test_mm_content = input_requests[0]
+    # if backend != "openai-chat" and test_mm_content is not None:
+    #     # multi-modal benchmark is only available on OpenAI Chat backend.
+    #     raise ValueError(
+    #         "Multi-modal content is only supported on 'openai-chat' backend."
+    #     )
+    # test_input = RequestFuncInput(
+    #     model=model_id,
+    #     model_name=model_name,
+    #     prompt=test_prompt,
+    #     api_url=api_url,
+    #     prompt_len=test_prompt_len,
+    #     output_len=test_output_len,
+    #     logprobs=logprobs,
+    #     best_of=best_of,
+    #     multi_modal_content=test_mm_content,
+    #     ignore_eos=ignore_eos,
+    # )
 
-    test_output = await request_func(request_func_input=test_input)
-    if not test_output.success:
-        raise ValueError(
-            "Initial test run failed - Please make sure benchmark arguments "
-            f"are correctly specified. Error: {test_output.error}"
-        )
-    else:
-        print("Initial test run completed. Starting main benchmark run...")
+    # test_output = await request_func(request_func_input=test_input)
+    # if not test_output.success:
+    #     raise ValueError(
+    #         "Initial test run failed - Please make sure benchmark arguments "
+    #         f"are correctly specified. Error: {test_output.error}"
+    #     )
+    # else:
+    #     print("Initial test run completed. Starting main benchmark run...")
 
     if lora_modules:
         # For each input request, choose a LoRA module at random.
@@ -865,23 +865,23 @@ async def benchmark(
             [random.choice(lora_modules) for _ in range(len(input_requests))]
         )
 
-    if profile:
-        print("Starting profiler...")
-        profile_input = RequestFuncInput(
-            model=model_id,
-            model_name=model_name,
-            prompt=test_prompt,
-            api_url=base_url + "/start_profile",
-            prompt_len=test_prompt_len,
-            output_len=test_output_len,
-            logprobs=logprobs,
-            best_of=best_of,
-            multi_modal_content=test_mm_content,
-            ignore_eos=ignore_eos,
-        )
-        profile_output = await request_func(request_func_input=profile_input)
-        if profile_output.success:
-            print("Profiler started")
+    # if profile:
+    #     print("Starting profiler...")
+    #     profile_input = RequestFuncInput(
+    #         model=model_id,
+    #         model_name=model_name,
+    #         prompt=test_prompt,
+    #         api_url=base_url + "/start_profile",
+    #         prompt_len=test_prompt_len,
+    #         output_len=test_output_len,
+    #         logprobs=logprobs,
+    #         best_of=best_of,
+    #         multi_modal_content=test_mm_content,
+    #         ignore_eos=ignore_eos,
+    #     )
+    #     profile_output = await request_func(request_func_input=profile_input)
+    #     if profile_output.success:
+    #         print("Profiler started")
 
     if burstiness == 1.0:
         distribution = "Poisson process"
