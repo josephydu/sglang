@@ -352,7 +352,7 @@ class VisionAttention(nn.Module):
 
         gpu_tracker.track()
         # output = self.qkv_backend.forward(q, k, v, bsz, cu_seqlens, attention_mask)
-        output = self.qkv_backend.forward(q, k, v, bsz, cu_seqlens, attention_mask)
+        output = self.qkv_backend.forward(q, k, v, bsz, cu_seqlens)
         gpu_tracker.track()
 
         if self.use_qkv_parallel:
