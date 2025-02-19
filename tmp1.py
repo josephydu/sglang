@@ -2,7 +2,7 @@ import time
 
 import requests
 
-url = f"http://127.0.0.1:{30000}/v1/completions"
+url = f"http://127.0.0.1:{30000}/v1/chat/completions"
 
 test_pngs = [
     "test_pngs/test1.png",
