@@ -31,8 +31,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
+from transformers.models.qwen2_vl.configuration_qwen2_vl import Qwen2VLVisionConfig
 
-from sglang.srt.configs import POINTSV15ChatConfig, Qwen2VLVisionConfig
+from sglang.srt.configs import POINTSV15ChatConfig
 from sglang.srt.hf_transformers_utils import get_processor
 from sglang.srt.layers.activation import QuickGELU
 from sglang.srt.layers.attention.vision import VisionAttention
