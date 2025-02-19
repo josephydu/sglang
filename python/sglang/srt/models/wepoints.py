@@ -691,4 +691,4 @@ class POINTSV15ChatModel(nn.Module):
                 weight_loader(param, loaded_weight)
 
 
-EntryClass = POINTSV15ChatModel
+EntryClass = [POINTSV15ChatModel]

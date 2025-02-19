@@ -634,7 +634,7 @@ def get_image_processor(
         # print(1)
         return MllamaImageProcessor(hf_config, server_args, processor)
     elif (
-        "Qwen2VLForConditionalGeneration"
+        "Qwen2VLForConditionalGeneration" in hf_config.architectures
         or "POINTSV15ChatModel" in hf_config.architectures
     ):
         return Qwen2VLImageProcessor(hf_config, server_args, processor)
