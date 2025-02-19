@@ -880,7 +880,6 @@ def v1_chat_generate_request(
     lora_paths = []
 
     # NOTE: with openai API, the prompt's logprobs are always not computed
-    print(f"[request_json]: {all_requests}")
 
     for request in all_requests:
         # Prep the data needed for the underlying GenerateReqInput:
@@ -902,6 +901,7 @@ def v1_chat_generate_request(
                 else:
                     tools = [item.function.model_dump() for item in request.tools]
 
+            print("chat_template_name: ", chat_template_name)
             if chat_template_name is None:
                 openai_compatible_messages = []
                 for message in request.messages:
