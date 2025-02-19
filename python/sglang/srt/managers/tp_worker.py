@@ -32,10 +32,8 @@ from sglang.srt.model_executor.model_runner import ModelRunner
 from sglang.srt.server_args import ServerArgs
 from sglang.srt.utils import MultiprocessingSerializer, broadcast_pyobj, set_random_seed
 
-# import torch
-
-
 logger = logging.getLogger(__name__)
+from sglang.srt.utils import get_available_gpu_memory
 
 
 class TpModelWorker:
@@ -165,21 +163,21 @@ class TpModelWorker:
     ):
         forward_batch = ForwardBatch.init_new(model_worker_batch, self.model_runner)
         # print(f"[forward_batch_generation]=>{forward_batch.input_ids.shape}")
+
         logits_output = self.model_runner.forward(forward_batch)
         if launch_done:
             launch_done.set()
 
-        # print("mem before worker sampling ", torch.cuda.mem_get_info(0)[0] / (1 << 30))
         if skip_sample:
             next_token_ids = None
         else:
             next_token_ids = self.model_runner.sample(logits_output, model_worker_batch)
-        # print("mem after worker sampling ", torch.cuda.mem_get_info(0)[0] / (1 << 30))
+
         return logits_output, next_token_ids
 
     def forward_batch_embedding(self, model_worker_batch: ModelWorkerBatch):
         forward_batch = ForwardBatch.init_new(model_worker_batch, self.model_runner)
-        # print(f"[forward_batch_embedding]=>{forward_batch.input_ids.shape}")
+        print(f"[forward_batch_embedding]=>{forward_batch.input_ids.shape}")
         logits_output = self.model_runner.forward(forward_batch)
         embeddings = logits_output.embeddings
         return embeddings

@@ -3,52 +3,52 @@ import os
 from typing import Any, Dict, Union
 
 from transformers import PretrainedConfig, Qwen2Config
+from transformers.models.qwen2_vl.configuration_qwen2_vl import Qwen2VLVisionConfig
 
+# class Qwen2VLVisionConfig(PretrainedConfig):
+#     model_type = "qwen2_vl"
 
-class Qwen2VLVisionConfig(PretrainedConfig):
-    model_type = "qwen2_vl"
+#     def __init__(
+#         self,
+#         depth=32,
+#         embed_dim=1280,
+#         hidden_size=3584,
+#         hidden_act="quick_gelu",
+#         mlp_ratio=4,
+#         num_heads=16,
+#         in_channels=3,
+#         patch_size=14,
+#         spatial_merge_size=2,
+#         temporal_patch_size=2,
+#         **kwargs,
+#     ):
+#         super().__init__(**kwargs)
 
-    def __init__(
-        self,
-        depth=32,
-        embed_dim=1280,
-        hidden_size=3584,
-        hidden_act="quick_gelu",
-        mlp_ratio=4,
-        num_heads=16,
-        in_channels=3,
-        patch_size=14,
-        spatial_merge_size=2,
-        temporal_patch_size=2,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
+#         self.depth = depth
+#         self.embed_dim = embed_dim
+#         self.hidden_size = hidden_size
+#         self.hidden_act = hidden_act
+#         self.mlp_ratio = mlp_ratio
+#         self.num_heads = num_heads
+#         self.in_channels = in_channels
+#         self.patch_size = patch_size
+#         self.spatial_merge_size = spatial_merge_size
+#         self.temporal_patch_size = temporal_patch_size
 
-        self.depth = depth
-        self.embed_dim = embed_dim
-        self.hidden_size = hidden_size
-        self.hidden_act = hidden_act
-        self.mlp_ratio = mlp_ratio
-        self.num_heads = num_heads
-        self.in_channels = in_channels
-        self.patch_size = patch_size
-        self.spatial_merge_size = spatial_merge_size
-        self.temporal_patch_size = temporal_patch_size
+#     @classmethod
+#     def from_pretrained(
+#         cls, pretrained_model_name_or_path: Union[str, os.PathLike], **kwargs
+#     ) -> "PretrainedConfig":
+#         cls._set_token_in_kwargs(kwargs)
 
-    @classmethod
-    def from_pretrained(
-        cls, pretrained_model_name_or_path: Union[str, os.PathLike], **kwargs
-    ) -> "PretrainedConfig":
-        cls._set_token_in_kwargs(kwargs)
+#         config_dict, kwargs = cls.get_config_dict(
+#             pretrained_model_name_or_path, **kwargs
+#         )
 
-        config_dict, kwargs = cls.get_config_dict(
-            pretrained_model_name_or_path, **kwargs
-        )
+#         if config_dict.get("model_type") == "qwen2_vl":
+#             config_dict = config_dict["vision_config"]
 
-        if config_dict.get("model_type") == "qwen2_vl":
-            config_dict = config_dict["vision_config"]
-
-        return cls.from_dict(config_dict, **kwargs)
+#         return cls.from_dict(config_dict, **kwargs)
 
 
 class POINTSV15ChatConfig(PretrainedConfig):

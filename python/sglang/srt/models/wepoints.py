@@ -31,8 +31,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
+from transformers.models.qwen2_vl.configuration_qwen2_vl import Qwen2VLVisionConfig
 
-from sglang.srt.configs import POINTSV15ChatConfig, Qwen2VLVisionConfig
+from sglang.srt.configs import POINTSV15ChatConfig
 from sglang.srt.hf_transformers_utils import get_processor
 from sglang.srt.layers.activation import QuickGELU
 from sglang.srt.layers.attention.vision import VisionAttention
@@ -304,7 +305,8 @@ class Qwen2VisionTransformer(nn.Module):
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
                     norm_layer=norm_layer,
-                    attn_implementation="sdpa",
+                    attn_implementation="flash_attention_2",
+                    # attn_implementation="sdpa",
                     quant_config=quant_config,
                 )
                 for _ in range(depth)
@@ -539,7 +541,6 @@ class POINTSV15ChatModel(nn.Module):
                 batch.
             positions: Flattened (concatenated) position ids corresponding to a
         """
-        # print(f"input_ids.shape=>{input_ids.shape}")
         image_inputs = None
         if forward_batch.image_inputs is not None:
             image_inputs = [
@@ -560,13 +561,7 @@ class POINTSV15ChatModel(nn.Module):
 
             inputs_embeds = self.model.embed_tokens(input_ids)
 
-            # print(
-            # f"shape of inputs_embeds {inputs_embeds.shape}, input_ids.shape = {input_ids.shape}"
-            # )
             extend_start_loc_cpu = forward_batch.extend_start_loc.cpu().numpy()
-
-            # print(f"[extend_start_loc_cpu]{extend_start_loc_cpu}")
-
             prefix_lens_cpu = forward_batch.extend_prefix_lens_cpu
             for i, image in enumerate(forward_batch.image_inputs):
                 if image is None:
@@ -598,9 +593,6 @@ class POINTSV15ChatModel(nn.Module):
                         start_idx + (image_offset - prefix_len) + num_image_tokens
                     )
 
-                    # print(
-                    # f"start_idx=>{start_idx}, image_offset=>{image_offset}, left_idx=>{left_idx}, right_idx=>{right_idx}"
-                    # )
                     try:
                         inputs_embeds[left_idx:right_idx] = image_embeds[
                             image_embeds_offset : image_embeds_offset + num_image_tokens
@@ -690,4 +682,4 @@ class POINTSV15ChatModel(nn.Module):
                 weight_loader(param, loaded_weight)
 
 
-EntryClass = POINTSV15ChatModel
+EntryClass = [POINTSV15ChatModel]

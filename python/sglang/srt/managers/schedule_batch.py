@@ -48,6 +48,7 @@ from sglang.srt.model_executor.forward_batch_info import CaptureHiddenMode, Forw
 from sglang.srt.sampling.sampling_batch_info import SamplingBatchInfo
 from sglang.srt.sampling.sampling_params import SamplingParams
 from sglang.srt.server_args import ServerArgs
+from sglang.srt.utils import get_available_gpu_memory
 
 if TYPE_CHECKING:
     from sglang.srt.speculative.spec_info import SpecInfo, SpeculativeAlgorithm
@@ -65,6 +66,8 @@ global_server_args_dict = {
     "enable_dp_attention": ServerArgs.enable_dp_attention,
     "enable_ep_moe": ServerArgs.enable_ep_moe,
     "device": ServerArgs.device,
+    "enable_flashinfer_mla": ServerArgs.enable_flashinfer_mla,
+    "disable_radix_cache": ServerArgs.disable_radix_cache,
 }
 
 logger = logging.getLogger(__name__)

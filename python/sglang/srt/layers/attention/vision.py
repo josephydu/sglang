@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import datetime
+
+# ==============================================
+import gc
+import inspect
 from typing import Optional
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -194,7 +200,8 @@ class VisionAttention(nn.Module):
             # [b, s, head, head_size] --> [b * s, head, head_size]
             q, k, v = [rearrange(x, "b s ... -> (b s) ...") for x in [q, k, v]]
 
-        output = self.qkv_backend.forward(q, k, v, bsz, cu_seqlens, attention_mask)
+        # output = self.qkv_backend.forward(q, k, v, bsz, cu_seqlens, attention_mask)
+        output = self.qkv_backend.forward(q, k, v, bsz, cu_seqlens)
 
         if self.use_qkv_parallel:
             # [b * s, h, head_size] --> [b, s, h * head_size]
@@ -324,9 +331,7 @@ class VisionSdpaAttention(nn.Module):
         Returns:
              [b * s, h, head_size]
         """
-
         s = q.shape[0] // bsz
-
         # [b, 1, s, s]
         if attention_mask is None:
             attention_mask = self.generate_patch_attention_mask(
@@ -388,11 +393,10 @@ class VisionTritonAttention(nn.Module):
         Returns:
              [b * s, h, head_size]
         """
-
-        # [b * s, head, head_size]
         output = torch.empty_like(q)
         seq_lens = cu_seqlens[1:] - cu_seqlens[:-1]
         max_seqlen = seq_lens.max().item()
+
         context_attention_fwd(
             q,
             k,

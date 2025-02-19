@@ -67,6 +67,7 @@ from sglang.srt.utils import (
     monkey_patch_p2p_access_check,
     monkey_patch_vllm_gguf_config,
     set_cpu_offload_max_bytes,
+    set_cuda_arch,
 )
 
 logger = logging.getLogger(__name__)
@@ -110,8 +111,14 @@ class ModelRunner:
         ):
             # TODO: add MLA optimization on CPU
             if self.server_args.device != "cpu":
-                logger.info("MLA optimization is turned on. Use triton backend.")
-                self.server_args.attention_backend = "triton"
+                if server_args.enable_flashinfer_mla:
+                    logger.info(
+                        "FlashInfer MLA optimization is turned on. Use flashinfer backend for DeepseekV3ForCausalLM."
+                    )
+                    self.server_args.attention_backend = "flashinfer"
+                else:
+                    logger.info("MLA optimization is turned on. Use triton backend.")
+                    self.server_args.attention_backend = "triton"
 
         if self.server_args.enable_double_sparsity:
             logger.info(
@@ -145,7 +152,7 @@ class ModelRunner:
             ] or self.model_config.hf_config.architectures == ["POINTSV15ChatModel"]:
                 # TODO: qwen2-vl does not support radix cache now, set disable_radix_cache=True automatically
                 logger.info(
-                    "Automatically turn off --chunked-prefill-size and disable radix cache for qwen2-vl or POINTSV15ChatModel."
+                    "Automatically turn off --chunked-prefill-size and disable radix cache for qwen2-vl."
                 )
                 server_args.chunked_prefill_size = -1
                 server_args.disable_radix_cache = True
@@ -169,6 +176,8 @@ class ModelRunner:
                 "enable_dp_attention": server_args.enable_dp_attention,
                 "enable_ep_moe": server_args.enable_ep_moe,
                 "device": server_args.device,
+                "enable_flashinfer_mla": server_args.enable_flashinfer_mla,
+                "disable_radix_cache": server_args.disable_radix_cache,
             }
         )
 
@@ -291,6 +300,8 @@ class ModelRunner:
                 self.model_config.dtype = torch.float16
                 if torch.cuda.get_device_capability()[1] < 5:
                     raise RuntimeError("SGLang only supports sm75 and above.")
+
+        set_cuda_arch()
 
         # Prepare the model config
         self.load_config = LoadConfig(
@@ -729,6 +740,9 @@ class ModelRunner:
         logger.info("Capture cuda graph begin. This can take up to several minutes.")
         self.cuda_graph_runner = CudaGraphRunner(self)
         logger.info(f"Capture cuda graph end. Time elapsed: {time.time() - tic:.2f} s")
+        logger.info(
+            f"after cuda graph capture, avail mem={get_available_gpu_memory(self.device, self.gpu_id):.2f} GB"
+        )
 
     def apply_torch_tp(self):
         logger.info(f"Enabling torch tensor parallelism on {self.tp_size} devices.")
@@ -738,36 +752,19 @@ class ModelRunner:
         tensor_parallel(self.model, device_mesh)
 
     def forward_decode(self, forward_batch: ForwardBatch):
-        # print(
-        # "mem before model_runner decode forward ",
-        # torch.cuda.mem_get_info(0)[0] / (1 << 30),
-        # )
+
         self.attn_backend.init_forward_metadata(forward_batch)
-        # print(
-        #     "mem after model_runner decode forward ",
-        #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
-        # )
-        res = self.model.forward(
+        return self.model.forward(
             forward_batch.input_ids, forward_batch.positions, forward_batch
         )
-        # print(
-        #     "mem after model_runner decode forward ",
-        #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
-        # )
-        return res
 
     def forward_extend(self, forward_batch: ForwardBatch):
-        # print(
-        #     "mem before model_runner extend forward ",
-        #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
-        # )
         self.attn_backend.init_forward_metadata(forward_batch)
         logger.info(
             f"mem after model_runner extend forward atten init {torch.cuda.mem_get_info(0)[0] / (1 << 30),}",
         )
         if self.is_generation:
             if forward_batch.input_embeds is None:
-                # print(f"[forward_extend]shape:{forward_batch.input_ids.shape}")
                 res = self.model.forward(
                     forward_batch.input_ids, forward_batch.positions, forward_batch
                 )
@@ -782,6 +779,7 @@ class ModelRunner:
                 f"mem after model_runner extend forward {torch.cuda.mem_get_info(0)[0] / (1 << 30)}",
             )
             return res
+
         else:
             # Only embedding models have get_embedding parameter
             return self.model.forward(
@@ -802,23 +800,18 @@ class ModelRunner:
             and self.cuda_graph_runner
             and self.cuda_graph_runner.can_run(forward_batch)
         ):
-            # print(
-            #     "mem before model_runner cuda_graph forward ",
-            #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
-            # )
             res = self.cuda_graph_runner.replay(forward_batch)
-            # print(
-            #     "mem after model_runner cuda_graph forward ",
-            #     torch.cuda.mem_get_info(0)[0] / (1 << 30),
-            # )
             return res
 
         if forward_batch.forward_mode.is_decode():
-            return self.forward_decode(forward_batch)
+            res = self.forward_decode(forward_batch)
+            return res
         elif forward_batch.forward_mode.is_extend():
-            return self.forward_extend(forward_batch)
+            res = self.forward_extend(forward_batch)
+            return res
         elif forward_batch.forward_mode.is_idle():
-            return self.forward_idle(forward_batch)
+            res = self.forward_idle(forward_batch)
+            return res
         else:
             raise ValueError(f"Invalid forward mode: {forward_batch.forward_mode}")
 
