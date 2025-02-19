@@ -222,13 +222,6 @@ async def async_request_openai_chat_completions(
                     output.generated_text = generated_text
                     output.success = True
                     output.latency = most_recent_timestamp - st
-                    # save generated_text to file
-                    with open("generated_text.txt", "a+") as f:
-                        f.write(
-                            "==================================================================\n"
-                        )
-                        f.write(generated_text)
-                        f.close()
                 else:
                     output.error = response.reason or ""
                     output.success = False
@@ -239,6 +232,11 @@ async def async_request_openai_chat_completions(
 
     if pbar:
         pbar.update(1)
+    # save generated_text to file
+    with open("generated_text.txt", "a+") as f:
+        f.write("==================================================================\n")
+        f.write(generated_text)
+        f.close()
     return output
 
 
