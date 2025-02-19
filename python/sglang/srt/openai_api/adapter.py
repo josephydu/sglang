@@ -880,7 +880,7 @@ def v1_chat_generate_request(
     lora_paths = []
 
     # NOTE: with openai API, the prompt's logprobs are always not computed
-    print(f"request_json: {all_requests}")
+    print(f"[request_json]: {all_requests}")
 
     for request in all_requests:
         # Prep the data needed for the underlying GenerateReqInput:
