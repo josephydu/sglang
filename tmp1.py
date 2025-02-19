@@ -43,11 +43,11 @@ data2 = {
 try:
     while True:
         # 发送 data1
-        response = requests.post(url, json=data1)
+        requests.post(url, json=data1)
         time.sleep(0.1)  # 等待0.5秒
 
         # 发送 data2
-        response = requests.post(url, json=data2)
+        requests.post(url, json=data2)
         time.sleep(0.1)  # 等待0.5秒
 
 except KeyboardInterrupt:
