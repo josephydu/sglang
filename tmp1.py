@@ -20,7 +20,7 @@ def construct_data(png_path):
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "图片里面有什么?"},
+                    {"type": "text", "text": "图片里面有什么?用中文回答。"},
                     {
                         "type": "image_url",
                         "image_url": {"url": f"{png_path}"},
@@ -28,15 +28,21 @@ def construct_data(png_path):
                 ],
             }
         ],
-        "max_tokens": 4096,
+        "max_tokens": 1024,
         "temperature": 0,
     }
     return data
 
 
-for test_png in test_pngs:
-    for png in test_pngs:
-        data = construct_data(png)
-        response = requests.post(url, json=data)
-        print(f"Response for {png}:", response.text)
-        time.sleep(0.5)  # 等待0.5秒
+repeats = 3
+with open("spda.txt", "w") as f:
+    for repeat in range(repeats):
+        for png in test_pngs:
+            f.write(
+                f"============================turn={repeat},png={png}============================\n"
+            )
+            data = construct_data(png)
+            response = requests.post(url, json=data)
+            output = response.json()["choices"][0]["message"]["content"]
+            f.write(f"{output}\n")
+            time.sleep(0.5)  # 等待0.5秒
