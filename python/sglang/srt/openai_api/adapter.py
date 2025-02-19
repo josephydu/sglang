@@ -488,6 +488,7 @@ async def v1_retrieve_file_content(file_id: str):
 def v1_generate_request(
     all_requests: List[CompletionRequest], request_ids: List[str] = None
 ):
+    print(f"request_json: {all_requests}")
     if len(all_requests) > 1:
         first_prompt_type = type(all_requests[0].prompt)
         for request in all_requests:
