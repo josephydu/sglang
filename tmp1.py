@@ -4,7 +4,14 @@ import requests
 
 url = f"http://127.0.0.1:{30000}/v1/chat/completions"
 
-data1 = {
+test_pngs = [
+    "test_pngs/test1.png",
+    "test_pngs/test2.png",
+    "test_pngs/test3.png",
+    "test_pngs/test4.png",
+    "test_pngs/test5.png",
+]
+data = {
     "model": "WePoints",
     "messages": [
         {
@@ -13,25 +20,7 @@ data1 = {
                 {"type": "text", "text": "图片里面有什么?"},
                 {
                     "type": "image_url",
-                    "image_url": {"url": "test.png"},
-                },
-            ],
-        }
-    ],
-    "max_tokens": 4096,
-    "temperature": 0,
-}
-
-data2 = {
-    "model": "WePoints",
-    "messages": [
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": "图片里面有什么?"},
-                {
-                    "type": "image_url",
-                    "image_url": {"url": "test2.png"},
+                    "image_url": {"url": "/tests_pngs/test2.png"},
                 },
             ],
         }
@@ -43,12 +32,14 @@ data2 = {
 try:
     while True:
         # 发送 data1
-        requests.post(url, json=data1)
-        time.sleep(0.1)  # 等待0.5秒
+        response = requests.post(url, json=data1)
+        print("Response for test1.png:", response.text)
+        time.sleep(0.5)  # 等待0.5秒
 
         # 发送 data2
-        requests.post(url, json=data2)
-        time.sleep(0.1)  # 等待0.5秒
+        response = requests.post(url, json=data2)
+        print("Response for test2.png:", response.text)
+        time.sleep(0.5)  # 等待0.5秒
 
 except KeyboardInterrupt:
     print("\nStopped by user")
