@@ -638,8 +638,6 @@ def get_image_processor(
         "Qwen2VLForConditionalGeneration"
         or "POINTSV15ChatModel" in hf_config.architectures
     ):
-        print(f"[get_image_processor]===================================")
-
         return Qwen2VLImageProcessor(hf_config, server_args, processor)
     elif "Qwen2_5_VLForConditionalGeneration" in hf_config.architectures:
         return Qwen2_5VLImageProcessor(hf_config, server_args, processor)
