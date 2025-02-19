@@ -901,7 +901,6 @@ def v1_chat_generate_request(
                 else:
                     tools = [item.function.model_dump() for item in request.tools]
 
-            print("chat_template_name: ", chat_template_name)
             if chat_template_name is None:
                 openai_compatible_messages = []
                 for message in request.messages:
@@ -948,6 +947,8 @@ def v1_chat_generate_request(
                 modalities = []
             else:
                 conv = generate_chat_conv(request, chat_template_name)
+
+                print("conv: ", conv)
                 prompt = conv.get_prompt()
                 image_data = conv.image_data
                 modalities = conv.modalities
