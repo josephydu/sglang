@@ -947,11 +947,12 @@ def v1_chat_generate_request(
                 modalities = []
             else:
                 conv = generate_chat_conv(request, chat_template_name)
-
-                print("conv: ", conv)
                 prompt = conv.get_prompt()
+                print(f"prompt: {prompt}")
                 image_data = conv.image_data
+                print(f"image_data: {image_data}")
                 modalities = conv.modalities
+                print(f"modalities: {modalities}")
                 stop = conv.stop_str or []
                 if request.stop:
                     if isinstance(request.stop, str):
