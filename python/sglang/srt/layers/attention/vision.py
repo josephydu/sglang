@@ -331,26 +331,13 @@ class VisionSdpaAttention(nn.Module):
         Returns:
              [b * s, h, head_size]
         """
-        # print(
-        # f"最大显存使用1: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
-        # )
         s = q.shape[0] // bsz
-        # print(
-        # f"最大显存使用2: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
-        # )
-
         # [b, 1, s, s]
         if attention_mask is None:
             attention_mask = self.generate_patch_attention_mask(
                 s, bsz, q.device, cu_seqlens, self.flatten_batch, q.dtype
             )
-        # print(
-        # f"最大显存使用3: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
-        # )
         q, k, v = [rearrange(x, "(b s) h d -> b h s d", b=bsz) for x in [q, k, v]]
-        # print(
-        # f"最大显存使用4: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
-        # )
         # [b, 1, s]
         if self.use_full_precision_softmax:
             scale = self.head_size**-0.5
@@ -375,14 +362,8 @@ class VisionSdpaAttention(nn.Module):
                 q, k, v, attention_mask, dropout_p=self.dropout
             )
 
-        # print(
-        # f"最大显存使用5: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
-        # )
         # [b, h, s, head_size] --> [b * s, h, head_size]
         output = rearrange(output, "b h s d -> (b s) h d")
-        # print(
-        # f"最大显存使用6: {torch.cuda.max_memory_allocated() / (1024 ** 2):.2f} MB"
-        # )
 
         return output
 
