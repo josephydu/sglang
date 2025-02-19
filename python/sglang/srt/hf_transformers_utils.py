@@ -35,17 +35,16 @@ from sglang.srt.configs import (
     DbrxConfig,
     ExaoneConfig,
     POINTSV15ChatConfig,
-    Qwen2VLConfig,
+    Qwen2_5_VLConfig,
 )
 
 _CONFIG_REGISTRY: Dict[str, Type[PretrainedConfig]] = {
     ChatGLMConfig.model_type: ChatGLMConfig,
     DbrxConfig.model_type: DbrxConfig,
     ExaoneConfig.model_type: ExaoneConfig,
-    Qwen2VLConfig.model_type: Qwen2VLConfig,
+    Qwen2_5_VLConfig.model_type: Qwen2_5_VLConfig,
     POINTSV15ChatConfig.model_type: POINTSV15ChatConfig,
 }
-
 
 for name, cls in _CONFIG_REGISTRY.items():
     with contextlib.suppress(ValueError):

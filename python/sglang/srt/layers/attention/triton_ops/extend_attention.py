@@ -50,7 +50,7 @@ def _fwd_kernel(
     kv_indptr,
     kv_indices,
     mask_ptr,
-    mask_offsets,
+    mask_indptr,
     sm_scale,
     kv_group_num,
     stride_qbs,
@@ -74,6 +74,7 @@ def _fwd_kernel(
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
     USE_CUSTOM_MASK: tl.constexpr,
+    STORE_TRANSPOSE: tl.constexpr,
 ):
     cur_seq = tl.program_id(0)
     cur_head = tl.program_id(1)
@@ -87,7 +88,7 @@ def _fwd_kernel(
     cur_seq_len = cur_seq_len_prefix + cur_seq_len_extend
 
     if USE_CUSTOM_MASK:
-        cur_seq_mask_start_idx = tl.load(mask_offsets + cur_seq)
+        cur_seq_mask_start_idx = tl.load(mask_indptr + cur_seq)
 
     offs_d = tl.arange(0, BLOCK_DMODEL)
     offs_dv = tl.arange(0, BLOCK_DV)
@@ -272,9 +273,18 @@ def _fwd_kernel(
         + cur_head * stride_oh
         + offs_dv[None, :]
     )
-    tl.store(
-        O_Extend + offs_o, acc / deno[:, None], mask=mask_m[:, None] & mask_dv[None, :]
-    )
+    if STORE_TRANSPOSE:
+        tl.store(
+            O_Extend + offs_o.T,
+            (acc / deno[:, None]).T,
+            mask=(mask_m[:, None] & mask_dv[None, :]).T,
+        )
+    else:
+        tl.store(
+            O_Extend + offs_o,
+            acc / deno[:, None],
+            mask=mask_m[:, None] & mask_dv[None, :],
+        )
 
 
 def extend_attention_fwd(
@@ -288,7 +298,7 @@ def extend_attention_fwd(
     kv_indptr,
     kv_indices,
     custom_mask,
-    mask_offsets,
+    mask_indptr,
     max_len_extend,
     sm_scale=None,
     logit_cap=0.0,
@@ -319,8 +329,8 @@ def extend_attention_fwd(
     BLOCK_DV = triton.next_power_of_2(Lv)
 
     if is_hip_:
-        BLOCK_M, BLOCK_N = (64, 64)
-        num_warps = 4
+        BLOCK_M, BLOCK_N = (32, 32)
+        num_warps = 2
 
     else:
         if is_cuda_available and CUDA_CAPABILITY[0] >= 9:
@@ -351,7 +361,7 @@ def extend_attention_fwd(
 
     extra_kargs = {}
     if is_hip_:
-        extra_kargs = {"waves_per_eu": 4, "matrix_instr_nonkdim": 16, "kpack": 2}
+        extra_kargs = {"waves_per_eu": 1, "matrix_instr_nonkdim": 16, "kpack": 2}
 
     _fwd_kernel[grid](
         q_extend,
@@ -364,7 +374,7 @@ def extend_attention_fwd(
         kv_indptr,
         kv_indices,
         custom_mask,
-        mask_offsets,
+        mask_indptr,
         sm_scale,
         kv_group_num,
         q_extend.stride(0),
@@ -388,6 +398,7 @@ def extend_attention_fwd(
         Lq=Lq,
         Lv=Lv,
         USE_CUSTOM_MASK=USE_CUSTOM_MASK,
+        STORE_TRANSPOSE=is_hip_,
         num_warps=num_warps,
         num_stages=num_stages,
         **extra_kargs,
