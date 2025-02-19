@@ -48,7 +48,6 @@ class ModelConfig:
         self.revision = revision
         self.quantization = quantization
 
-        print("11111111111111111111111111111")
         # Parse args
         self.model_override_args = json.loads(model_override_args)
         self.hf_config = get_config(

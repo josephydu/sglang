@@ -630,7 +630,6 @@ class Qwen2_5VLImageProcessor(BaseImageProcessor):
 def get_image_processor(
     hf_config, server_args: ServerArgs, processor
 ) -> BaseImageProcessor:
-    print(f"[get_image_processor]hf_config.architectures=>{hf_config.architectures}")
     if "MllamaForConditionalGeneration" in hf_config.architectures:
         # print(1)
         return MllamaImageProcessor(hf_config, server_args, processor)
