@@ -1,0 +1,518 @@
+
+============================turn=0,png=test_pngs/test1.png============================xAI工程师称未发布的Grok 3不敌...
+
+Grok 3即将发布
+
+长达20年！复盘Linux之父对C++...
+
+作者将深入探讨 Linus Torvalds 对 C++...
+
+深圳首批“AI公务员”上岗
+
+AI 浪潮席卷巴黎：奥特曼自称“不...
+
+前不久落幕的巴黎人工智能行动峰会上...
+
+“GPU 赛道押注失败！”
+
+DeepSeek 大模型 DeepSeek 到底开放了什么？
+
+几年前，Fly.io 对 GPU 的需求进行了...
+
+DeepSeek 的开源究竟开放了什么？开放到了何种程度？本文作者——资深程序员+资深律师，一起为大家拆解 DeepSeek 的开源之道。
+
+推荐
+
+资讯
+
+热榜
+
+自荐
+
+动态
+
+有红包
+
+排行榜
+
+向你推荐
+
+所有活动 >
+
+
+
+Deepseeek R1模型本地化部署+API接口调用详细教程：释放AI生产力
+
+随着最近人工智能 DeepSeek 的爆发，越来越多的技术大佬们开始关注如何在本地部署 DeepSeek，利用其强大的功能，甚至在没有互联网连接的情况下也能进行高效的使用。事实上，DeepSeek 的技术实力已经不亚于 OpenAI 的 GPT 系列，因此许多人...
+
+作者：池央
+
+162 赞
+
+踩
+
+Intel 英特尔开发人员专区
+
+NVIDIA AI技术专区
+
+Vue 前端开发中的路线知识：从入门到精通
+
+百度AI Studio社区
+
+CSDN C知道接入DeepSeek-R1...
+
+赋能开发者高效智能编程与问题解决
+
+DeepSeek华为云全栈解决方案
+
+2208 热度
+
+AI 前沿洞察与开发者挑战赛全揭秘
+
+字节CEO反思在大模型新机遇前...
+
+写写你的学习笔记，成为技术分享达人！
+
+Azure 应用开发实战指南
+
+合作阿里后，传苹果仍将和百度合...
+
+Gemini宣布线上全局记忆功能 | 极客头条
+
+cpp调用pytorch配置
+============================turn=0,png=test_pngs/test2.png============================[2025-02-18 05:42:22 TP0] Prefill batch. #new-seq: 1, #new-token: 2979, #cached-token: 0, cache hit rate: 0.00%, token usage: 0.70%, #running-req: 568, #queue-req: 12564
+[2025-02-18 05:42:22 TP0] mem after model_runner extend forward atten init (0.30303955078125,)
+[2025-02-18 05:42:23 TP0] Prefill batch. #new-seq: 2, #new-token: 5958, #cached-token: 0, cache hit rate: 0.00%, token usage: 0.70%, #running-req: 568, #queue-req: 12562
+[2025-02-18 05:42:23 TP0] mem after model_runner extend forward atten init (0.30108642578125,)
+[2025-02-18 05:42:25 TP0] Prefill batch. #new-seq: 2, #new-token: 5958, #cached-token: 0, cache hit rate: 0.00%, token usage: 0.70%, #running-req: 567, #queue-req: 12558
+[2025-02-18 05:42:27 TP0] Prefill batch. #new-seq: 2, #new-token: 5958, #cached-token: 0, cache hit rate: 0.00%, token usage: 0.70%, #running-req: 568, #queue-req: 12557
+[2025-02-18 05:42:30 TP0] mem after model_runner extend forward atten init (0.30108642578125,)
+[2025-02-18 05:42:31 TP0] Prefill batch. #new-seq: 2, #new-token: 5958, #cached-token: 0, cache hit rate: 0.00%, token usage: 0.70%, #running-req: 567, #queue-req: 12552
+[2025-02-18 05:42:33 TP0] Prefill batch. #new-seq: 2, #new-token: 5958, #cached-token: 0, cache hit rate: 0.00%, token usage: 0.71%, #running-req: 567, #queue-req: 12545
+[2025-02-18 05:42:40 TP0] Prefill batch. #new-seq: 2, #new-token: 5958, #cached-token: 0, cache hit rate: 0.00%, token usage: 0.71%, #running-req: 567, #queue-req: 12539
+[2025-02-18 05:42:44 TP0] Prefill batch. #new-seq: 2, #new-token: 5958, #cached-token: 0, cache hit rate: 0.00%, token usage: 0.71%, #running-req: 567, #queue-req: 12536
+[2025-02-18 05:42:48 TP0] Prefill batch. #new-seq: 1, #new-token: 2979, #cached-token: 0, cache hit rate: 0.00%, token usage: 0.71%, #running-req: 567, #queue-req: 12536
+[2025-02-18 05:42:50 TP0] Prefill batch. #new-seq: 2, #new
+============================turn=0,png=test_pngs/test3.png============================# SGLANG
+
+## scripts
+- ci_install_dependency.sh
+- ci_install_rust.sh
+- ci_all_sglang.sh
+- killall_sglang.sh
+- version_branch_to_tag.sh
+
+## sgl-kernel
+- sgl-kernel
+- sgl-router
+- sgl-test
+- .clang-format-ignore
+- .editorconfig
+- .gitignore
+- .gitmodules
+- .isort.cfg
+- .pre-commit-config.yaml
+- model_arch_points.txt
+- model_arch_qwen.txt
+- model_arch_qwen.py
+- offline_wepoints.py
+- testOfflineWepoints.py
+- test_batch_transformer.py
+- test_wepoints_sglang.py
+- test_wepoints_transfomer.py
+- test.py
+
+## SGLANG
+- tmp1.py
+- tmp2.py
+- txt_edit_distance.py
+
+## TIMELINE
+- OUTLINE
+- TIMELINE
+
+## TMP1.PY
+```python
+import time
+
+url = f"http://127.0.0.1:{30000}/v1/chat/completions"
+
+def construct_data(png):
+    data = {
+        "model": "WePoints",
+        "messages": [
+            {
+                "type": "text",
+                "text": "图片里面有什么？"
+            },
+            {
+                "type": "image_url",
+                "image_url": f"{png}"
+            }
+        ]
+    }
+    return data
+
+for test_png in test_pngs:
+    for png in test_pngs:
+        data = construct_data(png)
+```
+
+## OUTPUT
+To https://github.com/josephydu/sglang.git
+c137f610..23c59f49 wepoints -> wepoints
+
+## DEBUG CONSOLE
+(base) youyangxiu@JOSEPHYYOU-MC0 sglang % □
+
+## PORTS
+PROBLEMS OUTCOME DEBUG CONSOLE TERMINAL PORTS
+
+## 跟你把独自孤独 变成了勇敢
+```
+============================turn=0,png=test_pngs/test4.png============================计算机实习交流群 (1921)
+
+今天的斯隆研究员代表着明天的科学领袖
+
+新进群的同学可以修改一下群名片格式：入学年级-公司/学校-昵称 比如22-bupt-Flux或者22-字节-Flux 感谢以下热心群友对本群扩充的贡献：李先淼、Liu、Winston...
+
+26-k1-两个读博 天才少年
+
+22-ki-两个读博 天才少年
+
+21级数媒与计科年级群
+
+22-(电)科软-电兵小将 天才少年
+
+必须是
+
+26-k1-两个读博 天才少年
+
+22-ki-两个读博 天才少年
+
+21-读研-虎行 管理员
+
+22-字节-seed... 群主
+
+27-ustc-选择大于努力（0基础梭哈字节） 天才少年
+
+23-gatech-润学momo 不
+
+妈的内阁在我隔壁鬼叫
+
+在do?
+
+24-大-专硕 天才少年
+
+22-秋招-嘉... 管理员
+
+24-大-专硕 天才少年
+
+22-秋招-嘉... 管理员
+
+24-shixi-cpc 管理员
+
+25-字节/阿里... 管理员
+
+[七米]Go学习交流5群
+
+test_wepoints_sglang.py
+
+test_wepoints_translator.py
+
+test.py
+
+test1.py
+
+test2.py
+
+test_edit_distance.py
+
+PROBLEMS OUTCOME DEBUG CONSOLE TERMINAL PORTS
+
+陪你好把独自孤单 变成了勇敢
+
+To https://github.com/josephydu/sglang.git
+
+c137f610..23c59f49 wepoints -> wepoints
+
+(base) youyangxiu@JOSEPHYYOU-MC0 sglang % □
+
+11:03
+
+11:05
+
+10:59
+
+10:49
+
+10:25
+
+10:43
+
+33 return data
+
+34
+
+35 for test_png in test_pngs:
+
+36 for png in test_pngs:
+
+37 data = construct_data(png)
+
+38
+
+39
+
+40
+
+41
+
+42
+
+43
+
+44
+
+45
+
+46
+
+47
+
+48
+
+49
+
+50
+
+51
+
+52
+
+53
+
+54
+
+55
+
+56
+
+57
+
+58
+
+59
+
+60
+
+61
+
+62
+
+63
+
+64
+
+65
+
+66
+
+67
+
+68
+
+69
+
+70
+
+71
+
+72
+
+73
+
+74
+
+75
+
+76
+
+77
+
+78
+
+79
+
+80
+
+81
+
+82
+
+83
+
+84
+
+85
+
+86
+
+87
+
+88
+
+89
+
+90
+
+91
+
+92
+
+93
+
+94
+
+95
+
+96
+
+97
+
+98
+
+99+
+
+10:00
+
+10:01
+
+10:02
+
+10:03
+
+10:04
+
+10:05
+
+10:06
+
+10:07
+
+10:08
+
+10:09
+
+10:10
+
+10:11
+
+10:12
+
+10:13
+
+10:14
+
+10:15
+
+10:16
+
+10:17
+
+10:18
+
+10:19
+
+10:20
+
+10:21
+
+10:22
+
+10:23
+
+10:24
+
+10:25
+
+10:26
+
+10:27
+
+10:28
+
+10:29
+
+10:30
+
+10:31
+
+10:32
+
+10:33
+
+10:34
+
+10:35
+
+10:36
+
+10:37
+
+10:38
+
+10:39
+
+10:40
+
+10:41
+
+10:42
+
+10:43
+
+10:44
+
+10:45
+
+10:46
+
+10:47
+
+10:48
+
+10:49
+
+10:50
+
+10:51
+
+10:52
+
+10:
+============================turn=0,png=test_pngs/test5.png============================陪你看度过漫长岁月
+
+陈奕迅
+
+此刻难耐的坦白
+
+只是无声地交谈
+
+都感觉幸福 感觉不孤单
+
+陪你看把沿路感想 活出了答案
+
+陪你看把独自孤单 变成了勇敢
+
+陪你看把彷徨 写出情节来
+
+陪你看把沿路感想 活出了答案
+
+未来多漫长 再漫长 还有期待
+
+陪你看把独自孤单 变成了勇敢
+
+按 + 放大歌词，按 - 缩小歌词
+
+02:12 04:02
