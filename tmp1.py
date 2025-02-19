@@ -34,7 +34,7 @@ def construct_data(png_path):
     return data
 
 
-repeats = 3
+repeats = 1
 with open("spda.txt", "w") as f:
     for repeat in range(repeats):
         for png in test_pngs:

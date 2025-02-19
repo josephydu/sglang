@@ -1,111 +1,60 @@
 target_txt = [
-    """似芙蓉涉水而来，旖旎独特；如野菊淡然绽放，暗香盈袖。汉字，你在中国这片原野上落地、生根，从此成了中国心，成了中国魂，成了我心中那段不了的汉字情。汉字，于春之暮野，我们邂逅。你向我伸出手，眼波流转，微笑蔓延。从此，我沉醉。
+    """The Importance of Reading
+Reading is one of the most fundamental skills a person can develop. It is not only a source of knowledge but also a gateway to imagination and creativity. In today’s fast-paced world, where technology dominates our lives, the importance of reading cannot be overstated.
 
-汉字，犹记得初感受你指尖的温存，被你牵引着走向未知的远方，身后是流光飞舞的红尘岁月。在那些遥远的往事里，是你留下的快乐悲伤，惊奇瑰丽。你的故事，从春说到秋，从绿说到黄，编织着神奇的童话，承载着对世界的最初的感知。
-汉字，童年是你在短笛里谱写的牧歌，单纯而恬静。那些小水洼，那些烂泥巴，那些在雨天光着的小脚丫，因为有你陪伴，它们便都开成我心口的白色小花，芬芳那一颗赤诚的中国心。
-汉字，当我马不停蹄地向前，终于跑进成长的劫，触摸到那明媚而忧伤的青春。此时，是你，是你在我迷茫时用那闪亮的字句点燃那已微弱的心火；是你在我莫名落泪时用温柔的歌抚平我心的是疼痛；也是你教会我，在年轻的心壁上默默雕琢一种激情，一种信仰，一种向上的力量；更是你，告诉我，既然活着就要像水，点点滴滴都是真实的生命。
-汉字，青春是你调制的一杯鸡尾酒，眩目而浓烈。喝下那杯酒，我丢掉那些浮躁的喧嚣与空虚，和你一起或喜，或悲，或怒，或痴，任我血脉里那澎湃的中国情燃成熊熊烈火。汉字，当我满了黑发，长了腰肢，是你牵紧我的手，向那庄严的历史与人生致敬。你踏着岁月的尘埃，碾碎时间的凹凸走进历史的风雨中，我，亦无悔相随。痴迷了，沉醉了，我沦陷在你的天地里。汉字，你温柔的发梢吹来历史的夜风，讲述一个个千年古老的故事；你多情的双眸噙满泪水，赞叹着一次次文明的奇迹；你滑润的肌肤令我酥麻入心，感受着那一段段惊心动魄的传奇。五千年的灿烂辉煌，在你心口浅吟低唱，余晖后的屈辱也融进你掌心的纹路，黯然神伤。微醺的""",
-    # =====================
-    """import Levenshtein
+First and foremost, reading enhances our knowledge. Whether it’s fiction, non-fiction, or academic texts, every book offers new information and perspectives. By reading regularly, we can learn about different cultures, historical events, scientific discoveries, and much more. This knowledge helps us become more informed citizens and better decision-makers.
 
-# 目标文本
-A = "目标文本"
-# 模型1输出的文本
-B = "模型1输出的文本"
-# 模型2输出的文本
-C = "模型2输出的文本"
+Moreover, reading improves our language skills. It exposes us to new vocabulary, different writing styles, and various forms of expression. As we read, we naturally absorb the structure of sentences and the flow of ideas, which can enhance our own writing and speaking abilities. This is particularly important for students, as strong language skills are essential for academic success.
 
-# 计算编辑距离
-distance_B = Levenshtein.distance(A, B)
-distance_C = Levenshtein.distance(A, C)
+In addition to knowledge and language skills, reading also stimulates our imagination. When we read a story, we visualize the characters, settings, and events in our minds. This imaginative process fosters creativity and allows us to think outside the box. Many successful writers, artists, and innovators credit their love of reading as a key factor in their creative development.
 
-# 输出结果
-print(f"编辑距离（A与B）: {distance_B}")
-print(f"编辑距离（A与C）: {distance_C}")
+Furthermore, reading can be a great source of relaxation and stress relief. In our busy lives, taking time to immerse ourselves in a good book can provide a much-needed escape. It allows us to disconnect from our daily worries and enter a different world, even if just for a little while. This mental break can improve our overall well-being and help us recharge.
 
-# 判断哪个模型更相似
-if distance_B < distance_C:
-    print("模型1的输出文本与目标文本更相似。")
-elif distance_B > distance_C:
-    print("模型2的输出文本与目标文本更相似。")
-else:
-    print("两个模型的输出文本与目标文本同样相似。")""",
-    # =====================
-    """Overview
-Our English language classes are always full of fun!
+Lastly, reading promotes empathy and understanding. Through literature, we can experience the lives and emotions of others, which helps us develop a deeper understanding of different perspectives. This is especially important in our diverse world, where empathy and compassion are crucial for fostering harmony and cooperation among people.
 
-ESF Language uses everything from stories and role-plays to art and debate. Our English course develops students' language skills through a wide range of activities. This may include projects, speeches, and games. Hence, this instils a love of learning.
+In conclusion, reading is an invaluable skill that enriches our lives in numerous ways. It enhances our knowledge, improves our language skills, stimulates our imagination, provides relaxation, and fosters empathy. Therefore, it is essential to cultivate a habit of reading from a young age and to encourage others to do the same. Whether it’s a novel, a magazine, or an article, every piece of reading material has the potential to inspire and educate us.""",
+    """阅读的重要性
+阅读是人类获取知识和信息的重要途径，也是培养思维能力和创造力的有效方式。在当今这个信息爆炸的时代，阅读的重要性愈发凸显。
 
-The topic-based English programmes bring books alive! Students have the opportunity to act out their favourite stories. Additionally, they may also be involved in games related to the stories. By that, this captures the imagination of our students. Plus, they will develop the four main language skills: reading, writing, speaking and listening.
+首先，阅读能够拓宽我们的知识面。无论是小说、非小说还是学术论文，每一本书都蕴含着丰富的知识和不同的观点。通过阅读，我们可以了解不同的文化、历史事件、科学发现等。这些知识不仅帮助我们更好地理解世界，也使我们在日常生活中做出更明智的决策。
 
-What's more, we encourage students to express themselves in English freely. Through familiar contexts, they will be communicating entirely in English. Meaning, whatever it is they do, they must do so in English. Additionally, they get to do interesting new activities, be part of discussions, and more! On top of this, ESF offers an energetic & dynamic learning programme. We discourage sitting still on their textbooks. Instead, we incorporate games and crafts with a traditional English language course. Textbooks and a workbook only add to our programmes.
+其次，阅读有助于提高语言能力。阅读时，我们会接触到新的词汇、不同的写作风格和多样的表达方式。这种潜移默化的学习过程，不仅能增强我们的阅读理解能力，还能提升我们的写作和口语表达能力。对于学生来说，良好的语言能力是学业成功的基础。
 
+此外，阅读还能够激发我们的想象力。当我们阅读故事时，脑海中会浮现出人物、场景和情节。这种想象的过程不仅培养了我们的创造力，也让我们学会了从不同的角度看待问题。许多成功的作家、艺术家和创新者都将他们的阅读习惯视为创造力发展的重要因素。
 
-For specific skills development, we have Writing and Phonics programmes which offer more specialised lessons.""",
+阅读也是一种极好的放松方式。在快节奏的生活中，抽出时间沉浸在一本好书中，可以让我们暂时逃离现实的压力。阅读不仅能让我们享受故事的乐趣，还能帮助我们缓解焦虑，提升心理健康。
+
+最后，阅读能够促进同理心和理解力。通过文学作品，我们可以体验他人的生活和情感，从而更深入地理解不同的观点。这在当今多元化的社会中尤为重要，因为同理心和包容心是促进人与人之间和谐相处的关键。
+
+总之，阅读是一项极其重要的技能，它在多个方面丰富了我们的生活。它拓宽了我们的知识面，提高了语言能力，激发了想象力，提供了放松的机会，并促进了同理心的发展。因此，从小培养阅读的习惯，并鼓励他人参与阅读，是非常必要的。无论是小说、杂志还是文章，每一份阅读材料都有可能启发和教育我们。""",
+    """def bubble_sort(arr):
+    n = len(arr)
+    # 外层循环控制比较的轮数
+    for i in range(n):
+        # 内层循环进行相邻元素的比较和交换
+        for j in range(0, n-i-1):
+            # 如果当前元素大于下一个元素，则交换它们
+            if arr[j] > arr[j+1]:
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+    return arr
+
+# 测试代码
+if __name__ == "__main__":
+    sample_list = [64, 34, 25, 12, 22, 11, 90]
+    sorted_list = bubble_sort(sample_list)
+    print("排序后的列表:", sorted_list)""",
+    """物理学第一定律通常指的是牛顿的第一运动定律，也称为惯性定律。其定义如下：
+
+牛顿第一运动定律（惯性定律）：如果一个物体不受外力作用，或者所受的外力的合力为零，那么该物体将保持静止状态或以恒定速度沿直线运动。换句话说，物体的运动状态（静止或匀速直线运动）不会改变，除非有外力作用于它。
+
+这个定律强调了物体的惯性，即物体抵抗运动状态改变的性质。它是经典力学的基础之一，揭示了力与运动之间的关系。""",
 ]
-transfomrer_txt = [
-    """似芙蓉涉水而来，曳曳独特；如野菊淡然绽放，暗香盈袖。汉字，你在中国这片原野上落地、生根，从此成了中国心，成了中国魂，成了我心中那段不了的汉字情。汉字，于春之暮野，我们邂逅。你向我伸出手，眼波流转，微笑蔓延。从此，我沉醉。
-
-汉字，犹记得初感受你指尖的温存，被你牵引着走向未知的远方，身后是流光飞舞的红尘岁月。在那些遥远的往事里，是你留下的快乐悲伤，惊奇瑰丽。你的故事，从春说到秋，从绿说到黄，编织着神奇的童话，承载着对世界的最初的感知。
-
-汉字，童年是你在短笛里谱写的牧歌，单纯而恬静。那些小水洼，那些烂泥巴，那些在雨天光着的小脚丫，因为有你陪伴，它们便都开成我心口的白色小花，芬芳那一颗赤诚的中国心。
-
-汉字，当我马不停蹄地向前，终于跑进成长的劫，触摸到那明媚而忧伤的青春。此时，是你，是你在我迷茫时用那闪亮的字句点燃那已微弱的心火；是你在我莫名落泪时用温柔的歌抚平我心的是疼痛；也是你教会我，在年轻的心壁上默默雕琢一种激情，一种信仰，一种向上的力量；更是你，告诉我，既然活着就要像水，点点滴滴都是真实的生命。
-
-汉字，青春是你调制的一杯鸡尾酒，眩目而浓烈。喝下那杯酒，我丢掉那些浮躁的喧嚣与空虚，和你一起或喜，或悲，或怒，或痴，任我血脉里那澎湃的中国情燃成熊熊烈火。汉字，当我满了黑发，长了腰肢，是你牵紧我的手，向那庄严的历史与人生致敬。你踏着岁月的尘埃，碾碎时间的凹凸走进历史的风雨中，我，亦无悔相随。痴迷了，沉醉了，我沦陷在你的天地里。汉字，你温柔的发梢吹来历史的夜风，讲述一个个千年古老的故事；你多情的双眸噙满泪水，赞叹着一次次文明的奇迹；你滑润的肌肤令我酥麻入心，感受着那一段段惊心动魄的传奇。五千年灿烂辉煌，在你心口浅吟低唱，余晖后的屈辱也融进你掌心的纹路，黯然神伤。微醺的""",
-    # =====================
-    """import Levenshtein
-
-# 目标文本
-A = "目标文本"
-
-# 模型1输出的文本
-B = "模型1输出的文本"
-
-# 模型2输出的文本
-C = "模型2输出的文本"
-
-# 计算编辑距离
-distance_B = Levenshtein.distance(A, B)
-distance_C = Levenshtein.distance(A, C)
-
-# 输出结果
-print(f"编辑距离（A与B）：{distance_B}")
-print(f"编辑距离（A与C）：{distance_C}")
-
-# 判断哪个模型更相似
-if distance_B < distance_C:
-    print("模型1的输出文本与目标文本更相似。")
-elif distance_B > distance_C:
-    print("模型2的输出文本与目标文本更相似。")
-else:
-    print("两个模型的输出文本与目标文本同样相似。")""",
-    # =====================
-    """
-Overview
-
-Our English language classes are always full of fun!
-
-ESF Language uses everything from stories and role-plays to art and debate. Our English course develops students' language skills through a wide range of activities. This may include projects, speeches, and games. Hence, this instils a love of learning.
-
-The topic-based English programmes bring books alive! Students have the opportunity to act out their favourite stories. Additionally, they may also be involved in games related to the stories. By that, this captures the imagination of our students. Plus, they will develop the four main language skills: reading, writing, speaking and listening.
-
-What's more, we encourage students to express themselves in English freely. Through familiar contexts, they will be communicating entirely in English. Meaning, whatever it is they do, they must do so in English.
-
-Additionally, they get to do interesting new activities, be part of discussions, and more! On top of this, ESF offers an energetic & dynamic learning programme. We discourage sitting still on their textbooks. Instead, we incorporate games and crafts with a traditional English language course. Textbooks and a workbook only add to our programmes.
-
-For specific skills development, we have Writing and Phonics programmes which offer more specialised lessons.
-""",
-]
-sglang_txt = [
-    """似芙蓉涉水而来，曳曳独特；如野菊淡然绽放，暗香盈袖。汉字，你在中国这片原野上落地、生根，从此成了中国心，成了中国魂，成了我心中那段不了的汉字情。汉字，于春之暮野，我们邂逅。你向我伸出手，眼波流转，微笑蔓延。从此，我沉醉。\n\n汉字，犹记得初感受你指尖的温存，被你牵引着走向未知的远方，身后是流光飞舞的红尘岁月。在那些遥远的往事里，是你留下的快乐悲伤，惊奇瑰丽。你的故事，从春说到秋，从绿说到黄，编织着神奇的童话，承载着对世界的最初的感知。\n\n汉字，童年是你在短笛里谱写的牧歌，单纯而恬静。那些小水洼，那些烂泥巴，那些在雨天光着的小脚丫，因为有你陪伴，它们便都开成我心口的白色小花，芬芳那一颗赤诚的中国心。\n\n汉字，当我马不停蹄地向前，终于跑进成长的劫，触摸到那明媚而忧伤的青春。此时，是你，是你在我迷茫时用那闪亮的字句点燃那已微弱的心火；是你在我莫名落泪时用温柔的歌抚平我心的是疼痛；也是你教会我，在年轻的心壁上默默雕琢一种激情，一种信仰，一种向上的力量；更是你，告诉我，既然活着就要像水，点点滴滴都是真实的生命。\n\n汉字，青春是你调制的一杯鸡尾酒，眩目而浓烈。喝下那杯酒，我丢掉那些浮躁的喧嚣与空虚，和你一起或喜，或悲，或怒，或痴，任我血脉里那澎湃的中国情燃成熊熊烈火。汉字，当我满了黑发，长了腰肢，是你牵紧我的手，向那庄严的历史与人生致敬。你踏着岁月的尘埃，碾碎时间的凹凸走进历史的风雨中，我，亦无悔相随。痴迷了，沉醉了，我沦陷在你的天地里。汉字，你温柔的发梢吹来历史的夜风，讲述一个个千年古老的故事；你多情的双眸噙满泪水，赞叹着一次次文明的奇迹；你滑润的肌肤令我酥麻入心，感受着那一段段惊心动魄的传奇。五千年灿烂辉煌，在你心口浅吟低唱，余晖后的屈辱也融进你掌心的纹路，黯然神伤。微醺的""",
-    """import Levenshtein\n\n# 目标文本\nA = \"目标文本\"\n\n# 模型1输出的文本\nB = \"模型1输出的文本\"\n\n# 模型2输出的文本\nC = \"模型2输出的文本\"\n\n# 计算编辑距离\ndistance_B = Levenshtein.distance(A, B)\ndistance_C = Levenshtein.distance(A, C)\n\n# 输出结果\nprint(f\"编辑距离（A与B）：{distance_B}\")\nprint(f\"编辑距离（A与C）：{distance_C}\")\n\n# 判断哪个模型更相似\nif distance_B < distance_C:\n    print(\"模型1的输出文本与目标文本更相似。\")\nelif distance_B > distance_C:\n    print(\"模型2的输出文本与目标文本更相似。\")\nelse:\n    print(\"两个模型的输出文本与目标文本同样相似。\")""",
-    """Overview\n\nOur English language classes are always full of fun!\n\nESF Language uses everything from stories and role-plays to art and debate. Our English course develops students' language skills through a wide range of activities. This may include projects, speeches, and games. Hence, this instills a love of learning.\n\nThe topic-based English programmes bring books alive! Students have the opportunity to act out their favourite stories. Additionally, they may also be involved in games related to the stories. By that, this captures the imagination of our students. Plus, they will develop the four main language skills: reading, writing, speaking and listening.\n\nWhat's more, we encourage students to express themselves in English freely. Through familiar contexts, they will be communicating entirely in English. Meaning, whatever it is they do, they must do so in English. \n\nAdditionally, they get to do interesting new activities, be part of discussions, and more! On top of this, ESF offers an energetic & dynamic learning programme. We discourage sitting still on their textbooks. Instead, we incorporate games and crafts with a traditional English language course. Textbooks and a workbook only add to our programmes.\n\nFor specific skills development, we have Writing and Phonics programmes which offer more specialised lessons.""",
-]
+spda_txt = ["""""", """""", """""", """"""]
+flash_txt = ["""""", """""", """""", """"""]
 import Levenshtein
 
-for target, trans, sgl in zip(target_txt, transfomrer_txt, sglang_txt):
-    distance_tarans = Levenshtein.distance(target, trans)
-    distance_sgl = Levenshtein.distance(target, sgl)
-    print(f"编辑距离trans: {distance_tarans}")
-    print(f"编辑距离sglang: {distance_sgl}")
+for target, spda, flash in zip(target_txt, spda_txt, flash_txt):
+    distance_spda = Levenshtein.distance(target, spda)
+    distance_flsh = Levenshtein.distance(target, flash)
+    print(f"编辑距离spda: {distance_spda}")
+    print(f"编辑距离flash: {distance_flsh}")
