@@ -968,10 +968,15 @@ def v1_chat_generate_request(
             image_data = None
             modalities = []
         input_ids.append(prompt_ids)
+        print(f"input_ids: {input_ids}")
         return_logprobs.append(request.logprobs)
+        print(f"return_logprobs: {return_logprobs}")
         logprob_start_lens.append(-1)
+        print(f"logprob_start_lens: {logprob_start_lens}")
         top_logprobs_nums.append(request.top_logprobs or 0)
+        print(f"top_logprobs_nums: {top_logprobs_nums}")
         lora_paths.append(request.lora_path)
+        print(f"lora_paths: {lora_paths}")
 
         sampling_params = {
             "temperature": request.temperature,
