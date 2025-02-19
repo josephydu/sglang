@@ -9,7 +9,6 @@ test_pngs = [
     "test_pngs/test2.png",
     "test_pngs/test3.png",
     "test_pngs/test4.png",
-    "test_pngs/test5.png",
 ]
 
 
@@ -20,7 +19,7 @@ def construct_data(png_path):
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "图片里面有什么?用中文回答。"},
+                    {"type": "text", "text": "识别图片中的文字。"},
                     {
                         "type": "image_url",
                         "image_url": {"url": f"{png_path}"},
