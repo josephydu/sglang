@@ -488,7 +488,6 @@ async def v1_retrieve_file_content(file_id: str):
 def v1_generate_request(
     all_requests: List[CompletionRequest], request_ids: List[str] = None
 ):
-    print(f"request_json: {all_requests}")
     if len(all_requests) > 1:
         first_prompt_type = type(all_requests[0].prompt)
         for request in all_requests:
@@ -881,6 +880,7 @@ def v1_chat_generate_request(
     lora_paths = []
 
     # NOTE: with openai API, the prompt's logprobs are always not computed
+    print(f"request_json: {all_requests}")
 
     for request in all_requests:
         # Prep the data needed for the underlying GenerateReqInput:
