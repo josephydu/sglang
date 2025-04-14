@@ -1014,24 +1014,24 @@ async def benchmark(
     )
 
     # Run warmup requests
-    # warmup_tasks = []
-    # for _ in range(args.warmup_requests):
-    #     warmup_tasks.append(
-    #         asyncio.create_task(request_func(request_func_input=test_input))
-    #     )
+    warmup_tasks = []
+    for _ in range(args.warmup_requests):
+        warmup_tasks.append(
+            asyncio.create_task(request_func(request_func_input=test_input))
+        )
 
-    # warmup_outputs = await asyncio.gather(*warmup_tasks)
+    warmup_outputs = await asyncio.gather(*warmup_tasks)
 
-    # # Check if at least one warmup request succeeded
-    # if not any(output.success for output in warmup_outputs):
-    #     raise ValueError(
-    #         "Warmup failed - Please make sure benchmark arguments "
-    #         f"are correctly specified. Error: {warmup_outputs[0].error}"
-    #     )
-    # else:
-    #     print(
-    #         f"Warmup completed with {args.warmup_requests} sequences. Starting main benchmark run..."
-    #     )
+    # Check if at least one warmup request succeeded
+    if not any(output.success for output in warmup_outputs):
+        raise ValueError(
+            "Warmup failed - Please make sure benchmark arguments "
+            f"are correctly specified. Error: {warmup_outputs[0].error}"
+        )
+    else:
+        print(
+            f"Warmup completed with {args.warmup_requests} sequences. Starting main benchmark run..."
+        )
 
     # Flush cache
     if ("sglang" in backend and _get_bool_env_var("SGLANG_IS_IN_CI")) or flush_cache:
