@@ -170,8 +170,7 @@ class NaiveEagleWorker(TpModelWorker):
             self.init_cuda_graphs()
         
         self.last_state = ForwardMode.DECODE
-        self.exit_cnt = 1
-        self.run_cnt = 0
+        self.new_prefilled_tokens = None
         
     def init_cuda_graphs(self):
         """Capture cuda graphs."""
@@ -228,13 +227,8 @@ class NaiveEagleWorker(TpModelWorker):
                 self.forward_draft_extend(
                     batch, logits_output.hidden_states, next_token_ids
                 )
-            self.last_state = ForwardMode.EXTEND
+            self.new_prefilled_tokens = next_token_ids
             return logits_output, next_token_ids, bid, 0
-    
-    
-    def check_exit(self, exit_cnt=1):
-        if self.run_cnt == exit_cnt:
-            exit(-1)
     
     def forward_target_extend(
         self, batch: ScheduleBatch
@@ -281,16 +275,8 @@ class NaiveEagleWorker(TpModelWorker):
         logits_output.next_token_logits = logits_output.next_token_logits[save_index]
         
         return logits_output
-        # self._detect_nan_if_needed(logits_output)
-        # self.capture_for_decode(logits_output, forward_batch.spec_info)
-
- 
-    def draft_cuda_graph_1(self, forward_batch: ForwardBatch):
-        logits_output = self.target_worker.model_runner.forward(forward_batch)
-        return logits_output
 
     def draft(self, batch: ScheduleBatch):
-        self.run_cnt += 1
         num_seqs = batch.batch_size()
         spec_info = batch.spec_info
         if self.page_size == 1:
@@ -310,6 +296,9 @@ class NaiveEagleWorker(TpModelWorker):
         else:
             raise NotImplementedError("josephyou: Page size > 1 not supported yet")
         
+        batch.forward_mode = ForwardMode.TARGET_VERIFY
+        
+        
         if spec_info.accept_length is None:
             batch.input_ids = batch.output_ids # first decode.
         else:
@@ -321,12 +310,10 @@ class NaiveEagleWorker(TpModelWorker):
                 ptr += (spec_info.accept_length[i] + 1)
             batch.input_ids = batch.input_ids[input_idx]
         
-        if self.last_state == ForwardMode.EXTEND and spec_info.accept_length is not None:
-            batch.input_ids = torch.cat((batch.input_ids, batch.output_ids[sum(spec_info.accept_length + 1):]))
+        if self.new_prefilled_tokens is not None and spec_info.accept_length is not None:
+            batch.input_ids = torch.cat((batch.input_ids, self.new_prefilled_tokens))
+        self.new_prefilled_tokens = None # clear it anyway
         
-        
-        self.last_state = ForwardMode.DECODE
-        batch.forward_mode = ForwardMode.TARGET_VERIFY
         
         batch.input_ids = torch.stack((batch.input_ids, spec_info.topk_index.squeeze(1)), dim=1).reshape(-1)
         positions = torch.stack([batch.seq_lens,  batch.seq_lens + 1], dim=1).reshape(-1)
@@ -360,7 +347,7 @@ class NaiveEagleWorker(TpModelWorker):
                 accept_length[i] = 1 if accept_index[i][1] != -1 else 0
             forward_batch.input_ids = next_token_ids
         else:
-            logits_output = self.draft_cuda_graph_1(forward_batch)
+            logits_output = self.target_worker.model_runner.forward(forward_batch)
             accept_index = torch.full((num_seqs, 2), -1, dtype=torch.int32, device="cuda")
             accept_length = torch.zeros((num_seqs,), dtype=torch.int32, device="cuda")
             # verify
@@ -407,7 +394,6 @@ class NaiveEagleWorker(TpModelWorker):
                 # prepare next_token_ids
                 next_token_ids = torch.multinomial(target_probs, num_samples=1).squeeze(-1)
             
-
             accept_length = torch.zeros((num_seqs,), dtype=torch.int32, device="cuda")
             for i in range(num_seqs):
                 accept_length[i] = 1 if accept_index[i][1] != -1 else 0
