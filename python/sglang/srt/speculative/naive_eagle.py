@@ -169,7 +169,6 @@ class NaiveEagleWorker(TpModelWorker):
             logger.info(f"[init cuda graph with requests_all_greedy:{self.requests_all_greedy}]")
             self.init_cuda_graphs()
         
-        self.last_state = ForwardMode.DECODE
         self.new_prefilled_tokens = None
         
     def init_cuda_graphs(self):
@@ -227,8 +226,6 @@ class NaiveEagleWorker(TpModelWorker):
                 self.forward_draft_extend(
                     batch, logits_output.hidden_states, next_token_ids
                 )
-            self.last_state = ForwardMode.EXTEND
-            
             if self.new_prefilled_tokens is None:
                 self.new_prefilled_tokens = next_token_ids
             else:
@@ -302,6 +299,7 @@ class NaiveEagleWorker(TpModelWorker):
         else:
             raise NotImplementedError("josephyou: Page size > 1 not supported yet")
         
+        batch.forward_mode = ForwardMode.TARGET_VERIFY
         logger.info(f"[naive start]\n{batch.input_ids=}\n{batch.output_ids=}\n{spec_info.accept_length=}")
         if spec_info.accept_length is None:
             batch.input_ids = batch.output_ids # first decode.
@@ -319,9 +317,6 @@ class NaiveEagleWorker(TpModelWorker):
             batch.input_ids = torch.cat((batch.input_ids, self.new_prefilled_tokens))
         self.new_prefilled_tokens = None # clear it anyway.
         
-        
-        self.last_state = ForwardMode.DECODE
-        batch.forward_mode = ForwardMode.TARGET_VERIFY
         
         batch.input_ids = torch.stack((batch.input_ids, spec_info.topk_index.squeeze(1)), dim=1).reshape(-1)
         positions = torch.stack([batch.seq_lens,  batch.seq_lens + 1], dim=1).reshape(-1)
