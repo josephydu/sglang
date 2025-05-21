@@ -169,8 +169,6 @@ class NaiveEagleWorker(TpModelWorker):
             logger.info(f"[init cuda graph with requests_all_greedy:{self.requests_all_greedy}]")
             self.init_cuda_graphs()
         
-        self.new_prefilled_tokens = None
-        
     def init_cuda_graphs(self):
         """Capture cuda graphs."""
         self.cuda_graph_runner = None
@@ -226,10 +224,6 @@ class NaiveEagleWorker(TpModelWorker):
                 self.forward_draft_extend(
                     batch, logits_output.hidden_states, next_token_ids
                 )
-            if self.new_prefilled_tokens is None:
-                self.new_prefilled_tokens = next_token_ids
-            else:
-                self.new_prefilled_tokens = torch.cat((self.new_prefilled_tokens, next_token_ids))
             return logits_output, next_token_ids, bid, 0
     
     def forward_target_extend(
@@ -279,7 +273,6 @@ class NaiveEagleWorker(TpModelWorker):
         return logits_output
 
     def draft(self, batch: ScheduleBatch):
-        logger.info(f"[decode start]")
         num_seqs = batch.batch_size()
         spec_info = batch.spec_info
         if self.page_size == 1:
@@ -300,22 +293,16 @@ class NaiveEagleWorker(TpModelWorker):
             raise NotImplementedError("josephyou: Page size > 1 not supported yet")
         
         batch.forward_mode = ForwardMode.TARGET_VERIFY
-        logger.info(f"[naive start]\n{batch.input_ids=}\n{batch.output_ids=}\n{spec_info.accept_length=}")
-        if spec_info.accept_length is None:
-            batch.input_ids = batch.output_ids # first decode.
-        else:
-            input_idx = torch.empty_like(spec_info.accept_length)
-            ptr = 0
-            for i in range(len(spec_info.accept_length)):
-                # accept length is 0 or 1
-                input_idx[i] = ptr + spec_info.accept_length[i]
-                ptr += (spec_info.accept_length[i] + 1)
-            batch.input_ids = batch.input_ids[input_idx]
-        
-        if self.new_prefilled_tokens is not None and spec_info.accept_length is not None:
-            logger.info(f"[last extend decode]{self.new_prefilled_tokens=}")
-            batch.input_ids = torch.cat((batch.input_ids, self.new_prefilled_tokens))
-        self.new_prefilled_tokens = None # clear it anyway.
+        # if spec_info.accept_length is None:
+        batch.input_ids = batch.output_ids # first decode.
+        # else:
+        #     input_idx = torch.empty_like(spec_info.accept_length)
+        #     ptr = 0
+        #     for i in range(len(spec_info.accept_length)):
+        #         # accept length is 0 or 1
+        #         input_idx[i] = ptr + spec_info.accept_length[i]
+        #         ptr += (spec_info.accept_length[i] + 1)
+        #     batch.input_ids = batch.input_ids[input_idx]
         
         
         batch.input_ids = torch.stack((batch.input_ids, spec_info.topk_index.squeeze(1)), dim=1).reshape(-1)
@@ -481,8 +468,16 @@ class NaiveEagleWorker(TpModelWorker):
             pass
         
         self.token_to_kv_pool_allocator.free(batch.out_cache_loc[evict_mask])
+
+        # return output ids for next decode.
+        output_idx = torch.empty_like(batch.spec_info.accept_length)
+        ptr = 0
+        for i in range(len(batch.spec_info.accept_length)):
+            # accept length is 0 or 1
+            output_idx[i] = ptr + batch.spec_info.accept_length[i]
+            ptr += (batch.spec_info.accept_length[i] + 1)
+        output_ids = verified_id[output_idx]
         
-        logger.info(f"[has finished before!]{batch.input_ids}")
         if not has_finished:
             batch.input_ids = batch.input_ids[accept_index_viewd] # signgle batch
             batch.out_cache_loc = batch.out_cache_loc[accept_index_viewd]
@@ -496,15 +491,10 @@ class NaiveEagleWorker(TpModelWorker):
                 batch.spec_info.topk_p = batch.spec_info.topk_p[unfinished_index_device]
                 batch.input_ids = batch.input_ids[new_accept_index]
             batch.out_cache_loc = batch.out_cache_loc[new_accept_index]
-        logger.info(f"[has finished after!]{batch.input_ids}")
-        
             
-
-        # return output ids for next decode.
-        
         return (
                 logits_output,
-                verified_id,
+                output_ids,
                 model_worker_batch.bid,
                 sum(accept_length_cpu),
             )
