@@ -316,10 +316,19 @@ class NaiveEagleWorker(TpModelWorker):
             forward_batch.spec_info_topk_p = spec_info.topk_p
             
             logits_output, next_token_ids,accept_index, draft_logits_output, draft_input = self.cuda_graph_runner.replay(forward_batch)
+
+            last = accept_index[:, 1]
+            first = accept_index[:, 0]
+            save_index = torch.where(last != -1, last, first)
+            draft_logits_output.hidden_states = draft_logits_output.hidden_states[save_index]
+            draft_logits_output.next_token_logits = draft_logits_output.next_token_logits[save_index]
+            
             accept_length = torch.zeros((num_seqs,), dtype=torch.int32, device="cuda")
             for i in range(num_seqs):
                 accept_length[i] = 1 if accept_index[i][1] != -1 else 0
             forward_batch.input_ids = next_token_ids
+            
+            
         else:
             logits_output = self.target_worker.model_runner.forward(forward_batch)
             accept_index = torch.full((num_seqs, 2), -1, dtype=torch.int32, device="cuda")
