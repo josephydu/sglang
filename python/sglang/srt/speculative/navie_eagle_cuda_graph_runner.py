@@ -651,9 +651,6 @@ class NaiveEAGLECudaGraphRunner:
                 else None
             ),
         )
-
-        # logger.info(f"[replay post processing]{self.bs=},\n{self.raw_bs=},\n{logits_output.hidden_states.shape=}, \n{next_token_ids.shape=}, \n{accept_index.shape=}, \n{draft_logits_output.hidden_states.shape=}, \n{draft_input=}")
-        
         return logits_output, next_token_ids, accept_index, draft_logits_output, draft_input
 
     def get_spec_info(self):
@@ -700,8 +697,8 @@ class NaiveEAGLECudaGraphRunner:
         # Run
         logits_output = self.draft_model_runner.forward(forward_batch, skip_attn_backend_init=True)
 
-        first = accept_index[:, 0]
         last = accept_index[:, 1]
+        first = accept_index[:, 0]
         save_index = torch.where(last != -1, last, first)
         logits_output.hidden_states = logits_output.hidden_states[save_index]
         logits_output.next_token_logits = logits_output.next_token_logits[save_index]
