@@ -640,7 +640,7 @@ class NaiveEAGLECudaGraphRunner:
         logger.info(f"save_index = {tmp1}")
         logger.info(f'logits_output_bak = {tmp2.shape}')
         logger.info(f'draft_logits_output = {draft_logits_output.hidden_states.shape}')
-        logger.info(f'res = {tmp2[tmp1]}')
+        logger.info(f'res = {tmp2[tmp1].shape}')
         logits_output = LogitsProcessorOutput(
             next_token_logits=next_token_logits[: self.raw_num_token],
             hidden_states=(
