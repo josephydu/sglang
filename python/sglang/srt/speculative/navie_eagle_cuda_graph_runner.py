@@ -645,24 +645,17 @@ class NaiveEAGLECudaGraphRunner:
             ),
         )
         
-        torch.cuda.synchronize()
-        logger.info(f'accept_index1: {accept_index}')
-        torch.cuda.synchronize()
         last = accept_index[:, 1]
         first = accept_index[:, 0]
         save_index = torch.where(last != -1, last, first)
+        
         save_index = save_index[:self.raw_bs]
-        logger.info(f'accept_index2: {accept_index}')
-        torch.cuda.synchronize()
+        
         draft_logits_output.hidden_states = draft_logits_output.hidden_states[save_index]
         draft_logits_output.next_token_logits = draft_logits_output.next_token_logits[save_index]
-        logger.info(f'accept_index3: {accept_index}')
-        torch.cuda.synchronize()
         
         next_token_ids = next_token_ids[: self.raw_num_token]
         accept_index = accept_index[: self.raw_bs]
-        logger.info(f'accept_index4: {accept_index}')
-        torch.cuda.synchronize()
         
         return logits_output, next_token_ids, accept_index, draft_logits_output, draft_input
 
