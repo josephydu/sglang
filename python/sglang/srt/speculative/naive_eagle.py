@@ -318,7 +318,7 @@ class NaiveEagleWorker(TpModelWorker):
             logits_output, next_token_ids,accept_index, draft_logits_output, draft_input = self.cuda_graph_runner.replay(forward_batch)
             accept_length = torch.zeros((num_seqs,), dtype=torch.int32, device="cuda")
             
-            accept_index_cpu = accept_index.tolist()
+            accept_index_cpu = accept_index.cpu()
             
             for i in range(num_seqs):
                 accept_length[i] = 1 if accept_index_cpu[i][1] != -1 else 0
