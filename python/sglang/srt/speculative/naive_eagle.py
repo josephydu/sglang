@@ -259,7 +259,7 @@ class NaiveEagleWorker(TpModelWorker):
         # Run
         logits_output = self.draft_model_runner.forward(forward_batch)
 
-        logger.info(f"[forward_draft_extend]{forward_batch.batch_size=},{logits_output.hidden_states.shape=},{logits_output.next_token_logits.shape=}")
+        # logger.info(f"[forward_draft_extend]{forward_batch.batch_size=},{logits_output.hidden_states.shape=},{logits_output.next_token_logits.shape=}")
         
         last = accept_index[:, 1]
         first = accept_index[:, 0]
