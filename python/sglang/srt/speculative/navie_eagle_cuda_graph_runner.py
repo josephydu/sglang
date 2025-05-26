@@ -641,7 +641,6 @@ class NaiveEAGLECudaGraphRunner:
         draft_logits_output.hidden_states = draft_logits_output.hidden_states[: self.raw_bs]
         draft_logits_output.next_token_logits = draft_logits_output.next_token_logits[: self.raw_bs]
         logger.info(f'[draft_logits_output]{draft_logits_output.hidden_states.shape=}, {draft_logits_output.next_token_logits.shape=}, {draft_input=}')
-        exit(-1)
         first = accept_index[:, 0]
         last = accept_index[:, 1]
         save_index = torch.where(last != -1, last, first)
