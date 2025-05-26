@@ -656,10 +656,14 @@ class NaiveEAGLECudaGraphRunner:
             ),
         )
         
-        draft_logits_output.next_token_logits = draft_logits_output.next_token_logits[: self.raw_bs]
-        draft_logits_output.hidden_states = draft_logits_output.hidden_states[: self.raw_bs]
+        draft_next_token_logits = draft_next_token_logits[: self.raw_bs]
+        draft_hidden_states = draft_hidden_states[: self.raw_bs]
         next_token_ids = next_token_ids[: self.raw_num_token]
         accept_index = accept_index[: self.raw_bs]
+        draft_logits_output = LogitsProcessorOutput(
+            next_token_logits=draft_next_token_logits,
+            hidden_states=draft_hidden_states,
+        )
         
         return logits_output, next_token_ids, accept_index, draft_logits_output, draft_input
 
