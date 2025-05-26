@@ -152,7 +152,7 @@ class EagleDraftInput:
         qo_indptr[1:] = torch.cumsum(self.accept_length, dim=0)
 
         cum_kv_seq_len = torch.zeros((bs + 1,), dtype=torch.int32, device="cuda")
-        logger.info('[EagleDraftInput generate_attn_arg_prefill]{paged_kernel_lens=}')
+        logger.info(f'[EagleDraftInput generate_attn_arg_prefill]{paged_kernel_lens=}')
         cum_kv_seq_len[1:] = torch.cumsum(paged_kernel_lens, dim=0)
 
         # TODO: replace cum_kv_seq_len[-1] with paged_kernel_lens_sum to avoid the device sync.
