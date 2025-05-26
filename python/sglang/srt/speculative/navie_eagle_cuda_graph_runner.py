@@ -555,6 +555,7 @@ class NaiveEAGLECudaGraphRunner:
         else:
             index = bisect.bisect_left(self.capture_bs, raw_bs)
         bs = self.capture_bs[index]
+        logger.info(f'[replay_prepare]{bs=},{raw_bs=}')
         if bs != raw_bs:
             self.seq_lens.fill_(1)
             self.out_cache_loc.zero_()
