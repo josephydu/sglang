@@ -501,7 +501,7 @@ class NaiveEAGLECudaGraphRunner:
             draft_spec_info.seq_lens_for_draft_extend = forward_batch.seq_lens + (accept_length_for_draft_extend + 1)
             draft_spec_info.req_pool_indices_for_draft_extend = forward_batch.req_pool_indices
             forward_batch.spec_info = draft_spec_info
-            draft_logits_output, save_index = self.forward_draft_extend_after_decode_cuda_graph(forward_batch)
+            draft_logits_output = self.forward_draft_extend_after_decode_cuda_graph(forward_batch)
             
             
             draft_logits_output.hidden_states = draft_logits_output.hidden_states[save_index]
