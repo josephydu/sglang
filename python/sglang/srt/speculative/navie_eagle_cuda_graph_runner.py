@@ -638,18 +638,18 @@ class NaiveEAGLECudaGraphRunner:
         next_token_logits, hidden_states, next_token_ids, accept_index, draft_logits_output, draft_input = self.output_buffers[self.bs]
 
         # proecess draft logits output
-        logger.info(f'[draft_logits_output before]{draft_logits_output.hidden_states.shape=}, {next_token_ids=},{accept_index=}')
+        logger.info(f'[draft_logits_output before]{draft_logits_output.hidden_states.shape=}, {next_token_ids.shape=},{accept_index.shape=}')
         draft_logits_output.hidden_states = draft_logits_output.hidden_states[: self.raw_num_token]
         draft_logits_output.next_token_logits = draft_logits_output.next_token_logits[: self.raw_num_token]
         next_token_ids = next_token_ids[: self.raw_num_token]
         accept_index = accept_index[: self.raw_bs]
-        logger.info(f'[draft_logits_output after]{draft_logits_output.hidden_states.shape=}, {next_token_ids=},{accept_index=}')
+        logger.info(f'[draft_logits_output after]{draft_logits_output.hidden_states.shape=}, {next_token_ids.shape=},{accept_index.shape=}')
         first = accept_index[:, 0]
         last = accept_index[:, 1]
         save_index = torch.where(last != -1, last, first)
         draft_logits_output.hidden_states = draft_logits_output.hidden_states[save_index]
         draft_logits_output.next_token_logits = draft_logits_output.next_token_logits[save_index]
-        logger.info(f'[draft_logits_output after2]{draft_logits_output.hidden_states.shape=}, {next_token_ids=},{accept_index=}')
+        logger.info(f'[draft_logits_output after2]{draft_logits_output.hidden_states.shape=}, {next_token_ids.shape=},{accept_index.shape=}')
 
 
         logits_output = LogitsProcessorOutput(
