@@ -651,7 +651,7 @@ class NaiveEAGLECudaGraphRunner:
             ),
         )
 
-        
+        logger.info(f'[again check]{self.bs=},{self.raw_bs=},{forward_batch.batch_size=}')
         # logger.info(f"[replay post processing]{self.bs=},\n{self.raw_bs=},\n{logits_output.hidden_states.shape=}, \n{next_token_ids.shape=}, \n{accept_index.shape=}, \n{draft_logits_output.hidden_states.shape=}, \n{draft_input=}")
         
         return logits_output, next_token_ids, accept_index, draft_logits_output, draft_input
