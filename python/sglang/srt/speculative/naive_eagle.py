@@ -262,6 +262,7 @@ class NaiveEagleWorker(TpModelWorker):
         last = accept_index[:, 1]
         first = accept_index[:, 0]
         save_index = torch.where(last != -1, last, first)
+        logger.info(f"[test]{accept_index=},{save_index=},{logits_output.hidden_states.shape=},{forward_batch=}")
         logits_output.hidden_states = logits_output.hidden_states[save_index]
         logits_output.next_token_logits = logits_output.next_token_logits[save_index]
         

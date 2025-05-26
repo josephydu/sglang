@@ -73,6 +73,8 @@ class LogitsProcessorOutput:
     # The logprobs and ids of the requested token ids in input positions. shape: [#seq, n] (n is the number of requested token ids)
     input_token_ids_logprobs_val: Optional[List] = None
     input_token_ids_logprobs_idx: Optional[List] = None
+    
+    debug_str: Optional[str] = "None"
 
 
 @dataclasses.dataclass
@@ -226,6 +228,7 @@ class LogitsProcessor(nn.Module):
         logits_metadata: Union[LogitsMetadata, ForwardBatch],
         aux_hidden_states: Optional[torch.Tensor] = None,
     ) -> LogitsProcessorOutput:
+        debug_str = "None"
         if isinstance(logits_metadata, ForwardBatch):
             logits_metadata = LogitsMetadata.from_forward_batch(logits_metadata)
         # Get the last hidden states and last logits for the next token prediction
@@ -234,6 +237,7 @@ class LogitsProcessor(nn.Module):
             or logits_metadata.forward_mode.is_target_verify()
             or logits_metadata.forward_mode.is_naive_draft()
         ):
+            debug_str = "yes!!!"
             pruned_states = hidden_states
             if aux_hidden_states is not None:
                 aux_pruned_states = [hidden for hidden in aux_hidden_states]
@@ -243,6 +247,7 @@ class LogitsProcessor(nn.Module):
             logits_metadata.forward_mode.is_extend()
             and not logits_metadata.extend_return_logprob
         ):
+            debug_str = "no........"
             # Prefill without input logprobs.
             if logits_metadata.padded_static_len < 0:
                 last_index = torch.cumsum(logits_metadata.extend_seq_lens, dim=0) - 1
@@ -265,6 +270,8 @@ class LogitsProcessor(nn.Module):
             sample_indices = None
             input_logprob_indices = None
         else:
+            debug_str = "no.!!!!"
+            
             # Input logprobs are required.
             # Find 3 different indices.
             # 1. pruned_states: hidden states that we want logprobs from.
@@ -325,11 +332,13 @@ class LogitsProcessor(nn.Module):
         hidden_states_to_store: Optional[torch.Tensor] = None
         if logits_metadata.capture_hidden_mode.need_capture():
             if logits_metadata.capture_hidden_mode.is_full():
+                debug_str = debug_str + "full!!!!!!"
                 if aux_hidden_states is not None:
                     aux_hidden_states = torch.cat(aux_hidden_states, dim=-1)
                     hidden_states_to_store = aux_hidden_states
                 else:
                     hidden_states_to_store = hidden_states
+                debug_str = debug_str + str(hidden_states_to_store.shape)
             elif logits_metadata.capture_hidden_mode.is_last():
                 # Get the last token hidden states. If sample_indices is None,
                 # pruned states only contain the last tokens already.
@@ -354,6 +363,7 @@ class LogitsProcessor(nn.Module):
             return LogitsProcessorOutput(
                 next_token_logits=sampled_logits,
                 hidden_states=hidden_states_to_store,
+                debug_str=debug_str + "renturn right!",
             )
         else:
             input_logprobs = logits[input_logprob_indices]
@@ -409,6 +419,7 @@ class LogitsProcessor(nn.Module):
                 hidden_states=hidden_states_to_store,
                 input_token_ids_logprobs_val=input_token_ids_logprobs_val,
                 input_token_ids_logprobs_idx=input_token_ids_logprobs_idx,
+                debug_str=debug_str + "return False!",
             )
 
     def _get_logits(

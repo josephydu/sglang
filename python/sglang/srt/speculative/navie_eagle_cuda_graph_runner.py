@@ -494,9 +494,13 @@ class NaiveEAGLECudaGraphRunner:
             draft_spec_info.seq_lens_for_draft_extend = forward_batch.seq_lens + (accept_length_for_draft_extend + 1)
             draft_spec_info.req_pool_indices_for_draft_extend = forward_batch.req_pool_indices
             forward_batch.spec_info = draft_spec_info
-            draft_logits_output = self.forward_draft_extend_after_decode_cuda_graph(forward_batch, accept_index)
-            
-            return logits_output.next_token_logits, logits_output.hidden_states, next_token_ids, accept_index, draft_logits_output, draft_spec_info
+            draft_logits_output, tmp = self.forward_draft_extend_after_decode_cuda_graph(forward_batch, accept_index)
+            last = accept_index[:, 1]
+            first = accept_index[:, 0]
+            save_index = torch.where(last != -1, last, first)
+            draft_logits_output.hidden_states = draft_logits_output.hidden_states[save_index]
+            draft_logits_output.next_token_logits = draft_logits_output.next_token_logits[save_index]
+            return logits_output.next_token_logits, logits_output.hidden_states, next_token_ids, accept_index, draft_logits_output, draft_spec_info,tmp + "check2 " + str(draft_logits_output.hidden_states.shape)
             
 
         for _ in range(2):
@@ -626,6 +630,7 @@ class NaiveEAGLECudaGraphRunner:
     def replay(
         self, forward_batch: ForwardBatch, skip_attn_backend_init: bool = False
     ) -> LogitsProcessorOutput:
+        # logger.info(f"[cuda replay]{forward_batch=}")
         if not skip_attn_backend_init:
             self.replay_prepare(forward_batch)
         else:
@@ -633,9 +638,15 @@ class NaiveEAGLECudaGraphRunner:
             self.input_ids[: self.raw_num_token].copy_(forward_batch.input_ids)
             self.positions[: self.raw_num_token].copy_(forward_batch.positions)
 
+        if self.bs != self.raw_bs:
+            logger.info("HAPPEN!!!!!!!")
+        
         # Replay
         self.graphs[self.bs].replay()
-        next_token_logits, hidden_states, next_token_ids, accept_index, draft_logits_output, draft_input = self.output_buffers[self.bs]
+        next_token_logits, hidden_states, next_token_ids, accept_index, draft_logits_output, draft_input,input_ = self.output_buffers[self.bs]
+        logger.info(f'[debug str=]{input_=},{draft_logits_output.hidden_states.shape=},{self.bs=},{self.raw_bs=}')
+
+
         logits_output = LogitsProcessorOutput(
             next_token_logits=next_token_logits[: self.raw_num_token],
             hidden_states=(
@@ -682,7 +693,7 @@ class NaiveEAGLECudaGraphRunner:
 
     def forward_draft_extend_after_decode_cuda_graph(self, forward_batch: ForwardBatch, accept_index):
         # Prepare metadata
-        # forward_batch.forward_mode = ForwardMode.TARGET_VERIFY
+        forward_batch.forward_mode = ForwardMode.NAIVE_DRAFT_EXTEND
         forward_batch.spec_info.prepare_extend_after_decode_for_naive_eagle(
             forward_batch,
             1,
@@ -696,9 +707,9 @@ class NaiveEAGLECudaGraphRunner:
         # Run
         logits_output = self.draft_model_runner.forward(forward_batch, skip_attn_backend_init=True)
 
-        last = accept_index[:, 1]
-        first = accept_index[:, 0]
-        save_index = torch.where(last != -1, last, first)
-        logits_output.hidden_states = logits_output.hidden_states[save_index]
-        logits_output.next_token_logits = logits_output.next_token_logits[save_index]
-        return logits_output
+        # last = accept_index[:, 1]
+        # first = accept_index[:, 0]
+        # save_index = torch.where(last != -1, last, first)
+        # logits_output.hidden_states = logits_output.hidden_states[save_index]
+        # logits_output.next_token_logits = logits_output.next_token_logits[save_index]
+        return logits_output, logits_output.debug_str + "check result:" + str(logits_output.hidden_states.shape)
