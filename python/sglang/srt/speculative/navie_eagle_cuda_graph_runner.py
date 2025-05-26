@@ -665,6 +665,7 @@ class NaiveEAGLECudaGraphRunner:
             hidden_states=draft_hidden_states,
         )
         
+        
         return logits_output, next_token_ids, accept_index, draft_logits_output, draft_input
 
     def get_spec_info(self):
