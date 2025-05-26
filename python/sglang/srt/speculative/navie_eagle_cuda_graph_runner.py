@@ -609,7 +609,7 @@ class NaiveEAGLECudaGraphRunner:
             bs,
             self.req_pool_indices,
             self.seq_lens + 2, # +2 because we always extend 2 tokens
-            (forward_batch.seq_lens_sum + (bs - raw_bs)) + 2 * bs,
+            (forward_batch.seq_lens_sum + (bs - raw_bs) * 2) + 2 * bs,
             None,
             forward_batch.forward_mode,
             forward_batch.spec_info,
