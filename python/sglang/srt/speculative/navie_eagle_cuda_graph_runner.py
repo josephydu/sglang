@@ -600,6 +600,7 @@ class NaiveEAGLECudaGraphRunner:
         
         self.verify_input = forward_batch.spec_info
         draft_input = EagleDraftInput()
+        
         accept_length_for_draft_extend = torch.ones((bs,), dtype=torch.int32, device="cuda") + 1 # always 2 tokens
         draft_input.accept_length = accept_length_for_draft_extend
         # Draft Attention backend
@@ -636,7 +637,7 @@ class NaiveEAGLECudaGraphRunner:
 
         # Replay
         self.graphs[self.bs].replay()
-        next_token_logits, hidden_states, next_token_ids, accept_index, draft_logits_output, draft_input = self.output_buffers[self.bs]
+        next_token_logits, hidden_states, next_token_ids, accept_index, draft_logits_output, draft_input = self.output_buffers[self.raw_bs]
         logits_output = LogitsProcessorOutput(
             next_token_logits=next_token_logits[: self.raw_num_token],
             hidden_states=(
