@@ -600,7 +600,7 @@ class NaiveEAGLECudaGraphRunner:
         
         self.verify_input = forward_batch.spec_info
         draft_input = EagleDraftInput()
-        accept_length_for_draft_extend = torch.ones((raw_bs,), dtype=torch.int32, device="cuda") + 1 # always 2 tokens
+        accept_length_for_draft_extend = torch.ones((bs,), dtype=torch.int32, device="cuda") + 1 # always 2 tokens
         draft_input.accept_length = accept_length_for_draft_extend
         # Draft Attention backend
         forward_batch.forward_mode = ForwardMode.NAIVE_DRAFT_EXTEND
