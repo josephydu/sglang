@@ -555,7 +555,6 @@ class NaiveEAGLECudaGraphRunner:
         else:
             index = bisect.bisect_left(self.capture_bs, raw_bs)
         bs = self.capture_bs[index]
-        logger.info(f'[replay_prepare]{bs=},{raw_bs=}')
         if bs != raw_bs:
             self.seq_lens.fill_(1)
             self.out_cache_loc.zero_()
@@ -600,8 +599,7 @@ class NaiveEAGLECudaGraphRunner:
         
         self.verify_input = forward_batch.spec_info
         draft_input = EagleDraftInput()
-        
-        accept_length_for_draft_extend = torch.ones((raw_bs,), dtype=torch.int32, device="cuda") + 1 # always 2 tokens
+        accept_length_for_draft_extend = torch.ones((bs,), dtype=torch.int32, device="cuda") + 1 # always 2 tokens
         draft_input.accept_length = accept_length_for_draft_extend
         # Draft Attention backend
         forward_batch.forward_mode = ForwardMode.NAIVE_DRAFT_EXTEND
@@ -611,7 +609,7 @@ class NaiveEAGLECudaGraphRunner:
             bs,
             self.req_pool_indices,
             self.seq_lens + 2, # +2 because we always extend 2 tokens
-            (forward_batch.seq_lens_sum + 2 * bs) + (bs - raw_bs),
+            (forward_batch.seq_lens_sum + (bs - raw_bs)) + 2 * bs,
             None,
             forward_batch.forward_mode,
             forward_batch.spec_info,
