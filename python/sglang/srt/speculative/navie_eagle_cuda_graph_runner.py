@@ -450,7 +450,7 @@ class NaiveEAGLECudaGraphRunner:
                 target_token = next_token_ids[2 * indices]
 
                 mask = (draft_token == target_token)
-                accept_index[:, 1] = torch.where(mask, 2 * indices + 1, accept_index[:, 1])
+                accept_index[:, 1] = torch.where(mask, 2 * indices + 1, -1)
             else:
                 # apply temperature and get target probs
                 expanded_temperature = torch.repeat_interleave(
