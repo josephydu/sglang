@@ -500,7 +500,7 @@ class NaiveEAGLECudaGraphRunner:
             save_index = torch.where(last != -1, last, first)
             draft_logits_output.hidden_states = draft_logits_output.hidden_states[save_index]
             draft_logits_output.next_token_logits = draft_logits_output.next_token_logits[save_index]
-            return logits_output.next_token_logits, logits_output.hidden_states, next_token_ids, accept_index, draft_logits_output, draft_spec_info,tmp + "check2 " + str(draft_logits_output.hidden_states.shape)
+            return logits_output.next_token_logits, logits_output.hidden_states, next_token_ids, accept_index, draft_logits_output.hidden_states, draft_logits_output.next_token_logits, draft_spec_info,tmp + "check2 " + str(draft_logits_output.next_token_logits.shape)
             
 
         for _ in range(2):
@@ -643,8 +643,8 @@ class NaiveEAGLECudaGraphRunner:
         
         # Replay
         self.graphs[self.bs].replay()
-        next_token_logits, hidden_states, next_token_ids, accept_index, draft_logits_output, draft_input,input_ = self.output_buffers[self.bs]
-        logger.info(f'[debug str=]{input_=},{draft_logits_output.hidden_states.shape=},{self.bs=},{self.raw_bs=}')
+        next_token_logits, hidden_states, next_token_ids, accept_index, draft_hidden_states, draft_next_token_logits, draft_input,input_ = self.output_buffers[self.bs]
+        logger.info(f'[debug str=]{input_=},{draft_hidden_states.shape=},{draft_next_token_logits.shape=},{self.bs=},{self.raw_bs=}')
 
 
         logits_output = LogitsProcessorOutput(
