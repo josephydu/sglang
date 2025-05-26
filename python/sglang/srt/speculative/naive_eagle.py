@@ -317,11 +317,8 @@ class NaiveEagleWorker(TpModelWorker):
             
             logits_output, next_token_ids,accept_index, draft_logits_output, draft_input = self.cuda_graph_runner.replay(forward_batch)
             accept_length = torch.zeros((num_seqs,), dtype=torch.int32, device="cuda")
-            
-            accept_index_cpu = accept_index.cpu()
-            
             for i in range(num_seqs):
-                accept_length[i] = 1 if accept_index_cpu[i][1] != -1 else 0
+                accept_length[i] = 1 if accept_index[i][1] != -1 else 0
             forward_batch.input_ids = next_token_ids
         else:
             logits_output = self.target_worker.model_runner.forward(forward_batch)
@@ -393,7 +390,6 @@ class NaiveEagleWorker(TpModelWorker):
             forward_batch.spec_info = draft_input
             draft_logits_output = self.forward_draft_extend_after_decode(forward_batch, accept_index)
 
-        logger.info(f'[draft_logits_output check]{num_seqs=},{draft_logits_output.hidden_states.shape=}, {next_token_ids=},{accept_index=}')
         self._detect_nan_if_needed(draft_logits_output)
         self.capture_for_decode(draft_logits_output, draft_input)
         batch.spec_info = draft_input
