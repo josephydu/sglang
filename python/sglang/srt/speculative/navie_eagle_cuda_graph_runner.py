@@ -645,7 +645,9 @@ class NaiveEAGLECudaGraphRunner:
         draft_logits_output.hidden_states = draft_logits_output.hidden_states[save_index]
         draft_logits_output.next_token_logits = draft_logits_output.next_token_logits[save_index]
         
-        logger.info(f'[again check2]{self.bs=},{self.raw_bs=},{forward_batch.batch_size=},{draft_logits_output.hidden_states.shape=},{accept_index=}')
+        logger.info(f'[again check2]{self.bs=},{self.raw_bs=},{forward_batch.batch_size=}')
+        logger.info(f'{draft_logits_output.hidden_states.shape=}')
+        logger.info(f',{accept_index=}')
         
         next_token_ids = next_token_ids[: self.raw_num_token]
         accept_index = accept_index[: self.raw_bs]
