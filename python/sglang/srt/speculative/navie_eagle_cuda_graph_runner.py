@@ -503,7 +503,7 @@ class NaiveEAGLECudaGraphRunner:
             forward_batch.spec_info = draft_spec_info
             draft_logits_output = self.forward_draft_extend_after_decode_cuda_graph(forward_batch)
             
-            return logits_output.next_token_logits, logits_output.hidden_states, next_token_ids, accept_index.clone(), draft_logits_output, save_index, draft_spec_info
+            return logits_output.next_token_logits, logits_output.hidden_states, next_token_ids, draft_logits_output, save_index, draft_spec_info
             
 
         for _ in range(2):
@@ -642,12 +642,13 @@ class NaiveEAGLECudaGraphRunner:
 
         # Replay
         self.graphs[self.bs].replay()
-        next_token_logits, hidden_states, next_token_ids, accept_index, draft_logits_output, save_index, draft_input = self.output_buffers[self.bs]
-
+        next_token_logits, hidden_states, next_token_ids, draft_logits_output, save_index, draft_input = self.output_buffers[self.bs]
+        accept_index = self.accept_index[: self.raw_bs]
+        
         draft_logits_output.next_token_logits = draft_logits_output.next_token_logits[save_index]
         draft_logits_output.hidden_states = draft_logits_output.hidden_states[save_index]
         
-        logger.info(f'[save_index]{save_index.shape}')
+        logger.info(f'[save_index]{save_index.shape},{accept_index=}')
         logits_output = LogitsProcessorOutput(
             next_token_logits=next_token_logits[: self.raw_num_token],
             hidden_states=(
@@ -660,7 +661,6 @@ class NaiveEAGLECudaGraphRunner:
         draft_logits_output.next_token_logits = draft_logits_output.next_token_logits[: self.raw_bs]
         draft_logits_output.hidden_states = draft_logits_output.hidden_states[: self.raw_bs]
         next_token_ids = next_token_ids[: self.raw_num_token]
-        accept_index = accept_index[: self.raw_bs]
         
         return logits_output, next_token_ids, accept_index, draft_logits_output, draft_input
 
