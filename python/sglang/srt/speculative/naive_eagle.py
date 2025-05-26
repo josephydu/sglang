@@ -320,6 +320,8 @@ class NaiveEagleWorker(TpModelWorker):
             for i in range(num_seqs):
                 accept_length[i] = 1 if accept_index[i][1] != -1 else 0
             forward_batch.input_ids = next_token_ids
+            
+            logger.info(f"cuda graph replay {draft_input=}\n{accept_index=}")
         else:
             logits_output = self.target_worker.model_runner.forward(forward_batch)
             accept_index = torch.full((num_seqs, 2), -1, dtype=torch.int32, device="cuda")
