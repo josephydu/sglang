@@ -644,6 +644,8 @@ class NaiveEAGLECudaGraphRunner:
                 else None
             ),
         )
+        logger.info(f"[replay post processing]{self.bs=},\n{self.raw_bs=},\n{logits_output=}, \n{next_token_ids=}, \n{accept_index=}, \n{draft_logits_output=}, \n{draft_input=}")
+        
         return logits_output, next_token_ids, accept_index, draft_logits_output, draft_input
 
     def get_spec_info(self):
