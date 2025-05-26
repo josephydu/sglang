@@ -392,6 +392,7 @@ class NaiveEagleWorker(TpModelWorker):
             forward_batch.spec_info = draft_input
             draft_logits_output = self.forward_draft_extend_after_decode(forward_batch, accept_index)
 
+        logger.info(f'[draft_logits_output check]{num_seqs=},{draft_logits_output.hidden_states.shape=}, {next_token_ids=},{accept_index=}')
         self._detect_nan_if_needed(draft_logits_output)
         self.capture_for_decode(draft_logits_output, draft_input)
         batch.spec_info = draft_input
