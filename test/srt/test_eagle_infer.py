@@ -49,7 +49,8 @@ class TestEAGLEEngine(CustomTestCase):
         # "disable_cuda_graph": True, 
         "disable_overlap_schedule": True,
         "requests_all_greedy": False,
-        "tp_size": 2
+        "tp_size": 2,
+        "attention_backend": "flash_infer"
     }
     NUM_CONFIGS = 1
 
