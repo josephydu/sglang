@@ -50,7 +50,7 @@ class TestEAGLEEngine(CustomTestCase):
         "disable_overlap_schedule": True,
         "requests_all_greedy": False,
         "tp_size": 2,
-        "attention_backend": "flash_infer"
+        "attention_backend": "flashinfer"
     }
     NUM_CONFIGS = 1
 
