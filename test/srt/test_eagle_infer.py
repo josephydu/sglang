@@ -38,17 +38,18 @@ class TestEAGLEEngine(CustomTestCase):
     BASE_CONFIG = {
         "model_path": DEFAULT_EAGLE_TARGET_MODEL_FOR_TEST,
         "speculative_draft_model_path": DEFAULT_EAGLE_DRAFT_MODEL_FOR_TEST,
-        "speculative_algorithm": "EAGLE",
-        # "speculative_algorithm": "NAIVE_EAGLE",
+        # "speculative_algorithm": "EAGLE",
+        "speculative_algorithm": "NAIVE_EAGLE",
         "speculative_num_steps": 1,
         "speculative_eagle_topk": 1,
         "speculative_num_draft_tokens": 2,
         "mem_fraction_static": 0.7,
-        "cuda_graph_max_bs": 8,
+        "cuda_graph_max_bs": 160,
         "disable_cuda_graph": False,
-        "disable_cuda_graph": True, 
+        # "disable_cuda_graph": True, 
         "disable_overlap_schedule": True,
         "requests_all_greedy": False,
+        "tp-size": 2
     }
     NUM_CONFIGS = 1
 
