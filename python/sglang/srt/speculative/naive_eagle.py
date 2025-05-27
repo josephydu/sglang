@@ -317,9 +317,7 @@ class NaiveEagleWorker(TpModelWorker):
             forward_batch.spec_info_topk_p = spec_info.topk_p
             
             logits_output, next_token_ids,accept_index, draft_logits_output, draft_input = self.cuda_graph_runner.replay(forward_batch)
-            accept_length = torch.zeros((num_seqs,), dtype=torch.int32, device="cuda")
-            for i in range(num_seqs):
-                accept_length[i] = 1 if accept_index[i][1] != -1 else 0
+            accept_length = (accept_index[:, 1] != -1).to(torch.int32)
             forward_batch.input_ids = next_token_ids
         else:
             # logger.info(f"running NO cuda graph with bs = {num_seqs}")
