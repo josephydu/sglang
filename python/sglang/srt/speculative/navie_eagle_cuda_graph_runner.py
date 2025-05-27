@@ -130,17 +130,7 @@ def get_batch_sizes_to_capture(model_runner: ModelRunner):
     capture_bs = server_args.cuda_graph_bs
 
     if capture_bs is None:
-        if server_args.speculative_algorithm is None:
-            if server_args.disable_cuda_graph_padding:
-                capture_bs = list(range(1, 33)) + list(range(40, 161, 16))
-            else:
-                capture_bs = [1, 2, 4, 8] + list(range(16, 161, 8))
-        else:
-            # Since speculative decoding requires more cuda graph memory, we
-            # capture less.
-            capture_bs = (
-                list(range(1, 9)) + list(range(10, 33, 2)) + list(range(40, 161, 16))
-            )
+        capture_bs = [1, 2, 4, 8] + list(range(16, 161, 8))
 
         if _is_hip:
             capture_bs += list(range(160, 257, 8))
