@@ -154,6 +154,8 @@ def get_batch_sizes_to_capture(model_runner: ModelRunner):
         if server_args.enable_torch_compile
         else []
     )
+    
+    logger.info(f"Capture batch sizes: {capture_bs}")
     return capture_bs, compile_bs
 
 
