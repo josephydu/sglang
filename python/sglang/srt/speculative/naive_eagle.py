@@ -312,6 +312,7 @@ class NaiveEagleWorker(TpModelWorker):
             forward_batch
         )
         if can_cuda_graph:
+            logger.info(f"running cuda graph with bs = {num_seqs}")
             forward_batch.spec_info_topk_index = spec_info.topk_index
             forward_batch.spec_info_topk_p = spec_info.topk_p
             
