@@ -293,8 +293,10 @@ class NaiveEagleWorker(TpModelWorker):
         
         input_ids2 = torch.column_stack((batch.output_ids, spec_info.topk_index.squeeze(1))).flatten()
         positions2 = torch.column_stack((batch.seq_lens, batch.seq_lens + 1)).flatten()
-        assert batch.input_ids == input_ids2
-        assert positions2 == positions
+        
+        assert torch.equal(batch.input_ids, input_ids2)
+        assert torch.equal(positions, positions2)
+        logger.info("Equal!!!!!!!!!!!!!!")
         
         batch.spec_info = EagleVerifyInput(
             draft_token=batch.input_ids,
