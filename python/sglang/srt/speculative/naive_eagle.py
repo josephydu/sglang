@@ -288,8 +288,6 @@ class NaiveEagleWorker(TpModelWorker):
             raise NotImplementedError("TODO: Page size > 1 not supported yet")
         
         batch.forward_mode = ForwardMode.TARGET_VERIFY
-        batch.input_ids = torch.stack((batch.output_ids, spec_info.topk_index.squeeze(1)), dim=1).reshape(-1)
-        positions = torch.stack([batch.seq_lens,  batch.seq_lens + 1], dim=1).reshape(-1)
         
         batch.input_ids = torch.column_stack((batch.output_ids, spec_info.topk_index.squeeze(1))).flatten()
         positions = torch.column_stack((batch.seq_lens, batch.seq_lens + 1)).flatten()
