@@ -1218,6 +1218,7 @@ class LoRAUpdateServerTestSession(LoRAUpdateTestSessionBase):
             DEFAULT_URL_FOR_TEST + "/unload_lora_adapter",
             json={"lora_name": lora_name},
         )
+
         self.testcase.assertTrue(
             response.ok, f"Failed to unload LoRA adapter {lora_name}: {response.text}"
         )

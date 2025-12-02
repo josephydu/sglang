@@ -84,6 +84,11 @@ if _is_cuda:
     except ImportError as e:
         pass
 
+    try:
+        from sgl_kernel import kimi_k2_moe_fused_gate
+    except ImportError as e:
+        pass
+
 if _is_cuda or _is_hip:
     from sgl_kernel import topk_sigmoid, topk_softmax
 if _use_aiter:

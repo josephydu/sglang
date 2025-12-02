@@ -16,6 +16,10 @@ from sglang.test.test_utils import (
 register_cuda_ci(est_time=60, suite="nightly-1-gpu", nightly=True)
 
 <<<<<<<< HEAD:test/srt/test_cpp_radix_cache.py
+<<<<<<<< HEAD:test/srt/test_cpp_radix_cache.py
+========
+
+>>>>>>>> origin:test/nightly/test_cpp_radix_cache.py
 ========
 
 >>>>>>>> origin:test/nightly/test_cpp_radix_cache.py

@@ -272,6 +272,9 @@ class RadixCache(BasePrefixCache):
         if params.enable_metrics:
             self.init_metrics_collector()
 
+        if params.enable_metrics:
+            self.init_metrics_collector()
+
         if self.token_to_kv_pool_allocator:
             self.device = self.token_to_kv_pool_allocator.device
         else:

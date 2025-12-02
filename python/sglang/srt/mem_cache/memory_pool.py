@@ -1445,6 +1445,321 @@ class HybridLinearKVPool(KVCache):
             return self.full_kv_pool.get_mla_kv_buffer(layer, loc, dst_dtype)
 
 
+class MHATokenToKVPoolFP4(MHATokenToKVPool):
+
+    def _create_buffers(self):
+        with self.memory_saver_adapter.region(GPU_MEMORY_TYPE_KV_CACHE):
+            with (
+                torch.cuda.use_mem_pool(self.custom_mem_pool)
+                if self.enable_custom_mem_pool
+                else nullcontext()
+            ):
+                # [size, head_num, head_dim] for each layer
+                # The padded slot 0 is used for writing dummy outputs from padded tokens.
+                m = self.size + self.page_size
+                n = self.head_num
+                k = self.head_dim
+
+                scale_block_size = 16
+                self.store_dtype = torch.uint8
+                self.k_buffer = [
+                    torch.zeros(
+                        (m, n, k // 2),
+                        dtype=self.store_dtype,
+                        device=self.device,
+                    )
+                    for _ in range(self.layer_num)
+                ]
+                self.v_buffer = [
+                    torch.zeros(
+                        (m, n, k // 2),
+                        dtype=self.store_dtype,
+                        device=self.device,
+                    )
+                    for _ in range(self.layer_num)
+                ]
+
+                self.k_scale_buffer = [
+                    torch.zeros(
+                        (m, (n * k) // scale_block_size),
+                        dtype=self.store_dtype,
+                        device=self.device,
+                    )
+                    for _ in range(self.layer_num)
+                ]
+                self.v_scale_buffer = [
+                    torch.zeros(
+                        (m, (n * k) // scale_block_size),
+                        dtype=self.store_dtype,
+                        device=self.device,
+                    )
+                    for _ in range(self.layer_num)
+                ]
+
+    def _clear_buffers(self):
+        del self.k_buffer
+        del self.v_buffer
+        del self.k_scale_buffer
+        del self.v_scale_buffer
+
+    def _get_key_buffer(self, layer_id: int):
+        # for internal use of referencing
+        if self.store_dtype != self.dtype:
+            cache_k_nope_fp4 = self.k_buffer[layer_id - self.start_layer].view(
+                torch.uint8
+            )
+            cache_k_nope_fp4_sf = self.k_scale_buffer[layer_id - self.start_layer]
+
+            from sglang.srt.layers.quantization.kvfp4_tensor import KVFP4QuantizeUtil
+
+            cache_k_nope_fp4_dequant = KVFP4QuantizeUtil.batched_dequantize(
+                cache_k_nope_fp4, cache_k_nope_fp4_sf
+            )
+            return cache_k_nope_fp4_dequant
+        return self.k_buffer[layer_id - self.start_layer]
+
+    def _get_value_buffer(self, layer_id: int):
+        # for internal use of referencing
+        if self.store_dtype != self.dtype:
+            cache_v_nope_fp4 = self.v_buffer[layer_id - self.start_layer].view(
+                torch.uint8
+            )
+            cache_v_nope_fp4_sf = self.v_scale_buffer[layer_id - self.start_layer]
+
+            from sglang.srt.layers.quantization.kvfp4_tensor import KVFP4QuantizeUtil
+
+            cache_v_nope_fp4_dequant = KVFP4QuantizeUtil.batched_dequantize(
+                cache_v_nope_fp4, cache_v_nope_fp4_sf
+            )
+            return cache_v_nope_fp4_dequant
+        return self.v_buffer[layer_id - self.start_layer]
+
+    def set_kv_buffer(
+        self,
+        layer: RadixAttention,
+        loc: torch.Tensor,
+        cache_k: torch.Tensor,
+        cache_v: torch.Tensor,
+        k_scale: Optional[float] = None,
+        v_scale: Optional[float] = None,
+        layer_id_override: Optional[int] = None,
+    ):
+        from sglang.srt.model_executor.cuda_graph_runner import get_is_capture_mode
+
+        if layer_id_override is not None:
+            layer_id = layer_id_override
+        else:
+            layer_id = layer.layer_id
+        if cache_k.dtype != self.dtype:
+            if k_scale is not None:
+                cache_k.div_(k_scale)
+            if v_scale is not None:
+                cache_v.div_(v_scale)
+
+            from sglang.srt.layers.quantization.kvfp4_tensor import KVFP4QuantizeUtil
+
+            cache_k, cache_k_fp4_sf = KVFP4QuantizeUtil.batched_quantize(cache_k)
+            cache_v, cache_v_fp4_sf = KVFP4QuantizeUtil.batched_quantize(cache_v)
+
+        if self.store_dtype != self.dtype:
+            cache_k = cache_k.view(self.store_dtype)
+            cache_v = cache_v.view(self.store_dtype)
+
+            cache_k_fp4_sf = cache_k_fp4_sf.view(self.store_dtype)
+            cache_v_fp4_sf = cache_v_fp4_sf.view(self.store_dtype)
+
+        if get_is_capture_mode() and self.alt_stream is not None:
+            # Overlap the copy of K and V cache for small batch size
+            current_stream = self.device_module.current_stream()
+            self.alt_stream.wait_stream(current_stream)
+            self.k_buffer[layer_id - self.start_layer][loc] = cache_k
+
+            self.k_scale_buffer[layer_id - self.start_layer][loc] = cache_k_fp4_sf
+            with self.device_module.stream(self.alt_stream):
+                self.v_buffer[layer_id - self.start_layer][loc] = cache_v
+
+                self.v_scale_buffer[layer_id - self.start_layer][loc] = cache_v_fp4_sf
+            current_stream.wait_stream(self.alt_stream)
+        else:
+            self.k_buffer[layer_id - self.start_layer][loc] = cache_k
+            self.v_buffer[layer_id - self.start_layer][loc] = cache_v
+
+            self.k_scale_buffer[layer_id - self.start_layer][loc] = cache_k_fp4_sf
+            self.v_scale_buffer[layer_id - self.start_layer][loc] = cache_v_fp4_sf
+
+
+class HybridLinearKVPool(KVCache):
+    """KV cache with separate pools for full and linear attention layers."""
+
+    def __init__(
+        self,
+        size: int,
+        dtype: torch.dtype,
+        page_size: int,
+        head_num: int,
+        head_dim: int,
+        full_attention_layer_ids: List[int],
+        enable_kvcache_transpose: bool,
+        device: str,
+        mamba_pool: MambaPool,
+        enable_memory_saver: bool = False,
+        # TODO: refactor mla related args
+        use_mla: bool = False,
+        kv_lora_rank: int = None,
+        qk_rope_head_dim: int = None,
+    ):
+        self.size = size
+        self.dtype = dtype
+        self.device = device
+        self.full_layer_nums = len(full_attention_layer_ids)
+        self.page_size = page_size
+        # TODO support pp?
+        self.start_layer = 0
+        self.head_num = head_num
+        self.head_dim = head_dim
+        self.mamba_pool = mamba_pool
+        # TODO MHATransposedTokenToKVPool if enable_kvcache_transpose is True
+        assert not enable_kvcache_transpose
+        self.use_mla = use_mla
+        if not use_mla:
+            if _is_npu:
+                TokenToKVPoolClass = AscendTokenToKVPool
+            else:
+                TokenToKVPoolClass = MHATokenToKVPool
+            self.full_kv_pool = TokenToKVPoolClass(
+                size=size,
+                page_size=self.page_size,
+                dtype=dtype,
+                head_num=head_num,
+                head_dim=head_dim,
+                layer_num=self.full_layer_nums,
+                device=device,
+                enable_memory_saver=enable_memory_saver,
+            )
+        else:
+            TokenToKVPoolClass = MLATokenToKVPool
+            self.full_kv_pool = TokenToKVPoolClass(
+                size=size,
+                page_size=self.page_size,
+                dtype=dtype,
+                layer_num=self.full_layer_nums,
+                device=device,
+                kv_lora_rank=kv_lora_rank,
+                qk_rope_head_dim=qk_rope_head_dim,
+                enable_memory_saver=enable_memory_saver,
+            )
+        self.full_attention_layer_id_mapping = {
+            id: i for i, id in enumerate(full_attention_layer_ids)
+        }
+        if use_mla:
+            self.mem_usage = self.get_kv_size_bytes() / GB
+        else:
+            k_size, v_size = self.get_kv_size_bytes()
+            self.mem_usage = (k_size + v_size) / GB
+
+    def get_kv_size_bytes(self):
+        return self.full_kv_pool.get_kv_size_bytes()
+
+    def get_contiguous_buf_infos(self):
+        return self.full_kv_pool.get_contiguous_buf_infos()
+
+    def get_state_buf_infos(self):
+        mamba_data_ptrs, mamba_data_lens, mamba_item_lens = (
+            self.mamba_pool.get_contiguous_buf_infos()
+        )
+        return mamba_data_ptrs, mamba_data_lens, mamba_item_lens
+
+    def maybe_get_custom_mem_pool(self):
+        return self.full_kv_pool.maybe_get_custom_mem_pool()
+
+    def _transfer_full_attention_id(self, layer_id: int):
+        if layer_id not in self.full_attention_layer_id_mapping:
+            raise ValueError(
+                f"{layer_id=} not in full attention layers: {self.full_attention_layer_id_mapping.keys()}"
+            )
+        return self.full_attention_layer_id_mapping[layer_id]
+
+    def get_key_buffer(self, layer_id: int):
+        layer_id = self._transfer_full_attention_id(layer_id)
+        return self.full_kv_pool.get_key_buffer(layer_id)
+
+    def get_value_buffer(self, layer_id: int):
+        layer_id = self._transfer_full_attention_id(layer_id)
+        return self.full_kv_pool.get_value_buffer(layer_id)
+
+    def get_kv_buffer(self, layer_id: int):
+        layer_id = self._transfer_full_attention_id(layer_id)
+        return self.full_kv_pool.get_kv_buffer(layer_id)
+
+    @contextmanager
+    def _transfer_id_context(self, layer: RadixAttention):
+
+        @contextmanager
+        def _patch_layer_id(layer):
+            original_layer_id = layer.layer_id
+            layer.layer_id = self._transfer_full_attention_id(layer.layer_id)
+            try:
+                yield
+            finally:
+                layer.layer_id = original_layer_id
+
+        with _patch_layer_id(layer):
+            yield
+
+    def set_kv_buffer(
+        self,
+        layer: RadixAttention,
+        loc: torch.Tensor,
+        cache_k: torch.Tensor,
+        cache_v: torch.Tensor,
+        k_scale: float = 1.0,
+        v_scale: float = 1.0,
+    ):
+        layer_id = self._transfer_full_attention_id(layer.layer_id)
+        if not self.use_mla:
+            self.full_kv_pool.set_kv_buffer(
+                None,
+                loc,
+                cache_k,
+                cache_v,
+                k_scale,
+                v_scale,
+                layer_id_override=layer_id,
+            )
+        else:
+            with self._transfer_id_context(layer):
+                self.full_kv_pool.set_kv_buffer(
+                    layer,
+                    loc,
+                    cache_k,
+                    cache_v,
+                )
+
+    def get_v_head_dim(self):
+        return self.full_kv_pool.get_value_buffer(0).shape[-1]
+
+    def set_mla_kv_buffer(
+        self,
+        layer: RadixAttention,
+        loc: torch.Tensor,
+        cache_k_nope: torch.Tensor,
+        cache_k_rope: torch.Tensor,
+    ):
+        assert self.use_mla, "set_mla_kv_buffer called when use_mla is False"
+        with self._transfer_id_context(layer):
+            self.full_kv_pool.set_mla_kv_buffer(layer, loc, cache_k_nope, cache_k_rope)
+
+    def get_mla_kv_buffer(
+        self,
+        layer: RadixAttention,
+        loc: torch.Tensor,
+        dst_dtype: Optional[torch.dtype] = None,
+    ):
+        assert self.use_mla, "get_mla_kv_buffer called when use_mla is False"
+        with self._transfer_id_context(layer):
+            return self.full_kv_pool.get_mla_kv_buffer(layer, loc, dst_dtype)
+
+
 class SWAKVPool(KVCache):
     """KV cache with separate pools for full and SWA attention layers."""
 
