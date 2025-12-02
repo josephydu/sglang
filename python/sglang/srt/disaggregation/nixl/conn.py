@@ -274,9 +274,6 @@ class NixlKVManager(CommonKVManager):
     def record_failure(self, bootstrap_room: int, failure_reason: str):
         pass
 
-    def record_failure(self, bootstrap_room: int, failure_reason: str):
-        pass
-
     def register_buffer_to_engine(self):
         kv_addrs = []
         for kv_data_ptr, kv_data_len in zip(

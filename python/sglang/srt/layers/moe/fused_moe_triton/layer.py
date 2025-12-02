@@ -643,13 +643,6 @@ class FusedMoE(torch.nn.Module):
         ):
             shard_id = {"w1": "w3", "w3": "w1", "w2": "w2"}[shard_id]
 
-        # Flashinfer assumes w31 format for w13_weight. Same for the scales.
-        if get_moe_runner_backend().is_flashinfer_trtllm() and (
-            isinstance(self.quant_method, ModelOptNvFp4FusedMoEMethod)
-            or isinstance(self.quant_method, Fp8MoEMethod)
-        ):
-            shard_id = {"w1": "w3", "w3": "w1", "w2": "w2"}[shard_id]
-
         WEIGHT_SCALE_SUPPORTED = [e.value for e in FusedMoeWeightScaleSupported]
         # Fetch the dim to shard the parameter/loaded weight
         # based on the shard id. This will be whatever

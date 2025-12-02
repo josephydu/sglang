@@ -239,9 +239,6 @@ UNBALANCED_MODEL_LOADING_TIMEOUT_S = 480  # leave more time for post data proces
 # the ratio of mamba cache pool size to max_running_requests, it will be safe when it is larger than 2 (yizhang2077)
 MAMBA_CACHE_SIZE_MAX_RUNNING_REQUESTS_RATIO = 3
 
-# the ratio of mamba cache pool size to max_running_requests, it will be safe when it is larger than 2 (yizhang2077)
-MAMBA_CACHE_SIZE_MAX_RUNNING_REQUESTS_RATIO = 3
-
 logger = logging.getLogger(__name__)
 
 if _is_npu:

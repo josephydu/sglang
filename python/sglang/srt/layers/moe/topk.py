@@ -64,16 +64,6 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-if TYPE_CHECKING:
-    from sglang.srt.layers.quantization import QuantizationConfig
-
-try:
-    from triton_kernels.routing import GatherIndx, RoutingData, ScatterIndx, routing
-except ImportError:
-    pass
-logger = logging.getLogger(__name__)
-
-
 _is_cuda = is_cuda()
 _is_hip = is_hip()
 _is_cpu = is_cpu()
@@ -83,6 +73,11 @@ _use_aiter = get_bool_env_var("SGLANG_USE_AITER") and _is_hip
 
 if _is_cuda:
     from sgl_kernel import kimi_k2_moe_fused_gate, moe_fused_gate
+
+    try:
+        from sgl_kernel import kimi_k2_moe_fused_gate
+    except ImportError as e:
+        pass
 
     try:
         from sgl_kernel import kimi_k2_moe_fused_gate
@@ -102,73 +97,6 @@ if _is_npu:
 
 # -------------------------------- TopKConfig ---------------------------------------
 
-# -------------------------------- TopKConfig ---------------------------------------
-
-
-@dataclass
-class TopKConfig:
-    top_k: int
-    use_grouped_topk: bool = False
-    topk_group: Optional[int] = None
-    num_expert_group: Optional[int] = None
-    renormalize: bool = True
-    num_fused_shared_experts: int = 0
-    custom_routing_function: Optional[Callable] = None
-    correction_bias: Optional[torch.Tensor] = None
-    torch_native: bool = False
-    routed_scaling_factor: Optional[float] = None
-    apply_routed_scaling_factor_on_output: bool = False
-    fused_shared_experts_scaling_factor: Optional[float] = None
-    output_format: Optional[TopKOutputFormat] = None
-
-
-# -------------------------------- TopKOutput ---------------------------------------
-
-
-class TopKOutputChecker:
-
-    @staticmethod
-    def format_is_standard(topk_output: TopKOutput) -> TypeGuard[StandardTopKOutput]:
-        return topk_output.format.is_standard()
-
-    @staticmethod
-    def format_is_triton_kernels(
-        topk_output: TopKOutput,
-    ) -> TypeGuard[TritonKernelTopKOutput]:
-        return topk_output.format.is_triton_kernels()
-
-    @staticmethod
-    def format_is_bypassed(topk_output: TopKOutput) -> TypeGuard[BypassedTopKOutput]:
-        return topk_output.format.is_bypassed()
-
-
-class TopKOutputFormat(Enum):
-    STANDARD = auto()
-    TRITON_KERNEL = auto()
-    BYPASSED = auto()
-
-    def is_standard(self) -> bool:
-        return self == TopKOutputFormat.STANDARD
-
-    def is_triton_kernels(self) -> bool:
-        return self == TopKOutputFormat.TRITON_KERNEL
-
-    def is_bypassed(self) -> bool:
-        return self == TopKOutputFormat.BYPASSED
-
-
-@runtime_checkable
-class TopKOutput(Protocol):
-    """Protocol for top-k outputs in different formats."""
-
-    @property
-    def format(self) -> TopKOutputFormat:
-        """The format of the output."""
-        ...
-
-
-class StandardTopKOutput(NamedTuple):
-    """Standard top-k output format."""
 
 @dataclass
 class TopKConfig:

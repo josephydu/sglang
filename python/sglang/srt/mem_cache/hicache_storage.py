@@ -103,6 +103,32 @@ class HiCacheStorage(ABC):
     ) -> torch.Tensor | None:
         """
         Retrieve values for multiple keys.
+        Returns a list of booleans indicating success for each key.
+        """
+        pass
+
+    def batch_set_v1(
+        self,
+        keys: List[str],
+        host_indices: torch.Tensor,
+        extra_info: Optional[HiCacheStorageExtraInfo] = None,
+    ) -> List[bool]:
+        """
+        Store multiple key-value pairs.
+        Returns a list of booleans indicating success for each key.
+        """
+        pass
+
+    # TODO: Deprecate
+    @abstractmethod
+    def get(
+        self,
+        key: str,
+        target_location: Optional[Any] = None,
+        target_sizes: Optional[Any] = None,
+    ) -> torch.Tensor | None:
+        """
+        Retrieve values for multiple keys.
         Returns a list of tensors or None for each key.
         """
         pass

@@ -2014,12 +2014,6 @@ class FlashAttentionBackend(AttentionBackend):
                         metadata, metadata_expand, metadata_swa
                     )
 
-                if self.has_swa:
-                    metadata_swa = self.target_verify_metadata_topk_swa[bs]
-                    self._init_sliding_window_attn_spec_metadata(
-                        metadata, metadata_expand, metadata_swa
-                    )
-
         elif forward_mode.is_draft_extend():
             metadata = self.draft_extend_metadata[bs]
             metadata.cache_seqlens_int32.copy_(seq_lens)

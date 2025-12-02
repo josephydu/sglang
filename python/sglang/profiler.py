@@ -132,13 +132,6 @@ if __name__ == "__main__":
         default=False,
         help="Whether to merge profiles from all ranks into a single trace file",
     )
-    parser.add_argument(
-        "--merge-profiles",
-        action=argparse.BooleanOptionalAction,
-        type=bool,
-        default=False,
-        help="Whether to merge profiles from all ranks into a single trace file",
-    )
 
     args = parser.parse_args()
     activities = []

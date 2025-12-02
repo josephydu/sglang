@@ -616,22 +616,6 @@ def embed_mm_inputs(
 
         other_info["input_deepstack_embeds"] = input_deepstack_embeds
 
-    # deepstack embedding
-    if use_deepstack:
-        num_deepstack_embeddings = len(multimodal_model.deepstack_visual_indexes)
-
-        deepstack_embedding_shape = inputs_embeds.shape[:-1] + (
-            inputs_embeds.shape[-1] * num_deepstack_embeddings,
-        )
-        # a zero-filled embedding, with the same length of inputs_embeds, but different hidden_size
-        input_deepstack_embeds = torch.zeros(
-            deepstack_embedding_shape,
-            device=inputs_embeds.device,
-            dtype=inputs_embeds.dtype,
-        )
-
-        other_info["input_deepstack_embeds"] = input_deepstack_embeds
-
     # 4. scatter embeddings into input embedding
     for i, modality, embedding, mask in zip(
         range(len(embeddings)), modalities, embeddings, masks

@@ -27,9 +27,6 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-import numpy as np
-
-
 @dataclass
 class ForwardMetadata:
 

@@ -2729,6 +2729,22 @@ if __name__ == "__main__":
     parser.add_argument("--profile-by-stage", action="store_true", default=False)
     parser.add_argument("--profile-stages", nargs="+", default=None)
     parser.add_argument(
+        "--plot-throughput",
+        action="store_true",
+        help="Plot throughput and concurrent requests over time. Requires termplotlib and gnuplot.",
+    )
+    # TODO unify all these
+    parser.add_argument(
+        "--profile-activities",
+        type=str,
+        nargs="+",
+        default=["CPU", "GPU"],
+        choices=["CPU", "GPU", "CUDA_PROFILER"],
+    )
+    parser.add_argument("--profile-num-steps", type=int, default=None)
+    parser.add_argument("--profile-by-stage", action="store_true", default=False)
+    parser.add_argument("--profile-stages", nargs="+", default=None)
+    parser.add_argument(
         "--lora-name",
         type=str,
         nargs="*",

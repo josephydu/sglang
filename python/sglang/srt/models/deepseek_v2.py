@@ -3583,18 +3583,6 @@ class DeepseekV2ForCausalLM(nn.Module):
                         )
 
                     if (
-                        should_deepgemm_weight_requant_ue8m0(
-                            weight_block_size=getattr(
-                                self.quant_config, "weight_block_size", None
-                            )
-                        )
-                        and self._executed_weight_requant_ue8m0
-                    ):
-                        weight_scale = inverse_transform_scale_ue8m0(
-                            weight_scale, mn=weight.shape[-2]
-                        )
-
-                    if (
                         _is_cuda
                         and weight_block_size[0] == 128
                         and weight_block_size[1] == 128
@@ -3706,63 +3694,6 @@ class DeepseekV2ForCausalLM(nn.Module):
 
         if is_nextn and enable_nextn_moe_bf16_cast_to_fp8(self.quant_config):
             self._transform_scale_nextn_moe_ue8m0()
-
-    # TODO avoid code dup (currently combine from weight_requant_ue8m0 and transform_scale_ue8m0)
-    def _transform_scale_nextn_moe_ue8m0(self):
-        layer = self.model.decoder
-
-        shared_experts = getattr(layer.mlp, "shared_experts", None)
-        if shared_experts is not None:
-            for module in [
-                shared_experts.gate_up_proj,
-                shared_experts.down_proj,
-            ]:
-                transform_scale_ue8m0_inplace(
-                    module.weight_scale_inv, mn=module.weight.shape[-2]
-                )
-
-        experts = layer.mlp.experts
-        w13_weight_fp8 = (
-            experts.w13_weight,
-            (
-                experts.w13_weight_scale_inv
-                if hasattr(experts, "w13_weight_scale_inv")
-                else experts.w13_weight_scale
-            ),
-        )
-        w2_weight_fp8 = (
-            experts.w2_weight,
-            (
-                experts.w2_weight_scale_inv
-                if hasattr(experts, "w2_weight_scale_inv")
-                else experts.w2_weight_scale
-            ),
-        )
-        if isinstance(experts, DeepEPMoE):
-            for w in [
-                w13_weight_fp8,
-                w2_weight_fp8,
-            ]:
-                transform_scale_ue8m0_inplace(w[1], mn=w[0].shape[-2])
-
-    # TODO can move weight_requant_ue8m0 and transform_scale_ue8m0 into Fp8LinearMethod.process_weights_after_loading
-    def _transform_scale_ue8m0(self, is_nextn=False):
-        num_hidden_layers = 1 if is_nextn else self.config.num_hidden_layers
-
-        for layer_id in range(num_hidden_layers):
-            if is_nextn:
-                layer = self.model.decoder
-            else:
-                layer = self.model.layers[layer_id]
-
-            module_list = []
-            if self.config.q_lora_rank is not None:
-                module_list.append(layer.self_attn.q_b_proj)
-
-            for module in module_list:
-                transform_scale_ue8m0_inplace(
-                    module.weight_scale_inv, mn=module.weight.shape[-2]
-                )
 
     # TODO avoid code dup (currently combine from weight_requant_ue8m0 and transform_scale_ue8m0)
     def _transform_scale_nextn_moe_ue8m0(self):

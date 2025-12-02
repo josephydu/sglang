@@ -160,22 +160,6 @@ class Engine(EngineBase):
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
 
-        # Enable tracing
-        if server_args.enable_trace:
-            process_tracing_init(server_args.otlp_traces_endpoint, "sglang")
-            thread_label = "Tokenizer"
-            if server_args.disaggregation_mode == "prefill":
-                thread_label = "Prefill Tokenizer"
-            elif server_args.disaggregation_mode == "decode":
-                thread_label = "Decode Tokenizer"
-            trace_set_thread_info(thread_label)
-
-        try:
-            self.loop = asyncio.get_running_loop()
-        except RuntimeError:
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
-
     def generate(
         self,
         # The input prompt. It can be a single prompt or a batch of prompts.

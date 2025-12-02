@@ -269,6 +269,9 @@ class RadixCache(BasePrefixCache):
         if params.enable_metrics:
             self.init_metrics_collector()
 
+        if params.enable_metrics:
+            self.init_metrics_collector()
+
         if self.token_to_kv_pool_allocator:
             self.device = self.token_to_kv_pool_allocator.device
         else:
@@ -417,8 +420,6 @@ class RadixCache(BasePrefixCache):
         if self.disable:
             return 0
 
-        key.token_ids = self.key_convert_fn(key.token_ids)
-
         if value is None:
             value = torch.tensor(key.token_ids, dtype=torch.int64)
 
@@ -457,16 +458,6 @@ class RadixCache(BasePrefixCache):
         keys = self._page_align_keys(keys)
         values = kv_indices[: len(keys)].to(dtype=torch.int64, copy=True)
         radix_key = RadixKey(keys, req.extra_key, is_bigram=self.is_eagle)
-
-        page_aligned_token_len = (
-            page_aligned_len + 1 if self.is_eagle else page_aligned_len
-        )
-
-        old_prefix_len = len(req.prefix_indices)
-        if self.is_eagle and old_prefix_len > req.last_matched_prefix_len:
-            # In EAGLE chunked prefill case, the prefix_indices included one unmatched token (kv_indices[actual_kv_len:])
-            # Here we -1 to make sure the kv of the unmatched token can be freed correctly to avoid memory leak
-            old_prefix_len -= 1
 
         # Radix Cache takes one ref in memory pool
         if is_insert:
@@ -519,7 +510,6 @@ class RadixCache(BasePrefixCache):
         self.token_to_kv_pool_allocator.free(
             kv_indices[req.cache_protected_len : new_prefix_len]
         )
-        self.token_to_kv_pool_allocator.free(kv_indices[old_prefix_len:new_prefix_len])
 
         # The prefix indices could be updated, reuse it
         match_result = self.match_prefix(radix_key)

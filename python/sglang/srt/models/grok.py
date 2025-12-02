@@ -427,7 +427,6 @@ class Grok1Attention(nn.Module):
         q, k = self.rotary_emb(positions, q, k)
 
         attn_output = self.attn(q, k, v, forward_batch)
-        del q, k, v, qkv
 
         output, _ = self.o_proj(attn_output)
         return output
